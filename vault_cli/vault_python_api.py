@@ -47,7 +47,7 @@ def get_secrets(key):
 
 
 def list_secrets():
-    r = s.get(reduce(urljoin, (url, path, '?list=true')))
+    r = s.get(reduce(urljoin, (url, path.rstrip('/'), '?list=true')))
     json_response = r.json()
 
     if r.status_code == requests.codes.ok:
