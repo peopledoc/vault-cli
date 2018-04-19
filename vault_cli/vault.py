@@ -3,15 +3,26 @@ import yaml
 
 from vault_cli import vault_python_api
 
-CONF_FILE='test.conf'
+CONF_FILE = 'test.conf'
+
+CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 
 
-@click.group()
-@click.option('--certificate', type=click.File('rb'), help='The certificate to connect to vault')
-@click.option('--token', help='The token to connect to Vault')
-@click.option('--username', help='The username used for userpass authentication')
-@click.option('--password-file', help='Can read from stdin if "-" is used as parameter ')
-def cli(certificate, token, username, password_file):
+@click.group(context_settings=CONTEXT_SETTINGS)
+@click.option('--certificate', '-c', type=click.File('rb'),
+              help='The certificate to connect to vault')
+@click.option('--token', '-t', help='The token to connect to Vault')
+@click.option('--username', '-u',
+              help='The username used for userpass authentication')
+@click.option('--password-file', '-w',
+              help='Can read from stdin if "-" is used as parameter')
+@click.option('--host', '-H', help='Hostname of the vault instance')
+@click.option('--port', '-p', help='TCP Port to use', default=8200)
+@click.option('--base-path', '-b', help='Base path for requests')
+@click.option('--verify/--no-verify', default=True,
+              help='Verify HTTPS certificate')
+def cli(certificate, token, username, password_file, host, port, base_path,
+        verify):
     if token:
         vault_python_api.s.headers.update({'X-Vault-Token': token})
     elif certificate:
