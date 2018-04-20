@@ -64,7 +64,7 @@ ok
 # Get all values from the vault in a single command (yaml format)
 $ vault get-all
 ---
-my_secret: querty
+my_secret: qwerty
 my_other_secret: supersecret
 
 # Delete a secret
