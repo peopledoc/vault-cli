@@ -57,7 +57,7 @@ $ vault get my_secret
 ---
 my_secret: qwerty
 
-# Set its value to "supersecret"
+# Add another secret
 $ vault set my_other_secret supersecret
 ok
 
