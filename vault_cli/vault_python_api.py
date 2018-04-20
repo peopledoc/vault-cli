@@ -8,9 +8,8 @@ from urllib.parse import urljoin
 class VaultSession(object):
     def __init__(self, url, verify, base_path,
                  certificate=None, token=None, username=None, password_file=None):
+        self.session = create_session(verify)
 
-        self.session = requests.Session()
-        self.session.verify = verify
         self.url = urljoin(url, "v1/")
         self.base_path = base_path
 
@@ -37,7 +36,9 @@ class VaultSession(object):
 
 
 def create_session(verify):
-    return
+    session = requests.Session()
+    session.verify = verify
+    return session
 
 
 def userpass_authentication(session, url, username, password):
