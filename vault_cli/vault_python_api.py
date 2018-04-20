@@ -45,13 +45,14 @@ def userpass_authentication(session, url, username, password):
     data = {"password": password}
     response = session.post(url + 'auth/userpass/login/' + username,
                             json=data, headers={})
-    json_response = response.json()
 
     if response.status_code == requests.codes.ok:
+        json_response = response.json()
         session.headers.update(
             {'X-Vault-Token': json_response.get('auth').get('client_token')})
     else:
-        raise ValueError('Wrong username or password')
+        raise ValueError('Wrong username or password (HTTP code: %s)' %
+                         response.status_code)
 
 
 # TODO
