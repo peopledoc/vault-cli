@@ -1,7 +1,7 @@
 # CLI tool for Hashicorp Vault
 
 This tools allows simple interactions with the vault API, allowing
-cofiguration to be done in a separate step using a YAML configuration file.
+configuration to be done in a separate step using a YAML configuration file.
 
 This is especially interesting if you interact with Hashicorp Vault from
 automated deployment tools
