@@ -18,7 +18,7 @@ CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @click.option('--url', '-U', help='URL of the vault instance',
-              default='https://localshot:8200')
+              default='https://localhost:8200')
 @click.option('--verify/--no-verify', default=True,
               help='Verify HTTPS certificate')
 @click.option('--certificate', '-c', type=click.File('rb'),
