@@ -1,88 +1,156 @@
+import os
+
 import click
 import yaml
 
 from vault_cli import vault_python_api
 
-CONF_FILE='test.conf'
+# Ordered by increasing priority
+CONFIG_FILES = [
+    '/etc/vault.yml',
+    '~/.vault.yml',
+    './.vault.yml',
+]
+
+CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 
 
-@click.group()
-@click.option('--certificate', type=click.File('rb'), help='The certificate to connect to vault')
-@click.option('--token', help='The token to connect to Vault')
-@click.option('--username', help='The username used for userpass authentication')
-@click.option('--password-file', help='Can read from stdin if "-" is used as parameter ')
-def cli(certificate, token, username, password_file):
-    if token:
-        vault_python_api.s.headers.update({'X-Vault-Token': token})
-    elif certificate:
-        vault_python_api.certificate_authentication(certificate.read())
-    elif username:
-        if not password_file:
-            raise click.UsageError('Cannot use --username without password')
-        with click.open_file(password_file) as f:
-            password = f.read().strip()
-        vault_python_api.userpass_authentication(username, password)
+@click.group(context_settings=CONTEXT_SETTINGS)
+@click.pass_context
+@click.option('--url', '-U', help='URL of the vault instance',
+              default='https://localshot:8200')
+@click.option('--verify/--no-verify', default=True,
+              help='Verify HTTPS certificate')
+@click.option('--certificate', '-c', type=click.File('rb'),
+              help='The certificate to connect to vault')
+@click.option('--token', '-t', help='The token to connect to Vault')
+@click.option('--username', '-u',
+              help='The username used for userpass authentication')
+@click.option('--password-file', '-w', type=click.File('rb'),
+              help='Can read from stdin if "-" is used as parameter')
+@click.option('--base-path', '-b', help='Base path for requests')
+def cli(ctx, **kwargs):
+    try:
+        ctx.obj = vault_python_api.VaultSession(**kwargs)
+    except ValueError as exc:
+        raise click.UsageError(exc)
 
 
-@click.command()
-def list():
-    r = vault_python_api.list_secrets()
-    click.echo(r)
+def read_config_file(file_path):
+    try:
+        with open(os.path.expanduser(file_path), "r") as f:
+            config = yaml.safe_load(f)
+    except FileNotFoundError:
+        return {}
+    config.pop("config", None)
+
+    # Because we're modifying the dict during iteration, we need to
+    # consolidate the keys into a list
+    for key in list(config):
+        config[key.replace("-", "_")] = config.pop(key)
+
+    _open_file(config, "certificate")
+    _open_file(config, "password_file")
+
+    return config
+
+
+def _open_file(config, key):
+    """
+    Replace file name with open file at the given key
+    in the config dict
+    """
+    try:
+        config[key] = open(os.path.expanduser(config[key]), "rb")
+    except KeyError:
+        pass
+
+
+@click.command("list")
+@click.pass_obj
+def list_(session):
+    result = vault_python_api.list_secrets(
+        session=session.session, url=session.full_url())
+    click.echo(result)
 
 
 @click.command(name='get-all')
-def get_all():
-    r = {}
-    for x in vault_python_api.list_secrets():
-        v = vault_python_api.get_secret(x)
-        if v:
-            r[x] = v
+@click.pass_obj
+def get_all(session):
+    result = {}
+    for key in vault_python_api.list_secrets(session=session.session,
+                                             url=session.full_url()):
+        secret = vault_python_api.get_secret(session=session.session,
+                                             url=session.full_url(key))
+        if secret:
+            result[key] = secret
 
-    if r:
-        click.echo(yaml.dump(r, default_flow_style=False, explicit_start=True))
+    if result:
+        click.echo(yaml.dump(result,
+                             default_flow_style=False,
+                             explicit_start=True))
 
 
 @click.command()
+@click.pass_obj
 @click.option('--text', is_flag=True)
 @click.argument('name', nargs=-1)
-def get(text, name):
-    r = {}
-    for x in name:
-        v = vault_python_api.get_secret(x)
+def get(session, text, name):
+    result = {}
+    for key in name:
+        secret = vault_python_api.get_secret(session=session.session,
+                                             url=session.full_url(key))
         if text:
-            click.echo(v)
+            click.echo(secret)
             continue
-        if v:
-            r[x] = v
-    if r and not text:
-        click.echo(yaml.dump(r, default_flow_style=False, explicit_start=True))
+        if secret:
+            result[key] = secret
+    if result and not text:
+        click.echo(yaml.dump(result,
+                             default_flow_style=False,
+                             explicit_start=True))
 
 
-@click.command()
+@click.command("set")
+@click.pass_obj
 @click.argument('name')
 @click.argument('value', nargs=-1)
-def set(name, value):
+def set_(session, name, value):
     if len(value) == 1:
         value = value[0]
-    r = vault_python_api.put_secret(name, {'value': value})
-    click.echo(r)
+    result = vault_python_api.put_secret(session=session.session,
+                                         url=session.full_url(name),
+                                         data={'value': value})
+    click.echo(result)
 
 
 @click.command()
+@click.pass_obj
 @click.argument('name')
-def delete(name):
-    r = vault_python_api.delete_secret(name)
-    click.echo(r)
+def delete(session, name):
+    result = vault_python_api.delete_secret(session=session.session,
+                                            url=session.full_url(name))
+    click.echo(result)
 
 
 cli.add_command(get_all)
 cli.add_command(get)
-cli.add_command(set)
-cli.add_command(list)
+cli.add_command(set_)
+cli.add_command(list_)
 cli.add_command(delete)
 
 
-# File arguments
-# @click.argument('input', type=click.File('rb'))
-# File Path Argumments
-# @click.argument('f', type=click.Path(exists=True))
+def build_config_from_files():
+    config = {}
+    config_files = CONFIG_FILES
+
+    for potential_file in config_files:
+        config.update(read_config_file(potential_file))
+
+    return config
+
+
+def main():
+    config = build_config_from_files()
+
+    return cli(default_map=config)
