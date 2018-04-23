@@ -77,7 +77,7 @@ def get_secrets(session, url):
 
 
 def list_secrets(session, url):
-    response = session.get(url.rstrip('/') + '?list=true')
+    response = session.get(url.rstrip('/'), params={'list': 'true'})
     json_response = response.json()
 
     if response.status_code == requests.codes.ok:
