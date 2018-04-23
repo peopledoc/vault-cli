@@ -67,21 +67,24 @@ def _open_file(config, key):
 
 
 @click.command("list")
+@click.argument('path', required=False, default='')
 @click.pass_obj
-def list_(session):
+def list_(session, path):
     result = vault_python_api.list_secrets(
-        session=session.session, url=session.full_url())
+        session=session.session, url=session.full_url(path))
     click.echo(result)
 
 
 @click.command(name='get-all')
+@click.argument('path', required=False, default='')
 @click.pass_obj
-def get_all(session):
+def get_all(session, path):
     result = {}
     for key in vault_python_api.list_secrets(session=session.session,
-                                             url=session.full_url()):
+                                             url=session.full_url(path=path)):
+        full_path = '/'.join([path, key])
         secret = vault_python_api.get_secret(session=session.session,
-                                             url=session.full_url(key))
+                                             url=session.full_url(full_path))
         if secret:
             result[key] = secret
 
