@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import json
 import requests
 
 from urllib.parse import urljoin
@@ -35,6 +36,26 @@ class VaultSession(object):
         return url
 
 
+class VaultAPIException(Exception):
+
+    def __init__(self, status_code, body, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.status_code = status_code
+        try:
+            self.error = '\n'.join(json.loads(body)['errors'])
+        except Exception:
+            self.error = body
+
+    def __str__(self):
+        return 'status={} error="{}"'.format(self.status_code, self.error)
+
+
+def handle_error(response, expected_code=requests.codes.ok):
+    if response.status_code == expected_code:
+        return
+    raise VaultAPIException(response.status_code, response.text)
+
+
 def create_session(verify):
     session = requests.Session()
     session.verify = verify
@@ -45,6 +66,7 @@ def userpass_authentication(session, url, username, password):
     data = {"password": password}
     response = session.post(url + 'auth/userpass/login/' + username,
                             json=data, headers={})
+    handle_error(response)
 
     if response.status_code == requests.codes.ok:
         json_response = response.json()
@@ -60,20 +82,16 @@ def certificate_authentication(session, cert):
     pass
 
 
-def get_secret(session, url):
-    response = session.get(url)
-    json_response = response.json()
-
-    if response.status_code == requests.codes.ok:
-        return json_response.get('data').get('value')
-
-
 def get_secrets(session, url):
     response = session.get(url)
+    handle_error(response)
     json_response = response.json()
+    return json_response['data']
 
-    if response.status_code == requests.codes.ok:
-        return json_response.get('data')
+
+def get_secret(session, url):
+    data = get_secrets(session, url)
+    return data['value']
 
 
 def get_recursive_secrets(session, url):
@@ -93,25 +111,16 @@ def get_recursive_secrets(session, url):
 
 def list_secrets(session, url):
     response = session.get(url.rstrip('/'), params={'list': 'true'})
+    handle_error(response)
     json_response = response.json()
-
-    if response.status_code == requests.codes.ok:
-        return json_response.get('data').get('keys')
+    return json_response['data']['keys']
 
 
 def put_secret(session, url, data):
     response = session.put(url, json=data)
-
-    if response.status_code == 204:
-        return 'ok'
-    else:
-        return ','.join(response.json()['errors']), response.status_code
+    handle_error(response, requests.codes.no_content)
 
 
 def delete_secret(session, url):
     response = session.delete(url)
-
-    if response.status_code == 204:
-        return 'ok'
-    else:
-        return ','.join(response.json()['errors']), response.status_code
+    handle_error(response, requests.codes.no_content)
