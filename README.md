@@ -57,6 +57,10 @@ $ vault get my_secret
 ---
 my_secret: qwerty
 
+# Same with only the value of the secret in plain text
+$ vault get my_secret --text
+qwerty
+
 # Add another secret
 $ vault set my_other_secret supersecret
 ok
@@ -66,6 +70,13 @@ $ vault get-all
 ---
 my_secret: qwerty
 my_other_secret: supersecret
+test:
+  my_folder_secret: azerty
+
+# Get all values from a folder in a single command (yaml format)
+$ vault get-all folder
+---
+my_folder_secret: azerty
 
 # Delete a secret
 $ vault delete my_other_secret

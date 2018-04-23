@@ -67,23 +67,22 @@ def _open_file(config, key):
 
 
 @click.command("list")
+@click.argument('path', required=False, default='')
 @click.pass_obj
-def list_(session):
+def list_(session, path):
     result = vault_python_api.list_secrets(
-        session=session.session, url=session.full_url())
+        session=session.session, url=session.full_url(path))
     click.echo(result)
 
 
 @click.command(name='get-all')
+@click.argument('path', required=False, default='')
 @click.pass_obj
-def get_all(session):
-    result = {}
-    for key in vault_python_api.list_secrets(session=session.session,
-                                             url=session.full_url()):
-        secret = vault_python_api.get_secret(session=session.session,
-                                             url=session.full_url(key))
-        if secret:
-            result[key] = secret
+def get_all(session, path):
+    url = session.full_url(path=path)
+    result = vault_python_api.get_recursive_secrets(
+        session=session.session,
+        url=url)
 
     if result:
         click.echo(yaml.dump(result,
