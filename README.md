@@ -57,6 +57,10 @@ $ vault get my_secret
 ---
 my_secret: qwerty
 
+# Same with only the value of the secret in plain text
+$ vault get my_secret --text
+qwerty
+
 # Add another secret
 $ vault set my_other_secret supersecret
 ok
