@@ -117,19 +117,19 @@ def get(session, text, name):
 def set_(session, name, value):
     if len(value) == 1:
         value = value[0]
-    result = vault_python_api.put_secret(session=session.session,
-                                         url=session.full_url(name),
-                                         data={'value': value})
-    click.echo(result)
+    vault_python_api.put_secret(session=session.session,
+                                url=session.full_url(name),
+                                data={'value': value})
+    click.echo('Done')
 
 
 @click.command()
 @click.pass_obj
 @click.argument('name')
 def delete(session, name):
-    result = vault_python_api.delete_secret(session=session.session,
-                                            url=session.full_url(name))
-    click.echo(result)
+    vault_python_api.delete_secret(session=session.session,
+                                   url=session.full_url(name))
+    click.echo('Done')
 
 
 cli.add_command(get_all)

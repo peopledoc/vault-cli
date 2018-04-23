@@ -63,7 +63,7 @@ qwerty
 
 # Add another secret
 $ vault set my_other_secret supersecret
-ok
+Done
 
 # Get all values from the vault in a single command (yaml format)
 $ vault get-all
@@ -80,7 +80,7 @@ my_folder_secret: azerty
 
 # Delete a secret
 $ vault delete my_other_secret
-ok
+Done
 ```
 
 ## Configuration
