@@ -76,6 +76,21 @@ def get_secrets(session, url):
         return json_response.get('data')
 
 
+def get_recursive_secrets(session, url):
+    result = {}
+    for key in list_secrets(session=session, url=url):
+        key_url = '/'.join([url.rstrip('/'), key])
+
+        if key_url.endswith('/'):
+            result[key.rstrip('/')] = get_recursive_secrets(session, key_url)
+            continue
+
+        secret = get_secret(session=session, url=key_url)
+        if secret:
+            result[key] = secret
+    return result
+
+
 def list_secrets(session, url):
     response = session.get(url.rstrip('/'), params={'list': 'true'})
     json_response = response.json()

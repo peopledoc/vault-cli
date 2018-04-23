@@ -79,14 +79,10 @@ def list_(session, path):
 @click.argument('path', required=False, default='')
 @click.pass_obj
 def get_all(session, path):
-    result = {}
-    for key in vault_python_api.list_secrets(session=session.session,
-                                             url=session.full_url(path=path)):
-        full_path = '/'.join([path, key])
-        secret = vault_python_api.get_secret(session=session.session,
-                                             url=session.full_url(full_path))
-        if secret:
-            result[key] = secret
+    url = session.full_url(path=path)
+    result = vault_python_api.get_recursive_secrets(
+        session=session.session,
+        url=url)
 
     if result:
         click.echo(yaml.dump(result,
