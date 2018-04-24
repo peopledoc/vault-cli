@@ -90,11 +90,34 @@ def get_all(session, path):
                              explicit_start=True))
 
 
+def nested_keys(path, value):
+    """
+    >>> nested_path('test', 'foo')
+    {'test': 'foo'}
+
+    >>> nested_path('test/bla', 'foo')
+    {'test': {'bla': 'foo'}}
+    """
+    try:
+        base, subpath = path.strip('/').split('/', 1)
+    except ValueError:
+        return {path: value}
+    return {base: nested_keys(subpath, value)}
+
+
 @click.command()
 @click.pass_obj
 @click.option('--text', is_flag=True)
+@click.option('--with-key/--without-key',
+              default=True,
+              help=("Formats the output with the yaml key name. "
+                    "--without-key cannot be used with multiple key names."))
 @click.argument('name', nargs=-1)
-def get(session, text, name):
+def get(session, text, with_key, name):
+    if not with_key and len(name) > 1:
+        raise click.ClickException(
+            "Cannot use --without-key when specifying multiple key names.")
+
     result = {}
     for key in name:
         secret = vault_python_api.get_secret(session=session.session,
@@ -102,8 +125,12 @@ def get(session, text, name):
         if text:
             click.echo(secret)
             continue
-        if secret:
-            result[key] = secret
+        nested_secret = nested_keys(key, secret)
+        if with_key:
+            result.update(nested_secret)
+        else:
+            result = secret
+            break
     if result and not text:
         click.echo(yaml.dump(result,
                              default_flow_style=False,
