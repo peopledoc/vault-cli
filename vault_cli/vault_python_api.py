@@ -2,6 +2,7 @@
 
 import json
 import requests
+import urllib3
 
 try:
     from urllib.parse import urljoin
@@ -21,6 +22,7 @@ class Session(requests.Session):
                                    *args, **kwargs):
         if self.verify is False:
             verify = False
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         return super(Session, self).merge_environment_settings(
             url, proxies, stream, verify, *args, **kwargs)
