@@ -40,7 +40,7 @@ def read_config_file(file_path):
     try:
         with open(os.path.expanduser(file_path), "r") as f:
             config = yaml.safe_load(f)
-    except FileNotFoundError:
+    except IOError:
         return {}
     config.pop("config", None)
 
@@ -85,9 +85,10 @@ def get_all(session, path):
         url=url)
 
     if result:
-        click.echo(yaml.dump(result,
-                             default_flow_style=False,
-                             explicit_start=True))
+        click.echo(yaml.safe_dump(
+            result,
+            default_flow_style=False,
+            explicit_start=True))
 
 
 def nested_keys(path, value):
@@ -135,9 +136,10 @@ def get(session, text, with_key, name):
             result = secret
             break
     if result and not text:
-        click.echo(yaml.dump(result,
-                             default_flow_style=False,
-                             explicit_start=True))
+        click.echo(yaml.safe_dump(
+            result,
+            default_flow_style=False,
+            explicit_start=True))
 
 
 @click.command("set")

@@ -3,12 +3,18 @@
 import json
 import requests
 
-from urllib.parse import urljoin
+try:
+    from urllib.parse import urljoin
+except ImportError:
+    # Python 2
+    from urlparse import urljoin
+
 
 
 class VaultSession(object):
     def __init__(self, url, verify, base_path,
-                 certificate=None, token=None, username=None, password_file=None):
+                 certificate=None, token=None, username=None,
+                 password_file=None):
         self.session = create_session(verify)
 
         self.url = urljoin(url, "v1/")
@@ -39,7 +45,7 @@ class VaultSession(object):
 class VaultAPIException(Exception):
 
     def __init__(self, status_code, body, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(VaultAPIException, self).__init__(*args, **kwargs)
         self.status_code = status_code
         try:
             self.error = '\n'.join(json.loads(body)['errors'])
