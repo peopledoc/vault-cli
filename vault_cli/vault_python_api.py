@@ -2,13 +2,36 @@
 
 import json
 import requests
+import urllib3
 
-from urllib.parse import urljoin
+try:
+    from urllib.parse import urljoin
+except ImportError:
+    # Python 2
+    from urlparse import urljoin
+
+
+class Session(requests.Session):
+    """A wrapper for requests.Session to override 'verify' property, ignoring
+    REQUESTS_CA_BUNDLE environment variable.
+
+    This is a workaround for
+    https://github.com/requests/requests/issues/3829
+    """
+    def merge_environment_settings(self, url, proxies, stream, verify,
+                                   *args, **kwargs):
+        if self.verify is False:
+            verify = False
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        return super(Session, self).merge_environment_settings(
+            url, proxies, stream, verify, *args, **kwargs)
 
 
 class VaultSession(object):
     def __init__(self, url, verify, base_path,
-                 certificate=None, token=None, username=None, password_file=None):
+                 certificate=None, token=None, username=None,
+                 password_file=None):
         self.session = create_session(verify)
 
         self.url = urljoin(url, "v1/")
@@ -39,7 +62,7 @@ class VaultSession(object):
 class VaultAPIException(Exception):
 
     def __init__(self, status_code, body, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(VaultAPIException, self).__init__(*args, **kwargs)
         self.status_code = status_code
         try:
             self.error = '\n'.join(json.loads(body)['errors'])
@@ -57,7 +80,7 @@ def handle_error(response, expected_code=requests.codes.ok):
 
 
 def create_session(verify):
-    session = requests.Session()
+    session = Session()
     session.verify = verify
     return session
 
