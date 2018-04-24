@@ -147,3 +147,20 @@ def put_secret(session, url, data):
 def delete_secret(session, url):
     response = session.delete(url)
     handle_error(response, requests.codes.no_content)
+
+
+def is_dir(session, url, path):
+    """
+    Returns True if the given path is a dir
+    """
+    if not path:
+        # The top level dir is a dir
+        return True
+
+    path = path.strip("/")
+    try:
+        parent, subpath = path.rsplit("/", 1)
+    except ValueError:
+        parent, subpath = "", path
+
+    return subpath + "/" in list_secrets(session, urljoin(url, parent))
