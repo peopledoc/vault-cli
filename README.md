@@ -65,16 +65,32 @@ qwerty
 $ vault set my_other_secret supersecret
 Done
 
+# Add a secret object
+$ vault set --yaml blob_secret "{code: supercode}"
+Done
+
 # Get all values from the vault in a single command (yaml format)
 $ vault get-all
 ---
 my_secret: qwerty
 my_other_secret: supersecret
+blob_secret:
+  code: supercode
 test:
   my_folder_secret: azerty
 
+# Get a nested secret based on a path
+$ vault get test/my_folder_secret
+test:
+  my_folder_secret: azerty
+
+# Get a nested secret without root key without a key
+$ vault get --without-key test/my_folder_secret
+--- azerty
+...
+
 # Get all values from a folder in a single command (yaml format)
-$ vault get-all folder
+$ vault get-all test
 ---
 my_folder_secret: azerty
 
