@@ -65,11 +65,17 @@ qwerty
 $ vault set my_other_secret supersecret
 Done
 
+# Add a secret object
+$ vault set --yaml blob_secret "{code: supercode}"
+Done
+
 # Get all values from the vault in a single command (yaml format)
 $ vault get-all
 ---
 my_secret: qwerty
 my_other_secret: supersecret
+blob_secret:
+  code: supercode
 test:
   my_folder_secret: azerty
 

@@ -139,11 +139,16 @@ def get(session, text, with_key, name):
 
 @click.command("set")
 @click.pass_obj
+@click.option('--yaml', 'format_yaml', is_flag=True)
 @click.argument('name')
 @click.argument('value', nargs=-1)
-def set_(session, name, value):
+def set_(session, format_yaml, name, value):
     if len(value) == 1:
         value = value[0]
+
+    if format_yaml:
+        value = yaml.safe_load(value)
+
     vault_python_api.put_secret(session=session.session,
                                 url=session.full_url(name),
                                 data={'value': value})
