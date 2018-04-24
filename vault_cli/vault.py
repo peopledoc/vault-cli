@@ -107,7 +107,10 @@ def nested_keys(path, value):
 
 @click.command()
 @click.pass_obj
-@click.option('--text', is_flag=True)
+@click.option('--text',
+              is_flag=True,
+              help=("--text implies --without-key. Returns the value in "
+                    "plain text format instead of yaml."))
 @click.option('--with-key/--without-key',
               default=True,
               help=("Formats the output with the yaml key name. "

@@ -79,8 +79,18 @@ blob_secret:
 test:
   my_folder_secret: azerty
 
+# Get a nested secret based on a path
+$ vault get test/my_folder_secret
+test:
+  my_folder_secret: azerty
+
+# Get a nested secret without root key without a key
+$ vault get --without-key test/my_folder_secret
+--- azerty
+...
+
 # Get all values from a folder in a single command (yaml format)
-$ vault get-all folder
+$ vault get-all test
 ---
 my_folder_secret: azerty
 
