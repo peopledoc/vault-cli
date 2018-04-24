@@ -10,6 +10,21 @@ except ImportError:
     from urlparse import urljoin
 
 
+class Session(requests.Session):
+    """A wrapper for requests.Session to override 'verify' property, ignoring
+    REQUESTS_CA_BUNDLE environment variable.
+
+    This is a workaround for
+    https://github.com/requests/requests/issues/3829
+    """
+    def merge_environment_settings(self, url, proxies, stream, verify,
+                                   *args, **kwargs):
+        if self.verify is False:
+            verify = False
+
+        return super(Session, self).merge_environment_settings(
+            url, proxies, stream, verify, *args, **kwargs)
+
 
 class VaultSession(object):
     def __init__(self, url, verify, base_path,
@@ -63,7 +78,7 @@ def handle_error(response, expected_code=requests.codes.ok):
 
 
 def create_session(verify):
-    session = requests.Session()
+    session = Session()
     session.verify = verify
     return session
 
