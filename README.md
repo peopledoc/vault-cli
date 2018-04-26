@@ -18,6 +18,8 @@ The tool is packaged but the package is not yet available on pypi.
 $ vault --help
 Usage: vault [OPTIONS] COMMAND [ARGS]...
 
+  Interact with a Vault. See subcommands for details.
+
 Options:
   -U, --url TEXT                URL of the vault instance
   --verify / --no-verify        Verify HTTPS certificate
@@ -30,11 +32,12 @@ Options:
   -h, --help                    Show this message and exit.
 
 Commands:
-  delete
-  get
-  get-all
-  list
-  set
+  delete   Deletes a single secret.
+  get      Return a single secret value.
+  get-all  Return multiple secrets.
+  list     List all the secrets at the given path.
+  set      Set a single secret to the given value(s).
+
 ```
 
 ## Authentication
@@ -54,8 +57,8 @@ $ vault --url=https://vault.mydomain:8200 --certificate=/etc/vault/certificate.k
 
 # Using the configuration file, get the value for my_secret (yaml format)
 $ vault get my_secret
----
-my_secret: qwerty
+--- qwerty
+...
 
 # Same with only the value of the secret in plain text
 $ vault get my_secret --text
@@ -77,22 +80,19 @@ my_other_secret: supersecret
 blob_secret:
   code: supercode
 test:
-  my_folder_secret: azerty
+  my_folder_secret: sesame
 
 # Get a nested secret based on a path
-$ vault get test/my_folder_secret
+$ vault get-all test/my_folder_secret
 test:
-  my_folder_secret: azerty
-
-# Get a nested secret without root key without a key
-$ vault get --without-key test/my_folder_secret
---- azerty
-...
+  my_folder_secret: sesame
 
 # Get all values from a folder in a single command (yaml format)
-$ vault get-all test
+$ vault get-all test my_secret
 ---
-my_folder_secret: azerty
+my_secret: qwerty
+test:
+  my_folder_secret: sesame
 
 # Delete a secret
 $ vault delete my_other_secret

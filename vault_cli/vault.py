@@ -30,6 +30,9 @@ CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
               help='Can read from stdin if "-" is used as parameter')
 @click.option('--base-path', '-b', help='Base path for requests')
 def cli(ctx, **kwargs):
+    """
+    Interact with a Vault. See subcommands for details.
+    """
     try:
         ctx.obj = vault_python_api.VaultSession(**kwargs)
     except ValueError as exc:
@@ -70,19 +73,45 @@ def _open_file(config, key):
 @click.argument('path', required=False, default='')
 @click.pass_obj
 def list_(session, path):
+    """
+    List all the secrets at the given path. Folders are listed too. If no path
+    is given, list the objects at the root.
+    """
     result = vault_python_api.list_secrets(
         session=session.session, url=session.full_url(path))
     click.echo(result)
 
 
 @click.command(name='get-all')
-@click.argument('path', required=False, default='')
+@click.argument('path', required=False, nargs=-1)
 @click.pass_obj
 def get_all(session, path):
-    url = session.full_url(path=path)
-    result = vault_python_api.get_recursive_secrets(
-        session=session.session,
-        url=url)
+    """
+    Return multiple secrets. Return a single yaml with all the secrets located
+    at the given paths. Folders are recursively explored. Without a path,
+    explores all the vault.
+    """
+    result = {}
+
+    # Just renaming the variable
+    paths = path
+
+    if not paths:
+        paths = [""]
+
+    for path in paths:
+        if vault_python_api.is_dir(session=session.session,
+                                   url=session.full_url(),
+                                   path=path):
+            secret = vault_python_api.get_recursive_secrets(
+                session=session.session,
+                url=session.full_url(path=path))
+        else:
+            secret = vault_python_api.get_secret(
+                session=session.session,
+                url=session.full_url(path=path))
+
+        result.update(nested_keys(path, secret))
 
     if result:
         click.echo(yaml.safe_dump(
@@ -112,34 +141,20 @@ def nested_keys(path, value):
               is_flag=True,
               help=("--text implies --without-key. Returns the value in "
                     "plain text format instead of yaml."))
-@click.option('--with-key/--without-key',
-              default=True,
-              help=("Formats the output with the yaml key name. "
-                    "--without-key cannot be used with multiple key names."))
-@click.argument('name', nargs=-1)
-def get(session, text, with_key, name):
-    if not with_key and len(name) > 1:
-        raise click.ClickException(
-            "Cannot use --without-key when specifying multiple key names.")
+@click.argument('name')
+def get(session, text, name):
+    """
+    Return a single secret value.
+    """
+    secret = vault_python_api.get_secret(session=session.session,
+                                         url=session.full_url(name))
+    if text:
+        click.echo(secret)
+        return
 
-    result = {}
-    for key in name:
-        secret = vault_python_api.get_secret(session=session.session,
-                                             url=session.full_url(key))
-        if text:
-            click.echo(secret)
-            continue
-        nested_secret = nested_keys(key, secret)
-        if with_key:
-            result.update(nested_secret)
-        else:
-            result = secret
-            break
-    if result and not text:
-        click.echo(yaml.safe_dump(
-            result,
-            default_flow_style=False,
-            explicit_start=True))
+    click.echo(yaml.safe_dump(secret,
+                         default_flow_style=False,
+                         explicit_start=True))
 
 
 @click.command("set")
@@ -148,6 +163,9 @@ def get(session, text, with_key, name):
 @click.argument('name')
 @click.argument('value', nargs=-1)
 def set_(session, format_yaml, name, value):
+    """
+    Set a single secret to the given value(s).
+    """
     if len(value) == 1:
         value = value[0]
 
@@ -164,6 +182,9 @@ def set_(session, format_yaml, name, value):
 @click.pass_obj
 @click.argument('name')
 def delete(session, name):
+    """
+    Deletes a single secret.
+    """
     vault_python_api.delete_secret(session=session.session,
                                    url=session.full_url(name))
     click.echo('Done')
