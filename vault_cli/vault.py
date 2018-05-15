@@ -24,6 +24,8 @@ CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 @click.option('--certificate', '-c', type=click.File('rb'),
               help='The certificate to connect to vault')
 @click.option('--token', '-t', help='The token to connect to Vault')
+@click.option('--token-file', '-T', type=click.File('rb'),
+              help='File which contains the token to connect to Vault')
 @click.option('--username', '-u',
               help='The username used for userpass authentication')
 @click.option('--password-file', '-w', type=click.File('rb'),
@@ -54,6 +56,7 @@ def read_config_file(file_path):
 
     _open_file(config, "certificate")
     _open_file(config, "password_file")
+    _open_file(config, "token_file")
 
     return config
 

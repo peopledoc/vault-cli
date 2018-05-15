@@ -31,11 +31,14 @@ class Session(requests.Session):
 class VaultSession(object):
     def __init__(self, url, verify, base_path,
                  certificate=None, token=None, username=None,
-                 password_file=None):
+                 password_file=None, token_file=None):
         self.session = create_session(verify)
 
         self.url = urljoin(url, "v1/")
         self.base_path = base_path
+
+        if token_file:
+            token = token_file.read().decode("utf-8").strip()
 
         if token:
             self.session.headers.update({'X-Vault-Token': token})

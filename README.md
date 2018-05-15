@@ -25,6 +25,8 @@ Options:
   --verify / --no-verify        Verify HTTPS certificate
   -c, --certificate FILENAME    The certificate to connect to vault
   -t, --token TEXT              The token to connect to Vault
+  -T, --token-file FILENAME     File which contains the token to connect to
+                                Vault
   -u, --username TEXT           The username used for userpass authentication
   -w, --password-file FILENAME  Can read from stdin if "-" is used as
                                 parameter
@@ -117,6 +119,8 @@ their corresponding values:
 ---
 username: my_username
 password-file: ~/.vault-password
+# or
+token-file: ~/.vault-token
 url: https://vault.mydomain:8200
 verify: no
 base-path: project/
