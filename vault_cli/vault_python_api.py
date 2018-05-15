@@ -58,7 +58,7 @@ class VaultSession(object):
     def full_url(self, path=None):
         url = urljoin(self.url, self.base_path)
         if path:
-            return urljoin(url, path)
+            return '/'.join(x.strip('/') for x in (url, path))
         return url
 
 
