@@ -38,7 +38,7 @@ def cli(ctx, **kwargs):
     try:
         ctx.obj = vault_python_api.VaultSession(**kwargs)
     except ValueError as exc:
-        raise click.UsageError(exc)
+        raise click.UsageError(str(exc))
 
 
 def read_config_file(file_path):
