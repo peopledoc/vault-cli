@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 """
 Copyright 2018 PeopleDoc
 Written by Yann Lachiver
@@ -16,8 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-import json
 import requests
 import urllib3
 
@@ -26,6 +23,9 @@ try:
 except ImportError:
     # Python 2
     from urlparse import urljoin
+
+from vault_cli.backend import VaultAPIException
+from vault_cli.backend import VaultSessionBase
 
 
 class Session(requests.Session):
@@ -45,48 +45,12 @@ class Session(requests.Session):
             url, proxies, stream, verify, *args, **kwargs)
 
 
-class VaultAPIException(Exception):
+class VaultSession(VaultSessionBase):
 
-    def __init__(self, status_code, body, *args, **kwargs):
-        super(VaultAPIException, self).__init__(*args, **kwargs)
-        self.status_code = status_code
-        try:
-            self.error = '\n'.join(json.loads(body)['errors'])
-        except Exception:
-            self.error = body
-
-    def __str__(self):
-        return 'status={} error="{}"'.format(self.status_code, self.error)
-
-
-class VaultSession(object):
-    def __init__(self, url, verify, base_path,
-                 certificate=None, token=None, username=None,
-                 password_file=None, token_file=None):
+    def init_session(self, url, verify):
         self.session = self.create_session(verify)
 
         self.url = urljoin(url, "v1/")
-        self.base_path = base_path
-
-        if token_file:
-            token = token_file.read().decode("utf-8").strip()
-
-        if token:
-            self.session.headers.update({'X-Vault-Token': token})
-        elif certificate:
-            self.certificate_authentication(certificate.read())
-        elif username:
-            if not password_file:
-                raise ValueError('Cannot use username without password file')
-            password = password_file.read().decode("utf-8").strip()
-            self.userpass_authentication(url=self.url,
-                                         username=username,
-                                         password=password)
-        else:
-            raise ValueError("No authentication method supplied")
-
-        if 'X-Vault-Token' not in self.session.headers:
-            raise ValueError("Failed authentication")
 
     def full_url(self, path=None):
         url = urljoin(self.url, self.base_path)
@@ -106,9 +70,12 @@ class VaultSession(object):
         session.verify = verify
         return session
 
-    def userpass_authentication(self, url, username, password):
+    def authenticate_token(self, token):
+        self.session.headers.update({'X-Vault-Token': token})
+
+    def authenticate_userpass(self, username, password):
         data = {"password": password}
-        response = self.session.post(url + 'auth/userpass/login/' + username,
+        response = self.session.post(self.url + 'auth/userpass/login/' + username,
                                      json=data, headers={})
         self.handle_error(response)
 
@@ -124,57 +91,30 @@ class VaultSession(object):
     # def certificate_authentication(session, cert):
     #     pass
 
-    def get_secrets(self, url):
+    def get_secrets(self, path):
+        url = self.full_url(path)
         response = self.session.get(url)
         self.handle_error(response)
         json_response = response.json()
         return json_response['data']
 
-    def get_secret(self, url):
-        data = self.get_secrets(url)
+    def get_secret(self, path):
+        data = self.get_secrets(path)
         return data['value']
 
-    def get_recursive_secrets(self, url):
-        result = {}
-        for key in self.list_secrets(url=url):
-            key_url = '/'.join([url.rstrip('/'), key])
-
-            if key_url.endswith('/'):
-                result[key.rstrip('/')] = self.get_recursive_secrets(key_url)
-                continue
-
-            secret = self.get_secret(url=key_url)
-            if secret:
-                result[key] = secret
-        return result
-
-    def list_secrets(self, url):
-        response = self.session.get(url.rstrip('/'), params={'list': 'true'})
+    def list_secrets(self, path):
+        url = self.full_url(path).rstrip('/')
+        response = self.session.get(url, params={'list': 'true'})
         self.handle_error(response)
         json_response = response.json()
         return json_response['data']['keys']
 
-    def put_secret(self, url, data):
-        response = self.session.put(url, json=data)
+    def put_secret(self, path, value):
+        url = self.full_url(path)
+        response = self.session.put(url, json={'value': value})
         self.handle_error(response, requests.codes.no_content)
 
-    def delete_secret(self, url):
+    def delete_secret(self, path):
+        url = self.full_url(path)
         response = self.session.delete(url)
         self.handle_error(response, requests.codes.no_content)
-
-    def is_dir(self, path):
-        """
-        Returns True if the given path is a dir
-        """
-        if not path:
-            # The top level dir is a dir
-            return True
-
-        path = path.strip("/")
-        try:
-            parent, subpath = path.rsplit("/", 1)
-        except ValueError:
-            parent, subpath = "", path
-
-        return subpath + "/" in self.list_secrets(
-            self.session, urljoin(self.full_url(), parent))

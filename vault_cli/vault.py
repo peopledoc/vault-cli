@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 Copyright 2018 PeopleDoc
 Written by Yann Lachiver
@@ -20,8 +21,6 @@ import os
 
 import click
 import yaml
-
-from vault_cli import vault_python_api
 
 # Ordered by increasing priority
 CONFIG_FILES = [
@@ -49,12 +48,20 @@ CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 @click.option('--password-file', '-w', type=click.File('rb'),
               help='Can read from stdin if "-" is used as parameter')
 @click.option('--base-path', '-b', help='Base path for requests')
+@click.option('--backend', default='requests',
+              help='Name of the backend to use (requests, hvac)')
 def cli(ctx, **kwargs):
     """
     Interact with a Vault. See subcommands for details.
     """
+    backend = kwargs.pop("backend")
+    if backend == "requests":
+        from vault_cli import requests as backend_module
+    else:
+        raise ValueError("Wrong backend value {}".format(backend))
+
     try:
-        ctx.obj = vault_python_api.VaultSession(**kwargs)
+        ctx.obj = backend_module.VaultSession(**kwargs)
     except ValueError as exc:
         raise click.UsageError(str(exc))
 
@@ -98,7 +105,7 @@ def list_(session, path):
     List all the secrets at the given path. Folders are listed too. If no path
     is given, list the objects at the root.
     """
-    result = session.list_secrets(url=session.full_url(path))
+    result = session.list_secrets(path=path)
     click.echo(result)
 
 
@@ -120,7 +127,7 @@ def get_all(session, path):
         paths = [""]
 
     for path in paths:
-        secrets = session.get_recursive_secrets(url=session.full_url(path=path))
+        secrets = session.get_recursive_secrets(path=path)
         result.update(nested_keys(path, secrets))
 
     if "" in result:
@@ -159,7 +166,7 @@ def get(session, text, name):
     """
     Return a single secret value.
     """
-    secret = session.get_secret(url=session.full_url(name))
+    secret = session.get_secret(path=name)
     if text:
         click.echo(secret)
         return
@@ -184,7 +191,7 @@ def set_(session, format_yaml, name, value):
     if format_yaml:
         value = yaml.safe_load(value)
 
-    session.put_secret(url=session.full_url(name), data={'value': value})
+    session.put_secret(path=name, value=value)
     click.echo('Done')
 
 
@@ -195,7 +202,7 @@ def delete(session, name):
     """
     Deletes a single secret.
     """
-    session.delete_secret(url=session.full_url(name))
+    session.delete_secret(path=name)
     click.echo('Done')
 
 
@@ -213,3 +220,7 @@ def main():
     config = build_config_from_files()
 
     return cli(default_map=config)
+
+
+if __name__ == '__main__':
+    main()
