@@ -57,6 +57,8 @@ def cli(ctx, **kwargs):
     backend = kwargs.pop("backend")
     if backend == "requests":
         from vault_cli import requests as backend_module
+    elif backend == "hvac":
+        from vault_cli import hvac as backend_module
     else:
         raise ValueError("Wrong backend value {}".format(backend))
 
