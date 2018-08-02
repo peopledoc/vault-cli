@@ -74,13 +74,14 @@ class VaultSession(object):
         if token:
             self.session.headers.update({'X-Vault-Token': token})
         elif certificate:
-            self.certificate_authentication(self.session, certificate.read())
+            self.certificate_authentication(certificate.read())
         elif username:
             if not password_file:
                 raise ValueError('Cannot use username without password file')
             password = password_file.read().decode("utf-8").strip()
-            self.userpass_authentication(
-                self.session, self.url, username, password)
+            self.userpass_authentication(url=self.url,
+                                         username=username,
+                                         password=password)
         else:
             raise ValueError("No authentication method supplied")
 
@@ -99,6 +100,7 @@ class VaultSession(object):
             return
         raise VaultAPIException(response.status_code, response.text)
 
+    @staticmethod
     def create_session(verify):
         session = Session()
         session.verify = verify
@@ -129,20 +131,19 @@ class VaultSession(object):
         return json_response['data']
 
     def get_secret(self, url):
-        data = self.get_secrets(self.session, url)
+        data = self.get_secrets(url)
         return data['value']
 
     def get_recursive_secrets(self, url):
         result = {}
-        for key in self.list_secrets(session=self.session, url=url):
+        for key in self.list_secrets(url=url):
             key_url = '/'.join([url.rstrip('/'), key])
 
             if key_url.endswith('/'):
-                result[key.rstrip('/')] = self.get_recursive_secrets(
-                    self.session, key_url)
+                result[key.rstrip('/')] = self.get_recursive_secrets(key_url)
                 continue
 
-            secret = self.get_secret(session=self.session, url=key_url)
+            secret = self.get_secret(url=key_url)
             if secret:
                 result[key] = secret
         return result
@@ -161,7 +162,7 @@ class VaultSession(object):
         response = self.session.delete(url)
         self.handle_error(response, requests.codes.no_content)
 
-    def is_dir(self, url, path):
+    def is_dir(self, path):
         """
         Returns True if the given path is a dir
         """
@@ -176,4 +177,4 @@ class VaultSession(object):
             parent, subpath = "", path
 
         return subpath + "/" in self.list_secrets(
-            self.session, urljoin(url, parent))
+            self.session, urljoin(self.full_url(), parent))

@@ -90,7 +90,7 @@ def _open_file(config, key):
         pass
 
 
-@click.command("list")
+@cli.command("list")
 @click.argument('path', required=False, default='')
 @click.pass_obj
 def list_(session, path):
@@ -98,12 +98,11 @@ def list_(session, path):
     List all the secrets at the given path. Folders are listed too. If no path
     is given, list the objects at the root.
     """
-    result = vault_python_api.list_secrets(
-        session=session.session, url=session.full_url(path))
+    result = session.list_secrets(url=session.full_url(path))
     click.echo(result)
 
 
-@click.command(name='get-all')
+@cli.command(name='get-all')
 @click.argument('path', required=False, nargs=-1)
 @click.pass_obj
 def get_all(session, path):
@@ -117,22 +116,15 @@ def get_all(session, path):
     # Just renaming the variable
     paths = path
 
-    if not paths:
+    if not path:
         paths = [""]
 
     for path in paths:
-        if vault_python_api.is_dir(session=session.session,
-                                   url=session.full_url(),
-                                   path=path):
-            secret = vault_python_api.get_recursive_secrets(
-                session=session.session,
-                url=session.full_url(path=path))
-        else:
-            secret = vault_python_api.get_secret(
-                session=session.session,
-                url=session.full_url(path=path))
+        secrets = session.get_recursive_secrets(url=session.full_url(path=path))
+        result.update(nested_keys(path, secrets))
 
-        result.update(nested_keys(path, secret))
+    if "" in result:
+        result.update(result.pop(""))
 
     if result:
         click.echo(yaml.safe_dump(
@@ -156,7 +148,7 @@ def nested_keys(path, value):
     return {base: nested_keys(subpath, value)}
 
 
-@click.command()
+@cli.command()
 @click.pass_obj
 @click.option('--text',
               is_flag=True,
@@ -167,18 +159,17 @@ def get(session, text, name):
     """
     Return a single secret value.
     """
-    secret = vault_python_api.get_secret(session=session.session,
-                                         url=session.full_url(name))
+    secret = session.get_secret(url=session.full_url(name))
     if text:
         click.echo(secret)
         return
 
     click.echo(yaml.safe_dump(secret,
-                         default_flow_style=False,
-                         explicit_start=True))
+                              default_flow_style=False,
+                              explicit_start=True))
 
 
-@click.command("set")
+@cli.command("set")
 @click.pass_obj
 @click.option('--yaml', 'format_yaml', is_flag=True)
 @click.argument('name')
@@ -193,29 +184,19 @@ def set_(session, format_yaml, name, value):
     if format_yaml:
         value = yaml.safe_load(value)
 
-    vault_python_api.put_secret(session=session.session,
-                                url=session.full_url(name),
-                                data={'value': value})
+    session.put_secret(url=session.full_url(name), data={'value': value})
     click.echo('Done')
 
 
-@click.command()
+@cli.command()
 @click.pass_obj
 @click.argument('name')
 def delete(session, name):
     """
     Deletes a single secret.
     """
-    vault_python_api.delete_secret(session=session.session,
-                                   url=session.full_url(name))
+    session.delete_secret(url=session.full_url(name))
     click.echo('Done')
-
-
-cli.add_command(get_all)
-cli.add_command(get)
-cli.add_command(set_)
-cli.add_command(list_)
-cli.add_command(delete)
 
 
 def build_config_from_files():
