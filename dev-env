@@ -1,0 +1,19 @@
+#!/bin/bash -eu
+
+docker-compose up -d
+while ! docker-compose logs | grep "Vault server started"; do
+	sleep 1
+done
+docker-compose exec vault vault login some-token
+docker-compose exec vault vault secrets enable -version=1 -path=mybase kv
+
+cat >.vault.yml <<EOF
+---
+token-file: .vault-token
+url: http://localhost:8200
+verify: no
+base-path: "mybase/"
+...
+EOF
+
+echo "some-token" > .vault-token
