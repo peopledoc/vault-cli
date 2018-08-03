@@ -70,3 +70,27 @@ class VaultSessionBase():
             if secret:
                 result[key] = secret
         return result
+
+    def init_session(self, url, verify):
+        raise NotImplementedError
+
+    def authenticate_token(self, token):
+        raise NotImplementedError
+
+    def authenticate_certificate(certificate):
+        raise NotImplementedError
+
+    def authenticate_userpass(self, username, password):
+        raise NotImplementedError
+
+    def list_secrets(self, path):
+        raise NotImplementedError
+
+    def get_secret(self, path):
+        raise NotImplementedError
+
+    def delete_secret(self, path):
+        raise NotImplementedError
+
+    def put_secret(self, path, value):
+        raise NotImplementedError

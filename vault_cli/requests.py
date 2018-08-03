@@ -87,10 +87,6 @@ class VaultSession(VaultSessionBase):
             raise ValueError('Wrong username or password (HTTP code: %s)' %
                              response.status_code)
 
-    # TODO
-    # def certificate_authentication(session, cert):
-    #     pass
-
     def get_secrets(self, path):
         url = self.full_url(path)
         response = self.session.get(url)

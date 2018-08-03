@@ -30,8 +30,6 @@ class VaultSession(VaultSessionBase):
     def authenticate_token(self, token):
         self.client.token = token
 
-    # def authenticate_certificate(certificate):
-
     def authenticate_userpass(self, username, password):
         self.client.auth_userpass(username, password)
 
