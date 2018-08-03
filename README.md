@@ -10,7 +10,11 @@ automated deployment tools
 
 The tool is packaged but the package is not yet available on pypi.
 
-`pip install git+https://github.com/peopledoc/vault-cli.git`
+`pip install vault-cli`
+
+If you wish to use the hvac backend, install with
+
+`pip install vault-cli[hvac]`
 
 ## Usage
 
@@ -31,6 +35,7 @@ Options:
   -w, --password-file FILENAME  Can read from stdin if "-" is used as
                                 parameter
   -b, --base-path TEXT          Base path for requests
+  --backend TEXT                Name of the backend to use (requests, hvac)
   -h, --help                    Show this message and exit.
 
 Commands:
@@ -132,8 +137,8 @@ Just note that the `--verify / --no-verify` flag become `verify: yes` or
 
 ## State
 
-The tool is currently in beta mode. It's missing docs, tests, CI, pip
-packaging, debian packaging, and such. Be warned
+The tool is currently in beta mode. It's missing docs, tests, CI, and such.
+Be warned.
 
 ## License
 
