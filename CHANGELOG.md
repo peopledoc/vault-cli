@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.2.2
+-----
+
+Please add items here !
+
 0.2.1
 -----
 
