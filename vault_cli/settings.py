@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import io
 import os
 import yaml
 
@@ -67,7 +68,9 @@ def read_file(path):
     """
     if path:
         with open(os.path.expanduser(path), 'rb') as file_handler:
-            return file_handler.read()
+            file = io.BytesIO(file_handler.read())
+            file.seek(0)
+            return file
 
 
 def build_config_from_files(config_files):

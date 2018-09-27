@@ -10,8 +10,17 @@ matrix:
   - python: 3.6
     env: TOX_ENV=py36-unit-tests COVERAGE_FLAG=unit
 
+  - python: 3.6
+    env: TOX_ENV=py36-integration-tests COVERAGE_FLAG=integration
+
   - python: 2.7
     env: TOX_ENV=py27-unit-tests COVERAGE_FLAG=unit
+
+  - python: 2.7
+    env: TOX_ENV=py27-integration-tests COVERAGE_FLAG=integration
+
+before_install:
+  - "[$COVERAGE_FLAG = integration] && ./dev-env"
 
 install:
   - pip install tox codecov

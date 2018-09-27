@@ -119,16 +119,19 @@ class VaultClientBase():
         self.base_path = (base_path or "").rstrip("/") + "/"
 
         if token_file:
+            token_file.seek(0)
             token = token_file.read().decode("utf-8").strip()
 
         if token:
             self._authenticate_token(token)
         elif certificate:
+            certificate.seek(0)
             self._authenticate_certificate(
                 certificate.read().decode("utf-8").strip())
         elif username:
             if not password_file:
                 raise ValueError('Cannot use username without password file')
+            password_file.seek(0)
             password = password_file.read().decode("utf-8").strip()
             self._authenticate_userpass(username=username, password=password)
 

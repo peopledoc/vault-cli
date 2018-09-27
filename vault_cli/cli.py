@@ -49,7 +49,6 @@ def cli(ctx, **kwargs):
     Interact with a Vault. See subcommands for details.
     """
     backend = kwargs.pop("backend")
-
     try:
         ctx.obj = client.get_client_from_kwargs(
             backend=backend, **kwargs)
