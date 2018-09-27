@@ -19,5 +19,11 @@ limitations under the License.
 
 from vault_cli.cli import main
 
-if __name__ == '__main__':
-    main()
+
+# Shenanigans for coverage
+def entrypoint(name):
+    if name == '__main__':
+        main()
+
+
+entrypoint(__name__)

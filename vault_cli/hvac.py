@@ -18,8 +18,8 @@ limitations under the License.
 
 import hvac
 
-from vault_cli.backend import VaultAPIException
-from vault_cli.backend import VaultClientBase
+from vault_cli.client import VaultAPIException
+from vault_cli.client import VaultClientBase
 
 
 class HVACVaultClient(VaultClientBase):
@@ -40,10 +40,10 @@ class HVACVaultClient(VaultClientBase):
         secret = self.client.read(self.base_path + path)
         if not secret:
             raise VaultAPIException(404, "Not found")
-        return ["data"]["value"]
+        return secret["data"]["value"]
 
     def delete_secret(self, path):
         self.client.delete(self.base_path + path)
 
-    def put_secret(self, path, value):
+    def set_secret(self, path, value):
         self.client.write(self.base_path + path, value=value)

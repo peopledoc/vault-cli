@@ -81,11 +81,11 @@ def get_all(client_obj, path):
     paths = path or [""]
 
     result = client_obj.get_all(paths)
-    if result:
-        click.echo(yaml.safe_dump(
-            result,
-            default_flow_style=False,
-            explicit_start=True))
+
+    click.echo(yaml.safe_dump(
+        result,
+        default_flow_style=False,
+        explicit_start=True))
 
 
 @cli.command()
@@ -120,11 +120,13 @@ def set_(client_obj, format_yaml, name, value):
     """
     if len(value) == 1:
         value = value[0]
+    else:
+        value = list(value)
 
     if format_yaml:
         value = yaml.safe_load(value)
 
-    client_obj.put_secret(path=name, value=value)
+    client_obj.set_secret(path=name, value=value)
     click.echo('Done')
 
 

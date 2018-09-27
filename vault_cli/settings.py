@@ -43,27 +43,27 @@ DEFAULTS = {
 def read_config_file(file_path):
     try:
         with open(os.path.expanduser(file_path), "r") as f:
-            config = yaml.safe_load(f)
+            return yaml.safe_load(f)
     except IOError:
         return {}
-    config.pop("config", None)
 
+
+def clean_config(config):
     # Because we're modifying the dict during iteration, we need to
     # consolidate the keys into a list
     for key in list(config):
         config[key.replace("-", "_")] = config.pop(key)
 
-    config["certificate"] = _read_file(config.get("certificate"))
-    config["password_file"] = _read_file(config.get("password_file"))
-    config["token_file"] = _read_file(config.get("token_file"))
+    config["certificate"] = read_file(config.get("certificate"))
+    config["password_file"] = read_file(config.get("password_file"))
+    config["token_file"] = read_file(config.get("token_file"))
 
     return config
 
 
-def _read_file(path):
+def read_file(path):
     """
-    Replace file name with open file at the given key
-    in the config dict
+    Returns the content of the pointed file
     """
     if path:
         with open(os.path.expanduser(path), 'rb') as file_handler:
@@ -74,7 +74,8 @@ def build_config_from_files(config_files):
     config = DEFAULTS.copy()
 
     for potential_file in config_files:
-        config.update(read_config_file(potential_file))
+        partial = clean_config(read_config_file(potential_file))
+        config.update(partial)
 
     return config
 
@@ -88,3 +89,5 @@ def get_vault_options(**kwargs):
     values = CONFIG.copy()
     # TODO: Env vars here
     values.update(kwargs)
+
+    return values

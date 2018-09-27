@@ -27,8 +27,8 @@ except ImportError:
     # Python 2
     from urlparse import urljoin
 
-from vault_cli.backend import VaultAPIException
-from vault_cli.backend import VaultClientBase
+from vault_cli.client import VaultAPIException
+from vault_cli.client import VaultClientBase
 
 
 class Session(requests.Session):
@@ -55,11 +55,9 @@ class RequestsVaultClient(VaultClientBase):
 
         self.url = urljoin(url, "v1/")
 
-    def _full_url(self, path=None):
+    def _full_url(self, path):
         url = urljoin(self.url, self.base_path)
-        if path:
-            return urljoin(url, path)
-        return url
+        return urljoin(url, path)
 
     @staticmethod
     def handle_error(response, expected_code=requests.codes.ok):
@@ -76,19 +74,15 @@ class RequestsVaultClient(VaultClientBase):
     def _authenticate_token(self, token):
         self.session.headers.update({'X-Vault-Token': token})
 
-    def authenticate_userpass(self, username, password):
+    def _authenticate_userpass(self, username, password):
         data = {"password": password}
         response = self.session.post(self.url + 'auth/userpass/login/' + username,
                                      json=data, headers={})
         self.handle_error(response)
 
-        if response.status_code == requests.codes.ok:
-            json_response = response.json()
-            self.session.headers.update(
-                {'X-Vault-Token': json_response.get('auth').get('client_token')})
-        else:
-            raise ValueError('Wrong username or password (HTTP code: %s)' %
-                             response.status_code)
+        json_response = response.json()
+        self.session.headers.update(
+            {'X-Vault-Token': json_response.get('auth').get('client_token')})
 
     def get_secrets(self, path):
         url = self._full_url(path)
@@ -108,7 +102,7 @@ class RequestsVaultClient(VaultClientBase):
         json_response = response.json()
         return json_response['data']['keys']
 
-    def put_secret(self, path, value):
+    def set_secret(self, path, value):
         url = self._full_url(path)
         response = self.session.put(url, json={'value': value})
         self.handle_error(response, requests.codes.no_content)

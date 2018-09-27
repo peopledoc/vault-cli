@@ -63,7 +63,7 @@ def get_client(**kwargs):
         Returns the value for the secret at the given path
     - delete_secret(path)
         Deletes the secret at the given path
-    - put_secret(path, value)
+    - set_secret(path, value)
         Writes the secret at the given path
     - get_all(paths=None)
         Given an iterable of path, recursively returns all
@@ -71,7 +71,7 @@ def get_client(**kwargs):
     """
     options = settings.get_vault_options(**kwargs)
     backend = options.pop("backend")
-    return settings.get_client_from_kwargs(backend=backend, **options)
+    return get_client_from_kwargs(backend=backend, **options)
 
 
 def get_client_from_kwargs(backend, **kwargs):
@@ -109,41 +109,47 @@ class VaultAPIException(Exception):
 
 class VaultClientBase():
     def __init__(self, url, verify, base_path,
-                 certificate=None, token=None, username=None,
-                 password_file=None, token_file=None):
+                 certificate, token, username,
+                 password_file, token_file):
+        """
+        All parameters are mandatory but may be None
+        """
         self._init_session(url=url, verify=verify)
 
-        self.base_path = base_path.rstrip("/") + "/"
+        self.base_path = (base_path or "").rstrip("/") + "/"
 
         if token_file:
-            token = token_file.decode("utf-8").strip()
+            token = token_file.read().decode("utf-8").strip()
 
         if token:
             self._authenticate_token(token)
         elif certificate:
-            self.authenticate_certificate(
-                certificate.decode("utf-8").strip())
+            self._authenticate_certificate(
+                certificate.read().decode("utf-8").strip())
         elif username:
             if not password_file:
                 raise ValueError('Cannot use username without password file')
-            password = password_file.decode("utf-8").strip()
-            self.authenticate_userpass(username=username, password=password)
+            password = password_file.read().decode("utf-8").strip()
+            self._authenticate_userpass(username=username, password=password)
 
         else:
             raise ValueError("No authentication method supplied")
 
     def _get_recursive_secrets(self, path):
         result = {}
+        path = path.rstrip('/')
         for key in self.list_secrets(path=path):
-            key_url = '/'.join([path.rstrip('/'), key]) if path else key
+            key_url = '/'.join([path, key]) if path else key
 
-            if key_url.endswith('/'):
-                result[key.rstrip('/')] = self._get_recursive_secrets(key_url)
+            folder = key_url.endswith('/')
+            key = key.rstrip('/')
+            if folder:
+                result[key] = self._get_recursive_secrets(key_url)
                 continue
 
             secret = self.get_secret(path=key_url)
-            if secret:
-                result[key] = secret
+            result[key] = secret
+
         return result
 
     def get_all(self, paths):
@@ -164,7 +170,7 @@ class VaultClientBase():
     def _authenticate_token(self, token):
         raise NotImplementedError
 
-    def _authenticate_certificate(certificate):
+    def _authenticate_certificate(self, certificate):
         raise NotImplementedError
 
     def _authenticate_userpass(self, username, password):
@@ -179,7 +185,7 @@ class VaultClientBase():
     def delete_secret(self, path):
         raise NotImplementedError
 
-    def put_secret(self, path, value):
+    def set_secret(self, path, value):
         raise NotImplementedError
 
 
