@@ -19,18 +19,18 @@ limitations under the License.
 import hvac
 
 from vault_cli.backend import VaultAPIException
-from vault_cli.backend import VaultSessionBase
+from vault_cli.backend import VaultClientBase
 
 
-class VaultSession(VaultSessionBase):
+class HVACVaultClient(VaultClientBase):
 
-    def init_session(self, url, verify):
+    def _init_session(self, url, verify):
         self.client = hvac.Client(url=url, verify=verify)
 
-    def authenticate_token(self, token):
+    def _authenticate_token(self, token):
         self.client.token = token
 
-    def authenticate_userpass(self, username, password):
+    def _authenticate_userpass(self, username, password):
         self.client.auth_userpass(username, password)
 
     def list_secrets(self, path):

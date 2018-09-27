@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import absolute_import
 
 import requests
@@ -27,7 +28,7 @@ except ImportError:
     from urlparse import urljoin
 
 from vault_cli.backend import VaultAPIException
-from vault_cli.backend import VaultSessionBase
+from vault_cli.backend import VaultClientBase
 
 
 class Session(requests.Session):
@@ -47,14 +48,14 @@ class Session(requests.Session):
             url, proxies, stream, verify, *args, **kwargs)
 
 
-class VaultSession(VaultSessionBase):
+class RequestsVaultClient(VaultClientBase):
 
-    def init_session(self, url, verify):
+    def _init_session(self, url, verify):
         self.session = self.create_session(verify)
 
         self.url = urljoin(url, "v1/")
 
-    def full_url(self, path=None):
+    def _full_url(self, path=None):
         url = urljoin(self.url, self.base_path)
         if path:
             return urljoin(url, path)
@@ -72,7 +73,7 @@ class VaultSession(VaultSessionBase):
         session.verify = verify
         return session
 
-    def authenticate_token(self, token):
+    def _authenticate_token(self, token):
         self.session.headers.update({'X-Vault-Token': token})
 
     def authenticate_userpass(self, username, password):
@@ -90,7 +91,7 @@ class VaultSession(VaultSessionBase):
                              response.status_code)
 
     def get_secrets(self, path):
-        url = self.full_url(path)
+        url = self._full_url(path)
         response = self.session.get(url)
         self.handle_error(response)
         json_response = response.json()
@@ -101,18 +102,18 @@ class VaultSession(VaultSessionBase):
         return data['value']
 
     def list_secrets(self, path):
-        url = self.full_url(path).rstrip('/')
+        url = self._full_url(path).rstrip('/')
         response = self.session.get(url, params={'list': 'true'})
         self.handle_error(response)
         json_response = response.json()
         return json_response['data']['keys']
 
     def put_secret(self, path, value):
-        url = self.full_url(path)
+        url = self._full_url(path)
         response = self.session.put(url, json={'value': value})
         self.handle_error(response, requests.codes.no_content)
 
     def delete_secret(self, path):
-        url = self.full_url(path)
+        url = self._full_url(path)
         response = self.session.delete(url)
         self.handle_error(response, requests.codes.no_content)
