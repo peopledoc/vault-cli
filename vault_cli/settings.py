@@ -34,7 +34,6 @@ DEFAULTS = {
     'certificate': None,
     'password': None,
     'token': None,
-    'token_file': None,
     'url': 'https://localhost:8200',
     'username': None,
     'verify': True,
@@ -57,7 +56,7 @@ def clean_config(config):
 
     config["certificate"] = read_file(config.get("certificate"))
     config["password"] = read_file(config.get("password"))
-    config["token_file"] = read_file(config.get("token_file"))
+    config["token"] = read_file(config.get("token_file"))
 
     return config
 
@@ -68,9 +67,7 @@ def read_file(path):
     """
     if path:
         with open(os.path.expanduser(path), 'rb') as file_handler:
-            file = io.BytesIO(file_handler.read())
-            file.seek(0)
-            return file
+            return file_handler.read().decode("utf-8").strip()
 
 
 def build_config_from_files(config_files):

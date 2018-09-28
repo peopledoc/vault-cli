@@ -88,14 +88,13 @@ def test_vault_client_base_call_init_session():
 
     TestVaultClient(verify=False, url="yay", token="go",
                     base_path=None, certificate=None, username=None,
-                    password=None, token_file=None)
+                    password=None)
 
     assert called_with == {"verify": False, "url": "yay"}
 
 
 @pytest.mark.parametrize("test_kwargs, expected", [
     ({"token": "yay"}, ["token", "yay"]),
-    ({"token_file": io.BytesIO(b"yay")}, ["token", "yay"]),
     (
         {"username": "a", "password": io.BytesIO(b"b")},
         ["userpass", "a", "b"]
@@ -119,7 +118,6 @@ def test_vault_client_base_authenticate(test_kwargs, expected):
             auth_params.extend(["userpass", username, password])
 
     kwargs = {"token": None,
-              "token_file": None,
               "username": None, "password": None,
               "certificate": None}
     kwargs.update(test_kwargs)
@@ -138,8 +136,7 @@ def test_vault_client_base_username_without_password():
     with pytest.raises(ValueError):
         TestVaultClient(username="yay", password=None,
                         verify=False, url="yay", token=None,
-                        base_path=None, certificate=None,
-                        token_file=None)
+                        base_path=None, certificate=None)
 
 
 def test_vault_client_base_no_auth():
@@ -151,8 +148,7 @@ def test_vault_client_base_no_auth():
     with pytest.raises(ValueError):
         TestVaultClient(username=None, password=None,
                         verify=False, url="yay", token=None,
-                        base_path=None, certificate=None,
-                        token_file=None)
+                        base_path=None, certificate=None)
 
 
 def test_vault_client_base_get_recursive_secrets():

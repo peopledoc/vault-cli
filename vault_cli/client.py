@@ -39,8 +39,6 @@ def get_client(**kwargs):
         Path to the certificate to connect to vault
     token : str
         Token to connect to Vault
-    token_file : str
-        File which contains the token to connect to Vault
     username : str
         Username used for userpass authentication
     password : str
@@ -110,7 +108,7 @@ class VaultAPIException(Exception):
 class VaultClientBase():
     def __init__(self, url, verify, base_path,
                  certificate, token, username,
-                 password, token_file):
+                 password):
         """
         All parameters are mandatory but may be None
         """
@@ -121,14 +119,10 @@ class VaultClientBase():
         if token:
             self._authenticate_token(token)
         elif certificate:
-            certificate.seek(0)
-            self._authenticate_certificate(
-                certificate.read().decode("utf-8").strip())
+            self._authenticate_certificate(certificate)
         elif username:
             if not password:
                 raise ValueError('Cannot use username without password file')
-            password.seek(0)
-            password = password.read().decode("utf-8").strip()
             self._authenticate_userpass(username=username, password=password)
 
         else:
