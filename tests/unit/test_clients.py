@@ -14,7 +14,7 @@ def get_client(backend, **additional_kwargs):
         "certificate": None,
         "token": "tok",
         "username": None,
-        "password_file": None,
+        "password": None,
         "token_file": None,
     }
     kwargs.update(additional_kwargs)
@@ -43,7 +43,7 @@ def test_userpass(requests_mock, backend):
         backend=backend,
         token=None,
         username="myuser",
-        password_file=io.BytesIO(b"pass"),
+        password=io.BytesIO(b"pass"),
     )
 
     # Check that the token is used

@@ -32,7 +32,7 @@ DEFAULTS = {
     'backend': 'requests',
     'base_path': None,
     'certificate': None,
-    'password_file': None,
+    'password': None,
     'token': None,
     'token_file': None,
     'url': 'https://localhost:8200',
@@ -56,7 +56,7 @@ def clean_config(config):
         config[key.replace("-", "_")] = config.pop(key)
 
     config["certificate"] = read_file(config.get("certificate"))
-    config["password_file"] = read_file(config.get("password_file"))
+    config["password"] = read_file(config.get("password"))
     config["token_file"] = read_file(config.get("token_file"))
 
     return config

@@ -88,7 +88,7 @@ def test_vault_client_base_call_init_session():
 
     TestVaultClient(verify=False, url="yay", token="go",
                     base_path=None, certificate=None, username=None,
-                    password_file=None, token_file=None)
+                    password=None, token_file=None)
 
     assert called_with == {"verify": False, "url": "yay"}
 
@@ -97,7 +97,7 @@ def test_vault_client_base_call_init_session():
     ({"token": "yay"}, ["token", "yay"]),
     ({"token_file": io.BytesIO(b"yay")}, ["token", "yay"]),
     (
-        {"username": "a", "password_file": io.BytesIO(b"b")},
+        {"username": "a", "password": io.BytesIO(b"b")},
         ["userpass", "a", "b"]
     ),
     ({"certificate": io.BytesIO(b"cert")}, ["certificate", "cert"]),
@@ -120,7 +120,7 @@ def test_vault_client_base_authenticate(test_kwargs, expected):
 
     kwargs = {"token": None,
               "token_file": None,
-              "username": None, "password_file": None,
+              "username": None, "password": None,
               "certificate": None}
     kwargs.update(test_kwargs)
     TestVaultClient(verify=False, url=None, base_path=None,
@@ -136,7 +136,7 @@ def test_vault_client_base_username_without_password():
             pass
 
     with pytest.raises(ValueError):
-        TestVaultClient(username="yay", password_file=None,
+        TestVaultClient(username="yay", password=None,
                         verify=False, url="yay", token=None,
                         base_path=None, certificate=None,
                         token_file=None)
@@ -149,7 +149,7 @@ def test_vault_client_base_no_auth():
             pass
 
     with pytest.raises(ValueError):
-        TestVaultClient(username=None, password_file=None,
+        TestVaultClient(username=None, password=None,
                         verify=False, url="yay", token=None,
                         base_path=None, certificate=None,
                         token_file=None)
