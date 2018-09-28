@@ -5,3 +5,5 @@ build
 dist
 .coverage
 htmlcov
+.tox
+*.pyc

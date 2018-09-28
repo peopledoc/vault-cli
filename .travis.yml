@@ -20,7 +20,7 @@ matrix:
     env: TOX_ENV=py27-integration-tests COVERAGE_FLAG=integration
 
 before_install:
-  - "[$COVERAGE_FLAG = integration] && ./dev-env"
+  - "if [ $COVERAGE_FLAG = integration ]; then ./dev-env; fi"
 
 install:
   - pip install tox codecov
