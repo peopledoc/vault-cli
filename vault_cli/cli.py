@@ -72,7 +72,7 @@ def list_(client_obj, path):
     is given, list the objects at the root.
     """
     result = client_obj.list_secrets(path=path)
-    click.echo(result)
+    click.echo("\n".join(result))
 
 
 @cli.command(name='get-all')
@@ -91,7 +91,7 @@ def get_all(client_obj, path):
     click.echo(yaml.safe_dump(
         result,
         default_flow_style=False,
-        explicit_start=True))
+        explicit_start=True), nl=False)
 
 
 @cli.command()
@@ -112,7 +112,7 @@ def get(client_obj, text, name):
 
     click.echo(yaml.safe_dump(secret,
                               default_flow_style=False,
-                              explicit_start=True))
+                              explicit_start=True), nl=False)
 
 
 @cli.command("set")

@@ -14,26 +14,25 @@ def test_integration_cli(cli_runner):
 
     assert call(cli_runner, ["get", "a", "--text"]).output == "b\n"
 
-    assert call(cli_runner, ["list"]).output == '''['a']\n'''
+    assert call(cli_runner, ["list"]).output == "a\n"
 
     call(cli_runner, ["set", "c/d", "e"])
 
-    assert call(cli_runner, ["get", "c/d"]).output == "--- e\n...\n\n"
+    assert call(cli_runner, ["get", "c/d"]).output == "--- e\n...\n"
 
-    assert call(cli_runner, ["list"]).output == '''['a', 'c/']\n'''
+    assert call(cli_runner, ["list"]).output == "a\nc/\n"
 
-    assert call(cli_runner, ["list", "c"]).output == '''['d']\n'''
+    assert call(cli_runner, ["list", "c"]).output == "d\n"
 
     assert call(cli_runner, ["get-all", ""]).output == ("""---
 a: b
 c:
   d: e
-
 """)
 
     call(cli_runner, ["delete", "a"])
 
-    assert call(cli_runner, ["list"]).output == '''['c/']\n'''
+    assert call(cli_runner, ["list"]).output == "c/\n"
 
     call(cli_runner, ["delete", "c/d"])
 

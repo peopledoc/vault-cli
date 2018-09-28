@@ -78,7 +78,7 @@ def test_options(cli_runner, mocker):
 def test_list(cli_runner, backend):
     result = cli_runner.invoke(cli.cli, ["list"])
 
-    assert result.output == "['foo', 'baz']\n"
+    assert result.output == "foo\nbaz\n"
     assert result.exit_code == 0
 
 

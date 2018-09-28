@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import io
 
 from vault_cli import settings
@@ -8,7 +10,7 @@ def test_read_config_file_not_existing():
 
 
 def test_read_config_file(tmpdir):
-    path = tmpdir.join("test.yml")
+    path = str(tmpdir.join("test.yml"))
     open(path, "w").write('{"yay": 1}')
 
     assert settings.read_config_file(path) == {"yay": 1}
@@ -27,13 +29,16 @@ def test_read_all_files_no_file():
 
 
 def test_read_all_files(tmpdir):
-    open(tmpdir.join("token"), "wb").write(b'yay')
-    open(tmpdir.join("certificate"), "wb").write(b'yo')
-    open(tmpdir.join("password"), "wb").write(b'aaa')
+    token_path = str(tmpdir.join("token"))
+    open(token_path, "wb").write(b'yay')
+    certificate_path = str(tmpdir.join("certificate"))
+    open(certificate_path, "wb").write(b'yo')
+    password_path = str(tmpdir.join("password"))
+    open(password_path, "wb").write(b'aaa')
 
-    d = {"token_file": tmpdir.join("token"),
-         "certificate_file": tmpdir.join("certificate"),
-         "password_file": tmpdir.join("password")}
+    d = {"token_file": token_path,
+         "certificate_file": certificate_path,
+         "password_file": password_path}
     expected = {"token": "yay", "certificate": "yo", "password": "aaa"}
     assert settings.read_all_files(d) == expected
 
