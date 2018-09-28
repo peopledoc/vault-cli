@@ -16,16 +16,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import io
 import os
 import yaml
+
+import sys
 
 
 # Ordered by increasing priority
 CONFIG_FILES = [
-    '/etc/vault.yml',
-    '~/.vault.yml',
     './.vault.yml',
+    '~/.vault.yml',
+    '/etc/vault.yml',
 ]
 
 DEFAULTS = {
@@ -45,18 +46,30 @@ def read_config_file(file_path):
         with open(os.path.expanduser(file_path), "r") as f:
             return yaml.safe_load(f)
     except IOError:
-        return {}
+        return None
 
 
-def clean_config(config):
+def dash_to_underscores(config):
     # Because we're modifying the dict during iteration, we need to
     # consolidate the keys into a list
-    for key in list(config):
-        config[key.replace("-", "_")] = config.pop(key)
+    return {key.replace("-", "_"): value
+            for key, value in config.items()}
 
-    config["certificate"] = read_file(config.get("certificate"))
-    config["password"] = read_file(config.get("password"))
-    config["token"] = read_file(config.get("token_file"))
+
+def read_all_files(config):
+    config = config.copy()
+    # Files override direct values when both are defined
+    certificate_file = config.pop("certificate_file", None)
+    if certificate_file:
+        config["certificate"] = read_file(certificate_file)
+
+    password_file = config.pop("password_file", None)
+    if password_file:
+        config["password"] = read_file(password_file)
+
+    token_file = config.pop("token_file", None)
+    if token_file:
+        config["token"] = read_file(token_file)
 
     return config
 
@@ -65,19 +78,28 @@ def read_file(path):
     """
     Returns the content of the pointed file
     """
-    if path:
-        with open(os.path.expanduser(path), 'rb') as file_handler:
-            return file_handler.read().decode("utf-8").strip()
+    if not path:
+        return
+
+    if path == "-":
+        return sys.stdin.read().strip()
+
+    with open(os.path.expanduser(path), 'rb') as file_handler:
+        return file_handler.read().decode("utf-8").strip()
 
 
 def build_config_from_files(config_files):
-    config = DEFAULTS.copy()
+    values = DEFAULTS.copy()
 
     for potential_file in config_files:
-        partial = clean_config(read_config_file(potential_file))
-        config.update(partial)
+        file_config = read_config_file(potential_file)
+        if file_config is not None:
+            file_config = dash_to_underscores(file_config)
+            file_config = read_all_files(file_config)
+            values.update(file_config)
+            break
 
-    return config
+    return values
 
 
 # Make sure our config files are not re-read

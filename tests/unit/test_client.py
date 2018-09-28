@@ -1,5 +1,3 @@
-import io
-
 import pytest
 
 from vault_cli import client
@@ -96,10 +94,10 @@ def test_vault_client_base_call_init_session():
 @pytest.mark.parametrize("test_kwargs, expected", [
     ({"token": "yay"}, ["token", "yay"]),
     (
-        {"username": "a", "password": io.BytesIO(b"b")},
+        {"username": "a", "password": "b"},
         ["userpass", "a", "b"]
     ),
-    ({"certificate": io.BytesIO(b"cert")}, ["certificate", "cert"]),
+    ({"certificate": "cert"}, ["certificate", "cert"]),
 ])
 def test_vault_client_base_authenticate(test_kwargs, expected):
     auth_params = []

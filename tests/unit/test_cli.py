@@ -40,37 +40,36 @@ def test_bad_backend(cli_runner, backend):
 
 def test_options(cli_runner, mocker):
     func = mocker.patch("vault_cli.client.get_client_from_kwargs")
+    mocker.patch("vault_cli.settings.read_file",
+                 side_effect=lambda x: "content of {}".format(x))
     result = cli_runner.invoke(cli.cli, [
         "--backend", "requests",
         "--base-path", "bla",
-        "--certificate", __file__,
-        "--password-file", __file__,
-        "--token", "tok",
-        "--token-file", __file__,
+        "--certificate-file", "a",
+        "--password-file", "b",
+        "--token-file", "c",
         "--url", "https://foo",
         "--username", "user",
         "--verify",
         "list"
     ])
 
-    assert result.exit_code == 0
+    assert result.exit_code == 0, result.output
     _, kwargs = func.call_args
     assert set(kwargs) == {
         "backend",
         "base_path",
         "certificate",
-        "password_file",
+        "password",
         "token",
-        "token_file",
         "url",
         "username",
         "verify",
     }
     assert kwargs["base_path"] == "bla"
-    assert kwargs["certificate"].name == __file__
-    assert kwargs["password_file"].name == __file__
-    assert kwargs["token"] == "tok"
-    assert kwargs["token_file"].name == __file__
+    assert kwargs["certificate"] == "content of a"
+    assert kwargs["password"] == "content of b"
+    assert kwargs["token"] == "content of c"
     assert kwargs["url"] == "https://foo"
     assert kwargs["username"] == "user"
     assert kwargs["verify"] is True

@@ -1,5 +1,3 @@
-import io
-
 import pytest
 
 from vault_cli import client
@@ -42,7 +40,7 @@ def test_userpass(requests_mock, backend):
         backend=backend,
         token=None,
         username="myuser",
-        password=io.BytesIO(b"pass"),
+        password="pass",
     )
 
     # Check that the token is used

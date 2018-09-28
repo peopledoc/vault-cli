@@ -32,15 +32,17 @@ CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
               default=settings.DEFAULTS['url'])
 @click.option('--verify/--no-verify', default=settings.DEFAULTS['verify'],
               help='Verify HTTPS certificate')
-@click.option('--certificate', '-c', type=click.File('rb'),
-              help='Certificate to connect to vault')
-@click.option('--token', '-t', help='The token to connect to Vault')
-@click.option('--token-file', '-T', type=click.File('rb'),
-              help='File which contains the token to connect to Vault')
+@click.option('--certificate-file', '-c', type=click.Path(),
+              help='Certificate to connect to vault. '
+              'Configuration file can also contain a "certificate" key.')
+@click.option('--token-file', '-T', type=click.Path(),
+              help='File which contains the token to connect to Vault. '
+              'Configuration file can also contain a "token" key.')
 @click.option('--username', '-u',
               help='Username used for userpass authentication')
-@click.option('--password-file', '-w', type=click.File('rb'),
-              help='Can read from stdin if "-" is used as parameter')
+@click.option('--password-file', '-w', type=click.Path(),
+              help='Can read from stdin if "-" is used as parameter. '
+              'Configuration file can also contain a "password" key.')
 @click.option('--base-path', '-b', help='Base path for requests')
 @click.option('--backend', default=settings.DEFAULTS['backend'],
               help='Name of the backend to use (requests, hvac)')
@@ -49,9 +51,14 @@ def cli(ctx, **kwargs):
     Interact with a Vault. See subcommands for details.
     """
     backend = kwargs.pop("backend")
+    for key in ["password", "certificate", "token"]:
+        kwargs[key] = settings.CONFIG.get(key)
+
+    # There might still be files to read, so let's do it now
+    kwargs = settings.read_all_files(kwargs)
+
     try:
-        ctx.obj = client.get_client_from_kwargs(
-            backend=backend, **kwargs)
+        ctx.obj = client.get_client_from_kwargs(backend=backend, **kwargs)
     except ValueError as exc:
         raise click.UsageError(str(exc))
 
