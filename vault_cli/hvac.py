@@ -16,21 +16,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import absolute_import
+
 import hvac
 
-from vault_cli.backend import VaultAPIException
-from vault_cli.backend import VaultSessionBase
+from vault_cli.client import VaultAPIException
+from vault_cli.client import VaultClientBase
 
 
-class VaultSession(VaultSessionBase):
+class HVACVaultClient(VaultClientBase):
 
-    def init_session(self, url, verify):
+    def _init_session(self, url, verify):
         self.client = hvac.Client(url=url, verify=verify)
 
-    def authenticate_token(self, token):
+    def _authenticate_token(self, token):
         self.client.token = token
 
-    def authenticate_userpass(self, username, password):
+    def _authenticate_userpass(self, username, password):
         self.client.auth_userpass(username, password)
 
     def list_secrets(self, path):
@@ -40,10 +42,10 @@ class VaultSession(VaultSessionBase):
         secret = self.client.read(self.base_path + path)
         if not secret:
             raise VaultAPIException(404, "Not found")
-        return ["data"]["value"]
+        return secret["data"]["value"]
 
     def delete_secret(self, path):
         self.client.delete(self.base_path + path)
 
-    def put_secret(self, path, value):
+    def set_secret(self, path, value):
         self.client.write(self.base_path + path, value=value)

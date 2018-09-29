@@ -1,0 +1,32 @@
+# Config file for automatic testing at travis-ci.org
+language: python
+
+services:
+  - docker
+
+matrix:
+  include:
+
+  - python: 3.6
+    env: TOX_ENV=py36-unit-tests COVERAGE_FLAG=unit
+
+  - python: 3.6
+    env: TOX_ENV=py36-integration-tests COVERAGE_FLAG=integration
+
+  - python: 2.7
+    env: TOX_ENV=py27-unit-tests COVERAGE_FLAG=unit
+
+  - python: 2.7
+    env: TOX_ENV=py27-integration-tests COVERAGE_FLAG=integration
+
+before_install:
+  - "if [ $COVERAGE_FLAG = integration ]; then ./dev-env; fi"
+
+install:
+  - pip install tox codecov
+
+script:
+  - tox -e $TOX_ENV
+
+after_success:
+- bash <(curl -s https://codecov.io/bash) -c -F $COVERAGE_FLAG

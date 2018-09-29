@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 Copyright 2018 PeopleDoc
 Written by Yann Lachiver
@@ -15,7 +16,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from vault_cli.client import get_client
+
+from vault_cli.cli import main
 
 
-__all__ = ['get_client']
+# Shenanigans for coverage
+def entrypoint(name):
+    if name == '__main__':
+        main()
+
+
+entrypoint(__name__)
