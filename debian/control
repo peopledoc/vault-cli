@@ -2,7 +2,7 @@ Source: vault-cli
 Section: net
 Priority: optional
 Maintainer: Mickaël Guérin <mickael.guerin@people-doc.com>
-Build-Depends: debhelper (>= 10), dh-python, python3-all, python3-setuptools
+Build-Depends: debhelper (>= 10), dh-python, python3-all, python3-setuptools, python3-yaml
 Standards-Version: 4.1.2
 Homepage: https://github.com/peopledoc/vault-cli
 X-Python3-Version: >= 3.5
