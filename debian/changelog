@@ -1,3 +1,9 @@
+vault-cli (0.3.0) unstable; urgency=medium
+
+  * New release
+
+ -- Mickaël Guérin <mickael.guerin@people-doc.com>  Fri, 05 Oct 2018 14:21:05 +0200
+
 vault-cli (0.1.0) unstable; urgency=medium
 
   * Initial release

@@ -1,0 +1,7 @@
+How to release
+==============
+
+1. Create a new changelog entry with the new version of the package (use `dch`)
+2. sudo pbuilder --update
+3. sudo pdebuild
+4. Your package should be available in /var/cache/pbuilder/results
