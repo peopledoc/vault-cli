@@ -1,6 +1,16 @@
 CHANGELOG
 =========
 
+0.3.1
+-----
+
+Redo release
+
+0.3.0
+-----
+
+Usable as a library too.
+
 0.2.2
 -----
 
