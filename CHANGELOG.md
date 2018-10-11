@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-0.3.3
+0.3.4
 -----
 
 - Add Jacques Rott as an author
