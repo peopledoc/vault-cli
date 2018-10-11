@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.3.3
+-----
+
+Add `--config-file` option
+
 0.3.2
 -----
 
