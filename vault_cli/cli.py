@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import os
 
 import click
 import yaml
@@ -148,4 +149,8 @@ def delete(client_obj, name):
 
 
 def main():
+    # https://click.palletsprojects.com/en/7.x/python3/
+    os.environ.setdefault("LC_ALL", "C.UTF-8")
+    os.environ.setdefault("LANG", "C.UTF-8")
+
     return cli(default_map=settings.CONFIG)
