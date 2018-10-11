@@ -25,7 +25,10 @@ from vault_cli import client
 from vault_cli import settings
 
 
-CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
+CONTEXT_SETTINGS = {
+    'help_option_names': ['-h', '--help'],
+    'auto_envvar_prefix': "VAULT_CLI"
+}
 
 
 def load_config(ctx, param, value):
@@ -65,15 +68,19 @@ def load_config(ctx, param, value):
 @click.option("--config-file", is_eager=True, callback=load_config,
               help="Config file to use. Use 'no' to disable config file. "
               "Default value: first of "
-              + ", ".join(settings.CONFIG_FILES))
+              + ", ".join(settings.CONFIG_FILES), type=click.Path())
 def cli(ctx, **kwargs):
     """
     Interact with a Vault. See subcommands for details.
+
+    All arguments can be passed by environment variables: VAULT_CLI_UPPERCASE_NAME
+    (including VAULT_CLI_PASSWORD and VAULT_CLI_TOKEN).
+
     """
     kwargs.pop("config_file")
     backend = kwargs.pop("backend")
-    for key in ["password", "certificate", "token"]:
-        kwargs[key] = ctx.default_map.get(key)
+
+    kwargs.update(extract_special_args(ctx.default_map, os.environ))
 
     # There might still be files to read, so let's do it now
     kwargs = settings.read_all_files(kwargs)
@@ -81,6 +88,18 @@ def cli(ctx, **kwargs):
         ctx.obj = client.get_client_from_kwargs(backend=backend, **kwargs)
     except ValueError as exc:
         raise click.UsageError(str(exc))
+
+
+def extract_special_args(config, environ):
+    result = {}
+    for key in ["password", "certificate", "token"]:
+        result[key] = config.get(key)
+
+        env_var_key = "VAULT_CLI_{}".format(key.upper())
+        if env_var_key in environ:
+            result[key] = environ.get(env_var_key)
+
+    return result
 
 
 @cli.command("list")
