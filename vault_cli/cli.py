@@ -27,6 +27,20 @@ from vault_cli import settings
 CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 
 
+def load_config(ctx, param, value):
+    if value == "no":
+        ctx.default_map = {}
+        return
+
+    if value is None:
+        config_files = settings.CONFIG_FILES
+    else:
+        config_files = [value]
+
+    config = settings.build_config_from_files(*config_files)
+    ctx.default_map = config
+
+
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @click.option('--url', '-U', help='URL of the vault instance',
@@ -47,17 +61,21 @@ CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 @click.option('--base-path', '-b', help='Base path for requests')
 @click.option('--backend', default=settings.DEFAULTS['backend'],
               help='Name of the backend to use (requests, hvac)')
+@click.option("--config-file", is_eager=True, callback=load_config,
+              help="Config file to use. Use 'no' to disable config file. "
+              "Default value: first of "
+              + ", ".join(settings.CONFIG_FILES))
 def cli(ctx, **kwargs):
     """
     Interact with a Vault. See subcommands for details.
     """
+    kwargs.pop("config_file")
     backend = kwargs.pop("backend")
     for key in ["password", "certificate", "token"]:
-        kwargs[key] = settings.CONFIG.get(key)
+        kwargs[key] = ctx.default_map.get(key)
 
     # There might still be files to read, so let's do it now
     kwargs = settings.read_all_files(kwargs)
-
     try:
         ctx.obj = client.get_client_from_kwargs(backend=backend, **kwargs)
     except ValueError as exc:
@@ -153,4 +171,4 @@ def main():
     os.environ.setdefault("LC_ALL", "C.UTF-8")
     os.environ.setdefault("LANG", "C.UTF-8")
 
-    return cli(default_map=settings.CONFIG)
+    return cli()

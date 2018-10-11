@@ -53,13 +53,14 @@ def test_read_file_stdin(mocker):
 
 
 def test_build_config_from_files(mocker):
+    settings.build_config_from_files.cache_clear()
     config_file = {"test-a": "b"}
     mocker.patch("vault_cli.settings.read_config_file",
                  return_value=config_file)
     read_all_files = mocker.patch("vault_cli.settings.read_all_files",
                                   side_effect=lambda x: x)
 
-    result = settings.build_config_from_files(["a"])
+    result = settings.build_config_from_files("a")
 
     assert result["test_a"] == "b"
     assert "url" in result
@@ -67,15 +68,17 @@ def test_build_config_from_files(mocker):
 
 
 def test_build_config_from_files_no_files(mocker):
+    settings.build_config_from_files.cache_clear()
     mocker.patch("vault_cli.settings.read_config_file",
                  return_value=None)
 
-    result = settings.build_config_from_files(["a"])
+    result = settings.build_config_from_files("a")
 
     assert result == settings.DEFAULTS
 
 
-def test_get_vault_options(config):
-    config.update({"a": "b"})
+def test_get_vault_options(mocker):
+    mocker.patch("vault_cli.settings.build_config_from_files",
+                 return_value={"a": "b"})
 
     assert settings.get_vault_options(c="d") == {"a": "b", "c": "d"}

@@ -26,8 +26,9 @@ def test_get_client_from_kwargs_bad(mocker):
         client.get_client_from_kwargs("nope")
 
 
-def test_get_client(mocker, config):
-    config.update({"url": "yay"})
+def test_get_client(mocker):
+    mocker.patch("vault_cli.settings.build_config_from_files",
+                 return_value={"url": "yay"})
     backend = mocker.Mock()
 
     c = client.get_client(backend=backend, yo=True)

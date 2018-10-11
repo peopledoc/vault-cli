@@ -16,10 +16,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import functools
 import os
-import yaml
-
 import sys
+
+import yaml
 
 
 # Ordered by increasing priority
@@ -88,7 +89,8 @@ def read_file(path):
         return file_handler.read().decode("utf-8").strip()
 
 
-def build_config_from_files(config_files):
+@functools.lru_cache()
+def build_config_from_files(*config_files):
     values = DEFAULTS.copy()
 
     for potential_file in config_files:
@@ -102,13 +104,8 @@ def build_config_from_files(config_files):
     return values
 
 
-# Make sure our config files are not re-read
-# everytime we create a backend object
-CONFIG = build_config_from_files(CONFIG_FILES)
-
-
 def get_vault_options(**kwargs):
-    values = CONFIG.copy()
+    values = build_config_from_files(*CONFIG_FILES).copy()
     # TODO: Env vars here
     values.update(kwargs)
 
