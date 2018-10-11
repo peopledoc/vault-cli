@@ -139,8 +139,10 @@ def test_delete(cli_runner, backend):
 
 def test_main(mocker, config):
     mock_cli = mocker.patch("vault_cli.cli.cli")
+    environ = mocker.patch("os.environ", {})
     config.update({"bla": "blu"})
 
     cli.main()
 
     mock_cli.assert_called_with(default_map={"bla": "blu"})
+    assert environ == {"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"}
