@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.3.2
+-----
+
+Fix locale issue
+
 0.3.1
 -----
 
@@ -10,11 +15,6 @@ Redo release
 -----
 
 Usable as a library too.
-
-0.2.2
------
-
-Please add items here !
 
 0.2.1
 -----
