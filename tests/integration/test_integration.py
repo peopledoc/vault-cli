@@ -1,10 +1,9 @@
 from vault_cli.cli import cli
 from vault_cli import get_client
-from vault_cli import settings
 
 
 def call(cli_runner, *args):
-    call = cli_runner.invoke(cli, *args, default_map=settings.CONFIG)
+    call = cli_runner.invoke(cli, *args)
     assert call.exit_code == 0, call.output
     return call
 
