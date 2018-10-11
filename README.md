@@ -19,10 +19,13 @@ If you wish to use the hvac backend, install with
 ## Usage
 
 ```console
-$ vault --help
 Usage: vault [OPTIONS] COMMAND [ARGS]...
 
   Interact with a Vault. See subcommands for details.
+
+  All arguments can be passed by environment variables:
+  VAULT_CLI_UPPERCASE_NAME (including VAULT_CLI_PASSWORD and
+  VAULT_CLI_TOKEN).
 
 Options:
   -U, --url TEXT               URL of the vault instance
@@ -38,6 +41,9 @@ Options:
                                a "password" key.
   -b, --base-path TEXT         Base path for requests
   --backend TEXT               Name of the backend to use (requests, hvac)
+  --config-file PATH           Config file to use. Use 'no' to disable config
+                               file. Default value: first of ./.vault.yml,
+                               ~/.vault.yml, /etc/vault.yml
   -h, --help                   Show this message and exit.
 
 Commands:
@@ -46,7 +52,6 @@ Commands:
   get-all  Return multiple secrets.
   list     List all the secrets at the given path.
   set      Set a single secret to the given value(s).
-
 
 ```
 
@@ -156,6 +161,15 @@ not too broad
 
 Just note that the `--verify / --no-verify` flag become `verify: yes` or
 `verify: no`
+
+All parameters can be defined from environment variables:
+
+```console
+$ VAULT_CLI_URL=https://myvault.com vault list
+```
+The name is always the uppercase underscored name of the equivalent command
+line option. Token and password can also be passed as environment variables as
+VAULT_CLI_TOKEN and VAULT_CLI_PASSWORD.
 
 ## State
 

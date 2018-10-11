@@ -166,3 +166,38 @@ def test_load_config(mocker, value, expected):
 
     assert ctx.default_map == {"a": "b"}
     build.assert_called_with(*expected)
+
+
+@pytest.mark.parametrize("config, environ, expected", [
+    # Empty does not crash or what
+    ({}, {}, {}),
+    # Irrelevant keys are not copied over
+    ({"a": "b"}, {"c", "d"}, {}),
+
+    # Relevant keys is copied from first dict
+    ({"password": "e"}, {}, {"password": "e"}),
+    ({"token": "f"}, {}, {"token": "f"}),
+    ({"certificate": "g"}, {}, {"certificate": "g"}),
+
+    # Relevant keys is copied from second dict
+    ({}, {"VAULT_CLI_PASSWORD": "h"}, {"password": "h"}),
+    ({}, {"VAULT_CLI_TOKEN": "i"}, {"token": "i"}),
+    ({}, {"VAULT_CLI_CERTIFICATE": "j"}, {"certificate": "j"}),
+
+    # Second dict has priority
+    ({"password": "l"}, {"VAULT_CLI_PASSWORD": "m"}, {"password": "m"}),
+    ({"token": "n"}, {"VAULT_CLI_TOKEN": "o"}, {"token": "o"}),
+    ({"certificate": "p"}, {"VAULT_CLI_CERTIFICATE": "q"}, {"certificate": "q"}),
+
+    # Both dict are used
+    ({"password": "r"}, {"VAULT_CLI_CERTIFICATE": "s"},
+     {"password": "r", "certificate": "s"}),
+])
+def test_extract_special_args(config, environ, expected):
+    result = cli.extract_special_args(config, environ)
+
+    assert set(result) == {"password", "token", "certificate"}
+    # remove None
+    result = {key: value for key, value in result.items() if value is not None}
+
+    assert result == expected
