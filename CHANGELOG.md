@@ -4,6 +4,12 @@ CHANGELOG
 0.3.3
 -----
 
+- Add Jacques Rott as an author
+- Configure vault_cli using environment variables
+
+0.3.3
+-----
+
 Add `--config-file` option
 
 0.3.2
