@@ -16,11 +16,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import functools
 import os
 import sys
 
 import yaml
+
+try:
+    from functools import lru_cache
+except ImportError:
+    from backports.functools_lru_cache import lru_cache
 
 
 # Ordered by increasing priority
@@ -36,7 +40,7 @@ DEFAULTS = {
     'certificate': None,
     'password': None,
     'token': None,
-    'url': 'https://localhost:8200',
+    'url': 'http://localhost:8200',
     'username': None,
     'verify': True,
 }
@@ -89,7 +93,7 @@ def read_file(path):
         return file_handler.read().decode("utf-8").strip()
 
 
-@functools.lru_cache()
+@lru_cache()
 def build_config_from_files(*config_files):
     values = DEFAULTS.copy()
 

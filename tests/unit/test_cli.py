@@ -145,3 +145,24 @@ def test_main(mocker):
 
     mock_cli.assert_called_with()
     assert environ == {"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"}
+
+
+def test_load_config_no_config(mocker):
+    ctx = mocker.Mock()
+    cli.load_config(ctx, None, "no")
+
+    assert ctx.default_map == {}
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("bla", ["bla"]),
+    (None, ["./.vault.yml", "~/.vault.yml", "/etc/vault.yml"]),
+])
+def test_load_config(mocker, value, expected):
+    ctx = mocker.Mock()
+    build = mocker.patch("vault_cli.settings.build_config_from_files",
+                         return_value={"a": "b"})
+    cli.load_config(ctx, None, value)
+
+    assert ctx.default_map == {"a": "b"}
+    build.assert_called_with(*expected)

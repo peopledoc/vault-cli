@@ -10,8 +10,6 @@ docker-compose exec vault vault secrets enable -version=1 -path=mybase kv
 cat >.vault.yml <<EOF
 ---
 token-file: .vault-token
-url: http://localhost:8200
-verify: no
 base-path: "mybase/"
 ...
 EOF
