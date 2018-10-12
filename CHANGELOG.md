@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.3.6
+-----
+
+Added sni extras requirements for old OSes (`pip install 'vault-cli[sni]'`)
+
 0.3.5
 -----
 
