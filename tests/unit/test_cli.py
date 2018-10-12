@@ -113,6 +113,30 @@ def test_set(cli_runner, backend):
     assert backend.set == ["a", "b"]
 
 
+def test_set_arg_stdin(cli_runner, backend):
+
+    result = cli_runner.invoke(cli.cli, ["set", "--stdin", "a", "b"])
+
+    assert result.exit_code != 0
+
+
+def test_set_stdin(cli_runner, backend):
+
+    result = cli_runner.invoke(cli.cli, ["set", "--stdin", "a"], input="b")
+
+    assert result.exit_code == 0
+    assert backend.set == ["a", "b"]
+
+
+def test_set_stdin_yaml(cli_runner, backend):
+    # Just checking that yaml and stdin are not incompatible
+    result = cli_runner.invoke(cli.cli, ["set", "--stdin", "--yaml", "a"],
+                               input=yaml.safe_dump({"b": "c"}))
+
+    assert result.exit_code == 0
+    assert backend.set == ["a", {"b": "c"}]
+
+
 def test_set_list(cli_runner, backend):
 
     result = cli_runner.invoke(cli.cli, ["set", "a", "b", "c"])
