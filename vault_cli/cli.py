@@ -157,14 +157,25 @@ def get(client_obj, text, name):
 @cli.command("set")
 @click.pass_obj
 @click.option('--yaml', 'format_yaml', is_flag=True)
+@click.option('--stdin/--no-stdin', default=False)
 @click.argument('name')
 @click.argument('value', nargs=-1)
-def set_(client_obj, format_yaml, name, value):
+def set_(client_obj, format_yaml, stdin, name, value):
     """
     Set a single secret to the given value(s).
+
+    Value can be either passed as argument (several arguments will be
+    interpreted as a list) or via stdin with the --stdin flag.
     """
-    if len(value) == 1:
+    if stdin and value:
+        raise click.UsageError("Can't set both --stdin and a value")
+
+    if stdin:
+        value = click.get_text_stream('stdin').read().strip()
+
+    elif len(value) == 1:
         value = value[0]
+
     else:
         value = list(value)
 

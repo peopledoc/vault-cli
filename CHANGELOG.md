@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.3.5
+-----
+
+Add flag --stdin to vault set
+
 0.3.4
 -----
 
