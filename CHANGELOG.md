@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.3.7
+-----
+
+SNI compatibility is built directly into requirement environmental markers
+
 0.3.6
 -----
 
