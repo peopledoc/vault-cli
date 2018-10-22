@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.3.8
+-----
+
+Added `--ca-bundle` flag to specify location of CA bundle
+
 0.3.7
 -----
 

@@ -30,6 +30,8 @@ Usage: vault [OPTIONS] COMMAND [ARGS]...
 Options:
   -U, --url TEXT               URL of the vault instance
   --verify / --no-verify       Verify HTTPS certificate
+  --ca-bundle PATH             Location of the bundle containing the server
+                               certificate to check against.
   -c, --certificate-file PATH  Certificate to connect to vault. Configuration
                                file can also contain a "certificate" key.
   -T, --token-file PATH        File which contains the token to connect to

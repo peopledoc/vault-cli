@@ -51,6 +51,9 @@ def load_config(ctx, param, value):
               default=settings.DEFAULTS['url'])
 @click.option('--verify/--no-verify', default=settings.DEFAULTS['verify'],
               help='Verify HTTPS certificate')
+@click.option('--ca-bundle', type=click.Path(),
+              help='Location of the bundle containing the server certificate '
+              'to check against.')
 @click.option('--certificate-file', '-c', type=click.Path(),
               help='Certificate to connect to vault. '
               'Configuration file can also contain a "certificate" key.')
