@@ -1,9 +1,13 @@
-from vault_cli.cli import cli
-from vault_cli import get_client
+import os
+
+import pytest
+
+from vault_cli import cli
+import vault_cli
 
 
 def call(cli_runner, *args):
-    call = cli_runner.invoke(cli, *args)
+    call = cli_runner.invoke(cli.cli, *args)
     assert call.exit_code == 0, call.output
     return call
 
@@ -38,7 +42,7 @@ c:
 
 def test_integration_lib():
 
-    client = get_client()
+    client = vault_cli.get_client()
 
     client.set_secret("a", "b")
 
@@ -61,3 +65,10 @@ def test_integration_lib():
     assert client.list_secrets("") == ["c/"]
 
     client.delete_secret("c/d")
+
+
+def test_env_var_config():
+    # Test env var config
+    os.environ["VAULT_CLI_TOKEN"] = "some-other-token"
+    with pytest.raises(vault_cli.VaultAPIException):
+        vault_cli.get_client().set_secret("a", "b")
