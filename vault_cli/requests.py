@@ -99,7 +99,12 @@ class RequestsVaultClient(VaultClientBase):
     def list_secrets(self, path):
         url = self._full_url(path).rstrip('/')
         response = self.session.get(url, params={'list': 'true'})
-        self.handle_error(response)
+        try:
+            self.handle_error(response)
+        except VaultAPIException as exc:
+            if exc.status_code == 404:
+                return []
+            raise
         json_response = response.json()
         return json_response['data']['keys']
 

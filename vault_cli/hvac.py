@@ -37,7 +37,10 @@ class HVACVaultClient(VaultClientBase):
         self.client.auth_userpass(username, password)
 
     def list_secrets(self, path):
-        return self.client.list(self.base_path + path)["data"]["keys"]
+        secrets = self.client.list(self.base_path + path)
+        if not secrets:
+            return []
+        return secrets["data"]["keys"]
 
     def get_secret(self, path):
         secret = self.client.read(self.base_path + path)
