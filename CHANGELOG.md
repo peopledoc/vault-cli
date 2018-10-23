@@ -6,6 +6,7 @@ CHANGELOG
 
 - Added `--ca-bundle` flag to specify location of CA bundle
 - Environment variables when using vault_cli as lib
+- Return empty list instead of crashing when listing an empty dir
 
 0.3.7
 -----

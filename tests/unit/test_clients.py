@@ -89,6 +89,26 @@ def test_list_secrets(requests_mock, backend):
 
 
 @pytest.mark.parametrize("backend", ["requests", "hvac"])
+def test_list_secrets_empty(requests_mock, backend):
+    client_obj = get_client(backend)
+    requests_mock.get("http://vault:8000/v1/bla/a?list=True",
+                      status_code=404,
+                      json={"errors": ["not found"]})
+    assert client_obj.list_secrets("a") == []
+
+
+@pytest.mark.parametrize("backend", ["requests", "hvac"])
+def test_list_secrets_other_error(requests_mock, backend):
+    client_obj = get_client(backend)
+    requests_mock.get("http://vault:8000/v1/bla/a?list=True",
+                      status_code=500,
+                      json={"errors": ["not found"]})
+
+    with pytest.raises(Exception):
+        client_obj.list_secrets("a")
+
+
+@pytest.mark.parametrize("backend", ["requests", "hvac"])
 def test_delete_secret(requests_mock, backend):
     client_obj = get_client(backend)
     requests_mock.delete("http://vault:8000/v1/bla/a", status_code=204)
