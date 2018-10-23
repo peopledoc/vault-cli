@@ -13,6 +13,7 @@ def get_client(backend, **additional_kwargs):
         "token": "tok",
         "username": None,
         "password": None,
+        "ca_bundle": None,
     }
     kwargs.update(additional_kwargs)
     return client.get_client_from_kwargs(**kwargs)

@@ -107,12 +107,15 @@ class VaultAPIException(Exception):
 
 
 class VaultClientBase():
-    def __init__(self, url, verify, base_path,
-                 certificate, token, username,
-                 password):
+    def __init__(self, url, verify, ca_bundle, base_path,
+                 certificate, token, username, password):
         """
         All parameters are mandatory but may be None
         """
+
+        if verify and ca_bundle:
+            verify = ca_bundle
+
         self._init_session(url=url, verify=verify)
 
         self.base_path = (base_path or "").rstrip("/") + "/"

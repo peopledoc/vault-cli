@@ -87,7 +87,7 @@ def test_vault_client_base_call_init_session():
 
     TestVaultClient(verify=False, url="yay", token="go",
                     base_path=None, certificate=None, username=None,
-                    password=None)
+                    password=None, ca_bundle=None)
 
     assert called_with == {"verify": False, "url": "yay"}
 
@@ -121,7 +121,7 @@ def test_vault_client_base_authenticate(test_kwargs, expected):
               "certificate": None}
     kwargs.update(test_kwargs)
     TestVaultClient(verify=False, url=None, base_path=None,
-                    **kwargs)
+                    ca_bundle=None, **kwargs)
 
     assert auth_params == expected
 
@@ -135,7 +135,8 @@ def test_vault_client_base_username_without_password():
     with pytest.raises(ValueError):
         TestVaultClient(username="yay", password=None,
                         verify=False, url="yay", token=None,
-                        base_path=None, certificate=None)
+                        base_path=None, certificate=None,
+                        ca_bundle=None)
 
 
 def test_vault_client_base_no_auth():
@@ -147,7 +148,56 @@ def test_vault_client_base_no_auth():
     with pytest.raises(ValueError):
         TestVaultClient(username=None, password=None,
                         verify=False, url="yay", token=None,
-                        base_path=None, certificate=None)
+                        base_path=None, certificate=None,
+                        ca_bundle=None)
+
+
+def test_vault_client_set_ca_bundle(mocker):
+
+    session_kwargs = {}
+
+    class TestVaultClient(client.VaultClientBase):
+        def _init_session(self, **kwargs):
+            session_kwargs.update(kwargs)
+
+    with pytest.raises(ValueError):
+        TestVaultClient(verify=True, ca_bundle="yay",
+                        username=None, password=None, url=None,
+                        token=None, base_path=None, certificate=None)
+
+    assert session_kwargs["verify"] == "yay"
+
+
+def test_vault_client_set_ca_bundle_no_bundle():
+
+    session_kwargs = {}
+
+    class TestVaultClient(client.VaultClientBase):
+        def _init_session(self, **kwargs):
+            session_kwargs.update(kwargs)
+
+    with pytest.raises(ValueError):
+        TestVaultClient(verify=True, ca_bundle=None,
+                        username=None, password=None, url=None,
+                        token=None, base_path=None, certificate=None)
+
+    assert session_kwargs["verify"] is True
+
+
+def test_vault_client_set_ca_bundle_no_verify():
+
+    session_kwargs = {}
+
+    class TestVaultClient(client.VaultClientBase):
+        def _init_session(self, **kwargs):
+            session_kwargs.update(kwargs)
+
+    with pytest.raises(ValueError):
+        TestVaultClient(verify=False, ca_bundle="yay",
+                        username=None, password=None, url=None,
+                        token=None, base_path=None, certificate=None)
+
+    assert session_kwargs["verify"] is False
 
 
 def test_vault_client_base_get_recursive_secrets():

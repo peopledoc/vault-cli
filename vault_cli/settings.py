@@ -44,6 +44,7 @@ DEFAULTS = {
     'url': 'http://localhost:8200',
     'username': None,
     'verify': True,
+    'ca_bundle': None,
 }
 
 

@@ -45,6 +45,7 @@ def test_options(cli_runner, mocker):
     result = cli_runner.invoke(cli.cli, [
         "--backend", "requests",
         "--base-path", "bla",
+        "--ca-bundle", "yay",
         "--certificate-file", "a",
         "--password-file", "b",
         "--token-file", "c",
@@ -59,6 +60,7 @@ def test_options(cli_runner, mocker):
     assert set(kwargs) == {
         "backend",
         "base_path",
+        "ca_bundle",
         "certificate",
         "password",
         "token",
@@ -67,6 +69,7 @@ def test_options(cli_runner, mocker):
         "verify",
     }
     assert kwargs["base_path"] == "bla"
+    assert kwargs["ca_bundle"] == "yay"
     assert kwargs["certificate"] == "content of a"
     assert kwargs["password"] == "content of b"
     assert kwargs["token"] == "content of c"
