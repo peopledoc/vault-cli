@@ -4,7 +4,8 @@ CHANGELOG
 0.3.8
 -----
 
-Added `--ca-bundle` flag to specify location of CA bundle
+- Added `--ca-bundle` flag to specify location of CA bundle
+- Environment variables when using vault_cli as lib
 
 0.3.7
 -----

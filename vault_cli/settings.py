@@ -27,6 +27,7 @@ try:
 except ImportError:
     from backports.functools_lru_cache import lru_cache
 
+ENV_PREFIX = "VAULT_CLI"
 
 # Ordered by increasing priority
 CONFIG_FILES = [
@@ -61,6 +62,40 @@ def dash_to_underscores(config):
     # consolidate the keys into a list
     return {key.replace("-", "_"): value
             for key, value in config.items()}
+
+
+def load_bool(value):
+    lower_value = value.lower()
+
+    if lower_value in ('true', 't', '1', 'yes', 'y'):
+        return True
+    elif lower_value in ('false', 'f', '0', 'no', 'n'):
+        return False
+
+    raise ValueError("Value {} could not be interpreted as boolean")
+
+
+def build_config_from_env(environ):
+    result = {}
+
+    skip_len = len(ENV_PREFIX) + 1
+
+    for key, value in environ.items():
+
+        if not key.startswith(ENV_PREFIX + "_"):
+            continue
+
+        key = key[skip_len:].lower()
+
+        if key not in DEFAULTS:
+            continue
+
+        if isinstance(DEFAULTS[key], bool):
+            value = load_bool(value)
+
+        result[key] = value
+
+    return result
 
 
 def read_all_files(config):
@@ -112,7 +147,7 @@ def build_config_from_files(*config_files):
 
 def get_vault_options(**kwargs):
     values = build_config_from_files(*CONFIG_FILES).copy()
-    # TODO: Env vars here
+    values.update(build_config_from_env(os.environ))
     values.update(kwargs)
 
     return values

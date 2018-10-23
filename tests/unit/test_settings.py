@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import io
 
+import pytest
+
 from vault_cli import settings
 
 
@@ -80,5 +82,39 @@ def test_build_config_from_files_no_files(mocker):
 def test_get_vault_options(mocker):
     mocker.patch("vault_cli.settings.build_config_from_files",
                  return_value={"a": "b"})
+    mocker.patch("os.environ", {"VAULT_CLI_URL": "d"})
 
-    assert settings.get_vault_options(c="d") == {"a": "b", "c": "d"}
+    expected = {"a": "b", "url": "d", "e": "f"}
+
+    assert settings.get_vault_options(e="f") == expected
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("true", True), ("True", True), ("True", True),
+    ("t", True), ("T", True), ("1", True),
+    ("yes", True), ("YES", True), ("y", True),
+    ("false", False), ("False", False), ("FALSE", False),
+    ("f", False), ("F", False), ("0", False),
+    ("no", False), ("NO", False), ("n", False),
+    ("N", False),
+])
+def test_load_bool(value, expected):
+    assert settings.load_bool(value) == expected
+
+
+def test_load_bool_wrong():
+    with pytest.raises(ValueError):
+        assert settings.load_bool("wrong")
+
+
+@pytest.mark.parametrize("value, expected", [
+    ({"COIN": "yay"}, {}),
+    ({"VAULT_CLI_BLA": "yay"}, {}),
+    ({"VAULT_CLI_URL": "yay"}, {"url": "yay"}),
+    ({"VAULT_CLI_BASE_PATH": "yay"}, {"base_path": "yay"}),
+    ({"VAULT_CLI_VERIFY": "t"}, {"verify": True}),
+    ({"VAULT_CLI_VERIFY": "t", "VAULT_CLI_BASE_PATH": "yay"},
+     {"verify": True, "base_path": "yay"}),
+])
+def test_build_config_from_env(value, expected):
+    assert settings.build_config_from_env(value) == expected

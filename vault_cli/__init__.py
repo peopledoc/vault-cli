@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from vault_cli.client import get_client
+from vault_cli.client import VaultAPIException
 
 
-__all__ = ['get_client']
+__all__ = ['get_client', 'VaultAPIException']

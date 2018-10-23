@@ -27,7 +27,7 @@ from vault_cli import settings
 
 CONTEXT_SETTINGS = {
     'help_option_names': ['-h', '--help'],
-    'auto_envvar_prefix': "VAULT_CLI"
+    'auto_envvar_prefix': settings.ENV_PREFIX
 }
 
 
