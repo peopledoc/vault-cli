@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.3.9
+-----
+
+Fix Click to version 7 to avoid env precedence problem
+
 0.3.8
 -----
 
