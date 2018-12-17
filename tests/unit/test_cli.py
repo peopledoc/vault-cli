@@ -188,7 +188,7 @@ def test_load_config_no_config(mocker):
 def test_load_config(mocker, value, expected):
     ctx = mocker.Mock()
     build = mocker.patch("vault_cli.settings.build_config_from_files",
-                         return_value={"a": "b"})
+                         return_value=(None, {"a": "b"}))
     cli.load_config(ctx, None, value)
 
     assert ctx.default_map == {"a": "b"}

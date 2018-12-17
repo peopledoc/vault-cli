@@ -28,7 +28,7 @@ def test_get_client_from_kwargs_bad(mocker):
 
 def test_get_client(mocker):
     mocker.patch("vault_cli.settings.build_config_from_files",
-                 return_value={"url": "yay"})
+                 return_value=(None, {"url": "yay"}))
     backend = mocker.Mock()
 
     c = client.get_client(backend=backend, yo=True)
