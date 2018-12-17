@@ -41,8 +41,9 @@ def load_config(ctx, param, value):
     else:
         config_files = [value]
 
-    config = settings.build_config_from_files(*config_files)
-    ctx.default_map = config
+    config_file, ctx.default_map = settings.build_config_from_files(*config_files)
+
+    return config_file
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)

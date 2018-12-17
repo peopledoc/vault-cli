@@ -141,12 +141,15 @@ def build_config_from_files(*config_files):
             file_config = read_all_files(file_config)
             values.update(file_config)
             break
+    else:
+        potential_file = None
 
-    return values
+    return potential_file, values
 
 
 def get_vault_options(**kwargs):
-    values = build_config_from_files(*CONFIG_FILES).copy()
+    config_file, values = build_config_from_files(*CONFIG_FILES)
+    values = values.copy()
     values.update(build_config_from_env(os.environ))
     values.update(kwargs)
 
