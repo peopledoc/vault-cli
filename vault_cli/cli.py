@@ -86,6 +86,10 @@ def cli(ctx, **kwargs):
 
     kwargs.update(extract_special_args(ctx.default_map, os.environ))
 
+    if ctx.invoked_subcommand == 'dump-config':
+        # avoid to read files when dumping configuration values
+        return
+
     # There might still be files to read, so let's do it now
     kwargs = settings.read_all_files(kwargs)
     try:
@@ -199,6 +203,14 @@ def delete(client_obj, name):
     """
     client_obj.delete_secret(path=name)
     click.echo('Done')
+
+
+@cli.command()
+@click.pass_context
+def dump_config(ctx):
+    """
+    """
+    click.echo(yaml.safe_dump(ctx.parent.params))
 
 
 def main():
