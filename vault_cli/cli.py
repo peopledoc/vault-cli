@@ -21,13 +21,11 @@ import os
 import click
 import yaml
 
-from vault_cli import client
-from vault_cli import settings
-
+from vault_cli import client, settings
 
 CONTEXT_SETTINGS = {
-    'help_option_names': ['-h', '--help'],
-    'auto_envvar_prefix': settings.ENV_PREFIX
+    "help_option_names": ["-h", "--help"],
+    "auto_envvar_prefix": settings.ENV_PREFIX,
 }
 
 
@@ -47,31 +45,56 @@ def load_config(ctx, param, value):
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
-@click.option('--url', '-U', help='URL of the vault instance',
-              default=settings.DEFAULTS['url'])
-@click.option('--verify/--no-verify', default=settings.DEFAULTS['verify'],
-              help='Verify HTTPS certificate')
-@click.option('--ca-bundle', type=click.Path(),
-              help='Location of the bundle containing the server certificate '
-              'to check against.')
-@click.option('--certificate-file', '-c', type=click.Path(),
-              help='Certificate to connect to vault. '
-              'Configuration file can also contain a "certificate" key.')
-@click.option('--token-file', '-T', type=click.Path(),
-              help='File which contains the token to connect to Vault. '
-              'Configuration file can also contain a "token" key.')
-@click.option('--username', '-u',
-              help='Username used for userpass authentication')
-@click.option('--password-file', '-w', type=click.Path(),
-              help='Can read from stdin if "-" is used as parameter. '
-              'Configuration file can also contain a "password" key.')
-@click.option('--base-path', '-b', help='Base path for requests')
-@click.option('--backend', default=settings.DEFAULTS['backend'],
-              help='Name of the backend to use (requests, hvac)')
-@click.option("--config-file", is_eager=True, callback=load_config,
-              help="Config file to use. Use 'no' to disable config file. "
-              "Default value: first of "
-              + ", ".join(settings.CONFIG_FILES), type=click.Path())
+@click.option(
+    "--url", "-U", help="URL of the vault instance", default=settings.DEFAULTS["url"]
+)
+@click.option(
+    "--verify/--no-verify",
+    default=settings.DEFAULTS["verify"],
+    help="Verify HTTPS certificate",
+)
+@click.option(
+    "--ca-bundle",
+    type=click.Path(),
+    help="Location of the bundle containing the server certificate "
+    "to check against.",
+)
+@click.option(
+    "--certificate-file",
+    "-c",
+    type=click.Path(),
+    help="Certificate to connect to vault. "
+    'Configuration file can also contain a "certificate" key.',
+)
+@click.option(
+    "--token-file",
+    "-T",
+    type=click.Path(),
+    help="File which contains the token to connect to Vault. "
+    'Configuration file can also contain a "token" key.',
+)
+@click.option("--username", "-u", help="Username used for userpass authentication")
+@click.option(
+    "--password-file",
+    "-w",
+    type=click.Path(),
+    help='Can read from stdin if "-" is used as parameter. '
+    'Configuration file can also contain a "password" key.',
+)
+@click.option("--base-path", "-b", help="Base path for requests")
+@click.option(
+    "--backend",
+    default=settings.DEFAULTS["backend"],
+    help="Name of the backend to use (requests, hvac)",
+)
+@click.option(
+    "--config-file",
+    is_eager=True,
+    callback=load_config,
+    help="Config file to use. Use 'no' to disable config file. "
+    "Default value: first of " + ", ".join(settings.CONFIG_FILES),
+    type=click.Path(),
+)
 def cli(ctx, **kwargs):
     """
     Interact with a Vault. See subcommands for details.
@@ -106,7 +129,7 @@ def extract_special_args(config, environ):
 
 
 @cli.command("list")
-@click.argument('path', required=False, default='')
+@click.argument("path", required=False, default="")
 @click.pass_obj
 def list_(client_obj, path):
     """
@@ -117,8 +140,8 @@ def list_(client_obj, path):
     click.echo("\n".join(result))
 
 
-@cli.command(name='get-all')
-@click.argument('path', required=False, nargs=-1)
+@cli.command(name="get-all")
+@click.argument("path", required=False, nargs=-1)
 @click.pass_obj
 def get_all(client_obj, path):
     """
@@ -130,19 +153,22 @@ def get_all(client_obj, path):
 
     result = client_obj.get_all(paths)
 
-    click.echo(yaml.safe_dump(
-        result,
-        default_flow_style=False,
-        explicit_start=True), nl=False)
+    click.echo(
+        yaml.safe_dump(result, default_flow_style=False, explicit_start=True), nl=False
+    )
 
 
 @cli.command()
 @click.pass_obj
-@click.option('--text',
-              is_flag=True,
-              help=("--text implies --without-key. Returns the value in "
-                    "plain text format instead of yaml."))
-@click.argument('name')
+@click.option(
+    "--text",
+    is_flag=True,
+    help=(
+        "--text implies --without-key. Returns the value in "
+        "plain text format instead of yaml."
+    ),
+)
+@click.argument("name")
 def get(client_obj, text, name):
     """
     Return a single secret value.
@@ -152,17 +178,17 @@ def get(client_obj, text, name):
         click.echo(secret)
         return
 
-    click.echo(yaml.safe_dump(secret,
-                              default_flow_style=False,
-                              explicit_start=True), nl=False)
+    click.echo(
+        yaml.safe_dump(secret, default_flow_style=False, explicit_start=True), nl=False
+    )
 
 
 @cli.command("set")
 @click.pass_obj
-@click.option('--yaml', 'format_yaml', is_flag=True)
-@click.option('--stdin/--no-stdin', default=False)
-@click.argument('name')
-@click.argument('value', nargs=-1)
+@click.option("--yaml", "format_yaml", is_flag=True)
+@click.option("--stdin/--no-stdin", default=False)
+@click.argument("name")
+@click.argument("value", nargs=-1)
 def set_(client_obj, format_yaml, stdin, name, value):
     """
     Set a single secret to the given value(s).
@@ -174,7 +200,7 @@ def set_(client_obj, format_yaml, stdin, name, value):
         raise click.UsageError("Can't set both --stdin and a value")
 
     if stdin:
-        value = click.get_text_stream('stdin').read().strip()
+        value = click.get_text_stream("stdin").read().strip()
 
     elif len(value) == 1:
         value = value[0]
@@ -186,18 +212,18 @@ def set_(client_obj, format_yaml, stdin, name, value):
         value = yaml.safe_load(value)
 
     client_obj.set_secret(path=name, value=value)
-    click.echo('Done')
+    click.echo("Done")
 
 
 @cli.command()
 @click.pass_obj
-@click.argument('name')
+@click.argument("name")
 def delete(client_obj, name):
     """
     Deletes a single secret.
     """
     client_obj.delete_secret(path=name)
-    click.echo('Done')
+    click.echo("Done")
 
 
 def main():

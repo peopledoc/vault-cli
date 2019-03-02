@@ -1,9 +1,8 @@
 import os
 
 import pytest
-
-from vault_cli import cli
 import vault_cli
+from vault_cli import cli
 
 
 def call(cli_runner, *args):
@@ -27,11 +26,13 @@ def test_integration_cli(cli_runner):
 
     assert call(cli_runner, ["list", "c"]).output == "d\n"
 
-    assert call(cli_runner, ["get-all", ""]).output == ("""---
+    assert call(cli_runner, ["get-all", ""]).output == (
+        """---
 a: b
 c:
   d: e
-""")
+"""
+    )
 
     call(cli_runner, ["delete", "a"])
 

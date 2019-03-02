@@ -30,22 +30,18 @@ except ImportError:
 ENV_PREFIX = "VAULT_CLI"
 
 # Ordered by increasing priority
-CONFIG_FILES = [
-    './.vault.yml',
-    '~/.vault.yml',
-    '/etc/vault.yml',
-]
+CONFIG_FILES = ["./.vault.yml", "~/.vault.yml", "/etc/vault.yml"]
 
 DEFAULTS = {
-    'backend': 'requests',
-    'base_path': None,
-    'certificate': None,
-    'password': None,
-    'token': None,
-    'url': 'http://localhost:8200',
-    'username': None,
-    'verify': True,
-    'ca_bundle': None,
+    "backend": "requests",
+    "base_path": None,
+    "certificate": None,
+    "password": None,
+    "token": None,
+    "url": "http://localhost:8200",
+    "username": None,
+    "verify": True,
+    "ca_bundle": None,
 }
 
 
@@ -60,16 +56,15 @@ def read_config_file(file_path):
 def dash_to_underscores(config):
     # Because we're modifying the dict during iteration, we need to
     # consolidate the keys into a list
-    return {key.replace("-", "_"): value
-            for key, value in config.items()}
+    return {key.replace("-", "_"): value for key, value in config.items()}
 
 
 def load_bool(value):
     lower_value = value.lower()
 
-    if lower_value in ('true', 't', '1', 'yes', 'y'):
+    if lower_value in ("true", "t", "1", "yes", "y"):
         return True
-    elif lower_value in ('false', 'f', '0', 'no', 'n'):
+    elif lower_value in ("false", "f", "0", "no", "n"):
         return False
 
     raise ValueError("Value {} could not be interpreted as boolean")
@@ -126,7 +121,7 @@ def read_file(path):
     if path == "-":
         return sys.stdin.read().strip()
 
-    with open(os.path.expanduser(path), 'rb') as file_handler:
+    with open(os.path.expanduser(path), "rb") as file_handler:
         return file_handler.read().decode("utf-8").strip()
 
 

@@ -80,9 +80,11 @@ def get_client_from_kwargs(backend, **kwargs):
     """
     if backend == "requests":
         from vault_cli import requests
+
         client_class = requests.RequestsVaultClient
     elif backend == "hvac":
         from vault_cli import hvac
+
         client_class = hvac.HVACVaultClient
     elif callable(backend):
         client_class = backend
@@ -93,12 +95,11 @@ def get_client_from_kwargs(backend, **kwargs):
 
 
 class VaultAPIException(Exception):
-
     def __init__(self, status_code, body, *args, **kwargs):
         super(VaultAPIException, self).__init__(*args, **kwargs)
         self.status_code = status_code
         try:
-            self.error = '\n'.join(json.loads(body)['errors'])
+            self.error = "\n".join(json.loads(body)["errors"])
         except Exception:
             self.error = body
 
@@ -106,9 +107,10 @@ class VaultAPIException(Exception):
         return 'status={} error="{}"'.format(self.status_code, self.error)
 
 
-class VaultClientBase():
-    def __init__(self, url, verify, ca_bundle, base_path,
-                 certificate, token, username, password):
+class VaultClientBase:
+    def __init__(
+        self, url, verify, ca_bundle, base_path, certificate, token, username, password
+    ):
         """
         All parameters are mandatory but may be None
         """
@@ -126,7 +128,7 @@ class VaultClientBase():
             self._authenticate_certificate(certificate)
         elif username:
             if not password:
-                raise ValueError('Cannot use username without password file')
+                raise ValueError("Cannot use username without password file")
             self._authenticate_userpass(username=username, password=password)
 
         else:
@@ -134,12 +136,12 @@ class VaultClientBase():
 
     def _get_recursive_secrets(self, path):
         result = {}
-        path = path.rstrip('/')
+        path = path.rstrip("/")
         for key in self.list_secrets(path=path):
-            key_url = '/'.join([path, key]) if path else key
+            key_url = "/".join([path, key]) if path else key
 
-            folder = key_url.endswith('/')
-            key = key.rstrip('/')
+            folder = key_url.endswith("/")
+            key = key.rstrip("/")
             if folder:
                 result[key] = self._get_recursive_secrets(key_url)
                 continue
@@ -195,7 +197,7 @@ def nested_keys(path, value):
     {'test': {'bla': 'foo'}}
     """
     try:
-        base, subpath = path.strip('/').split('/', 1)
+        base, subpath = path.strip("/").split("/", 1)
     except ValueError:
         return {path: value}
     return {base: nested_keys(subpath, value)}

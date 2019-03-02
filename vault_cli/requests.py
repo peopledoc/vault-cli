@@ -22,14 +22,13 @@ from __future__ import absolute_import
 import requests
 import urllib3
 
+from vault_cli.client import VaultAPIException, VaultClientBase
+
 try:
     from urllib.parse import urljoin
 except ImportError:
     # Python 2
     from urlparse import urljoin
-
-from vault_cli.client import VaultAPIException
-from vault_cli.client import VaultClientBase
 
 
 class Session(requests.Session):
@@ -39,18 +38,18 @@ class Session(requests.Session):
     This is a workaround for
     https://github.com/requests/requests/issues/3829
     """
-    def merge_environment_settings(self, url, proxies, stream, verify,
-                                   *args, **kwargs):
+
+    def merge_environment_settings(self, url, proxies, stream, verify, *args, **kwargs):
         if self.verify is False:
             verify = False
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         return super(Session, self).merge_environment_settings(
-            url, proxies, stream, verify, *args, **kwargs)
+            url, proxies, stream, verify, *args, **kwargs
+        )
 
 
 class RequestsVaultClient(VaultClientBase):
-
     def _init_session(self, url, verify):
         self.session = self.create_session(verify)
 
@@ -73,32 +72,34 @@ class RequestsVaultClient(VaultClientBase):
         return session
 
     def _authenticate_token(self, token):
-        self.session.headers.update({'X-Vault-Token': token})
+        self.session.headers.update({"X-Vault-Token": token})
 
     def _authenticate_userpass(self, username, password):
         data = {"password": password}
-        response = self.session.post(self.url + 'auth/userpass/login/' + username,
-                                     json=data, headers={})
+        response = self.session.post(
+            self.url + "auth/userpass/login/" + username, json=data, headers={}
+        )
         self.handle_error(response)
 
         json_response = response.json()
         self.session.headers.update(
-            {'X-Vault-Token': json_response.get('auth').get('client_token')})
+            {"X-Vault-Token": json_response.get("auth").get("client_token")}
+        )
 
     def get_secrets(self, path):
         url = self._full_url(path)
         response = self.session.get(url)
         self.handle_error(response)
         json_response = response.json()
-        return json_response['data']
+        return json_response["data"]
 
     def get_secret(self, path):
         data = self.get_secrets(path)
-        return data['value']
+        return data["value"]
 
     def list_secrets(self, path):
-        url = self._full_url(path).rstrip('/')
-        response = self.session.get(url, params={'list': 'true'})
+        url = self._full_url(path).rstrip("/")
+        response = self.session.get(url, params={"list": "true"})
         try:
             self.handle_error(response)
         except VaultAPIException as exc:
@@ -106,11 +107,11 @@ class RequestsVaultClient(VaultClientBase):
                 return []
             raise
         json_response = response.json()
-        return json_response['data']['keys']
+        return json_response["data"]["keys"]
 
     def set_secret(self, path, value):
         url = self._full_url(path)
-        response = self.session.put(url, json={'value': value})
+        response = self.session.put(url, json={"value": value})
         self.handle_error(response, requests.codes.no_content)
 
     def delete_secret(self, path):

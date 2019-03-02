@@ -20,13 +20,10 @@ limitations under the License.
 from __future__ import absolute_import
 
 import hvac
-
-from vault_cli.client import VaultAPIException
-from vault_cli.client import VaultClientBase
+from vault_cli.client import VaultAPIException, VaultClientBase
 
 
 class HVACVaultClient(VaultClientBase):
-
     def _init_session(self, url, verify):
         self.client = hvac.Client(url=url, verify=verify)
 

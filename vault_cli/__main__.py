@@ -23,7 +23,7 @@ from vault_cli.cli import main
 
 # Shenanigans for coverage
 def entrypoint(name):
-    if name == '__main__':
+    if name == "__main__":
         main()
 
 
