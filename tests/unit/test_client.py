@@ -1,5 +1,4 @@
 import pytest
-
 from vault_cli import client
 
 

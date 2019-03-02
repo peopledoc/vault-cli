@@ -1,6 +1,6 @@
-import pytest
 import yaml
 
+import pytest
 from vault_cli import cli, client
 
 
