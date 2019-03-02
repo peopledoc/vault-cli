@@ -18,17 +18,13 @@ limitations under the License.
 """
 
 from __future__ import absolute_import
+from urllib.parse import urljoin
 
 import requests
 import urllib3
 
 from vault_cli.client import VaultAPIException, VaultClientBase
 
-try:
-    from urllib.parse import urljoin
-except ImportError:
-    # Python 2
-    from urlparse import urljoin
 
 
 class Session(requests.Session):

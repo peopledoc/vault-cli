@@ -19,13 +19,10 @@ limitations under the License.
 
 import os
 import sys
+from functools import lru_cache
 
 import yaml
 
-try:
-    from functools import lru_cache
-except ImportError:
-    from backports.functools_lru_cache import lru_cache
 
 ENV_PREFIX = "VAULT_CLI"
 
