@@ -175,6 +175,118 @@ def test_delete(cli_runner, backend):
     assert backend.deleted == "a"
 
 
+def test_bootstrap_env(cli_runner, backend, mocker):
+    exec_command = mocker.patch("vault_cli.cli.exec_command")
+
+    cli_runner.invoke(
+        cli.cli,
+        ["bootstrap-env", "--path", "foo", "--", "echo", "yay"],
+        catch_exceptions=False,
+    )
+
+    _, kwargs = exec_command.call_args
+    assert kwargs["command"] == ("echo", "yay")
+    assert kwargs["environ"]["foo"] == "bar"
+    assert kwargs["environ"]["baz"] == "bar"
+
+
+def test_bootstrap_env_backup(cli_runner, backend, mocker):
+    exec_command = mocker.patch("vault_cli.cli.exec_command")
+    read_yaml = mocker.patch("vault_cli.cli.read_yaml")
+    write_yaml = mocker.patch("vault_cli.cli.write_yaml")
+
+    cli_runner.invoke(
+        cli.cli, "bootstrap-env --backup file --path foo -- echo yay".split()
+    )
+
+    _, kwargs = exec_command.call_args
+    assert kwargs["command"] == ("echo", "yay")
+    assert kwargs["environ"]["foo"] == "bar"
+
+    read_yaml.assert_not_called()
+    write_yaml.assert_called_with(filepath="file", content={"foo": "bar", "baz": "bar"})
+
+
+def test_bootstrap_env_backup_failed_no_backup(cli_runner, backend, mocker):
+    exec_command = mocker.patch("vault_cli.cli.exec_command")
+
+    def raise_exc(*args, **kwargs):
+        raise ValueError
+
+    backend.list_secrets = raise_exc
+
+    result = cli_runner.invoke(cli.cli, "bootstrap-env --path foo -- echo yay".split())
+    assert result.exit_code == 1
+
+    exec_command.assert_not_called()
+
+
+def test_bootstrap_env_backup_failed(cli_runner, backend, mocker):
+    exec_command = mocker.patch("vault_cli.cli.exec_command")
+    read_yaml = mocker.patch("vault_cli.cli.read_yaml", return_value={"ha": "ho"})
+    write_yaml = mocker.patch("vault_cli.cli.write_yaml")
+
+    def raise_exc(*args, **kwargs):
+        raise ValueError
+
+    backend.list_secrets = raise_exc
+
+    cli_runner.invoke(
+        cli.cli, "bootstrap-env --backup file --path foo -- echo yay".split()
+    )
+
+    _, kwargs = exec_command.call_args
+    assert kwargs["command"] == ("echo", "yay")
+    assert kwargs["environ"]["ha"] == "ho"
+    assert "foo" not in kwargs["environ"]
+
+    read_yaml.assert_called_with(filepath="file")
+    write_yaml.assert_not_called()
+
+
+def test_bootstrap_env_backup_failed_twice(cli_runner, backend, mocker):
+    exec_command = mocker.patch("vault_cli.cli.exec_command")
+    read_yaml = mocker.patch("vault_cli.cli.read_yaml", side_effect=IOError)
+    write_yaml = mocker.patch("vault_cli.cli.write_yaml")
+
+    def raise_exc(*args, **kwargs):
+        raise ValueError
+
+    backend.list_secrets = raise_exc
+
+    result = cli_runner.invoke(
+        cli.cli, "bootstrap-env --backup file --path foo -- echo yay".split()
+    )
+    assert "Could not load secrets from backup file at file." in result.output
+    assert result.exit_code == 1
+
+    read_yaml.assert_called_with(filepath="file")
+    write_yaml.assert_not_called()
+    exec_command.assert_not_called()
+
+
+def test_read_yaml(tmpdir):
+    path = str(tmpdir.join("test.yml"))
+    open(path, "w").write('{"yay": 1}')
+
+    assert cli.read_yaml(path) == {"yay": 1}
+
+
+def test_write_yaml(tmpdir):
+    path = str(tmpdir.join("test.yml"))
+    cli.write_yaml(path, {"yay": 1})
+
+    assert open(path, "r").read() == "yay: 1\n"
+
+
+def test_exec_command(mocker):
+    execvpe = mocker.patch("os.execvpe")
+
+    cli.exec_command(["a", "b"], {"c": "d"})
+
+    execvpe.assert_called_with("a", ("a", "b"), {"c": "d"})
+
+
 def test_main(mocker):
     mock_cli = mocker.patch("vault_cli.cli.cli")
     environ = mocker.patch("os.environ", {})

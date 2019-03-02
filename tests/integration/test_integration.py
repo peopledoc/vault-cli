@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import pytest
 import vault_cli
@@ -73,3 +74,25 @@ def test_env_var_config():
     os.environ["VAULT_CLI_TOKEN"] = "some-other-token"
     with pytest.raises(vault_cli.VaultAPIException):
         vault_cli.get_client().set_secret("a", "b")
+
+
+def check_call(command):
+    subprocess.check_call(
+        command.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
+
+
+@pytest.fixture
+def set_ACD(cli_runner):
+    call(cli_runner, ["set", "A", "B"])
+    call(cli_runner, ["set", "C/D", "E"])
+    yield
+    call(cli_runner, ["delete", "A"])
+    call(cli_runner, ["delete", "C/D"])
+
+
+def test_boostrap_env(set_ACD):
+    env = subprocess.check_output("vault bootstrap-env -p A -p C -- env".split())
+
+    assert b"A=B\n" in env
+    assert b"D=E\n" in env

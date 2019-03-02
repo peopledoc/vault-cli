@@ -261,6 +261,34 @@ def test_vault_client_base_get_recursive_secrets():
     assert result == {"a": "secret-a", "b": {"c": "secret-bc"}}
 
 
+def test_vault_client_base_get_recursive_secrets_single_secret():
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def list_secrets(self, path):
+            return {"a": []}[path]
+
+        def get_secret(self, path):
+            return "secret-a"
+
+    result = TestVaultClient()._get_recursive_secrets("a")
+
+    assert result == "secret-a"
+
+
+def test_vault_client_base__merge_secrets():
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+    assert TestVaultClient()._merge_secrets({"a": "b", "c": {"d": "e", "f": "g"}}) == {
+        "a": "b",
+        "d": "e",
+        "f": "g",
+    }
+
+
 def test_vault_client_base_get_all():
     class TestVaultClient(client.VaultClientBase):
         def __init__(self):
@@ -279,3 +307,7 @@ def test_vault_client_base_get_all():
     result = TestVaultClient().get_all(["a"])
 
     assert result == {"a": {"c": "secret-ac"}}
+
+    result = TestVaultClient().get_all(["a", ""], merged=True)
+
+    assert result == {"c": "secret-ac", "b": "secret-b"}

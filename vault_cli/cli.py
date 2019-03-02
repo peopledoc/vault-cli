@@ -17,7 +17,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-from typing import Any, Dict, Mapping, Sequence
+import traceback
+from typing import Any, Dict, Mapping, NoReturn, Optional, Sequence
 
 import click
 import yaml
@@ -146,13 +147,13 @@ def list_(client_obj: client.VaultClientBase, path: str):
 @cli.command(name="get-all")
 @click.argument("path", required=False, nargs=-1)
 @click.pass_obj
-def get_all(client_obj: client.VaultClientBase, path: str):
+def get_all(client_obj: client.VaultClientBase, path: Sequence[str]):
     """
     Return multiple secrets. Return a single yaml with all the secrets located
     at the given paths. Folders are recursively explored. Without a path,
     explores all the vault.
     """
-    paths = path or [""]
+    paths = list(path) or [""]
 
     result = client_obj.get_all(paths)
 
@@ -205,7 +206,6 @@ def set_(
     Value can be either passed as argument (several arguments will be
     interpreted as a list) or via stdin with the --stdin flag.
     """
-
     if stdin and value:
         raise click.UsageError("Can't set both --stdin and a value")
 
@@ -236,6 +236,77 @@ def delete(client_obj: client.VaultClientBase, name: str) -> None:
     """
     client_obj.delete_secret(path=name)
     click.echo("Done")
+
+
+@cli.command("bootstrap-env")
+@click.option(
+    "-p",
+    "--path",
+    multiple=True,
+    required=True,
+    help="Folder or single item. Pass several times to load multiple values",
+)
+@click.option(
+    "-b",
+    "--backup",
+    help="Path to a file where secrets will be stored upon succesful load. "
+    "This file will be used in case secrets loading fails.",
+)
+@click.argument("command", nargs=-1)
+@click.pass_obj
+def boostrap_env(
+    client_obj: client.VaultClientBase,
+    path: Sequence[str],
+    command: Sequence[str],
+    backup: Optional[str],
+) -> NoReturn:
+    """
+    Launches the given command with all secrets from --path
+    loaded in environment.
+    """
+    paths = list(path) or [""]
+
+    try:
+        secrets: types.JSONDict = client_obj.get_all(paths, merged=True)
+    except Exception:
+        if backup is None:
+            raise
+        click.echo("Error while loading secrets from distant vault.", err=True)
+        click.echo(traceback.format_exc(), err=True)
+
+        click.echo(f"Trying to load secrets from backup file at {backup}.", err=True)
+
+        try:
+            secrets_str = read_yaml(filepath=backup)
+        except IOError as exc:
+            raise click.ClickException(
+                f"Could not load secrets from backup file at {backup}."
+            ) from exc
+    else:
+        secrets_str = {key: str(value) for key, value in secrets.items()}
+
+        if backup:
+            click.echo(f"Saving secrets to backup file at {backup}.", err=True)
+            write_yaml(filepath=backup, content=secrets)
+
+    environ = os.environ.copy()
+    environ.update(secrets_str)
+
+    exec_command(command=command, environ=environ)
+
+
+def read_yaml(filepath) -> Dict[str, str]:
+    with open(os.path.expanduser(filepath), "r") as f:
+        return yaml.safe_load(f)
+
+
+def write_yaml(filepath, content) -> None:
+    with open(os.path.expanduser(filepath), "w") as f:
+        f.write(yaml.safe_dump(content, default_flow_style=False))
+
+
+def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
+    os.execvpe(command[0], tuple(command), environ)
 
 
 def main():
