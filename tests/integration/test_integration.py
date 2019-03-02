@@ -1,6 +1,7 @@
 import os
 
 import pytest
+
 import vault_cli
 from vault_cli import cli
 

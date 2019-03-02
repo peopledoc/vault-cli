@@ -17,11 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+from typing import Any, Dict, Mapping, Sequence
 
 import click
 import yaml
 
-from vault_cli import client, settings
+from vault_cli import client, settings, types
 
 CONTEXT_SETTINGS = {
     "help_option_names": ["-h", "--help"],
@@ -29,7 +30,7 @@ CONTEXT_SETTINGS = {
 }
 
 
-def load_config(ctx, param, value):
+def load_config(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if value == "no":
         ctx.default_map = {}
         return
@@ -95,7 +96,7 @@ def load_config(ctx, param, value):
     "Default value: first of " + ", ".join(settings.CONFIG_FILES),
     type=click.Path(),
 )
-def cli(ctx, **kwargs):
+def cli(ctx: click.Context, **kwargs) -> None:
     """
     Interact with a Vault. See subcommands for details.
 
@@ -104,7 +105,7 @@ def cli(ctx, **kwargs):
 
     """
     kwargs.pop("config_file")
-    backend = kwargs.pop("backend")
+    backend: str = kwargs.pop("backend")
 
     kwargs.update(extract_special_args(ctx.default_map, os.environ))
 
@@ -116,7 +117,9 @@ def cli(ctx, **kwargs):
         raise click.UsageError(str(exc))
 
 
-def extract_special_args(config, environ):
+def extract_special_args(
+    config: Mapping[str, Any], environ: Mapping[str, str]
+) -> Dict[str, Any]:
     result = {}
     for key in ["password", "certificate", "token"]:
         result[key] = config.get(key)
@@ -131,7 +134,7 @@ def extract_special_args(config, environ):
 @cli.command("list")
 @click.argument("path", required=False, default="")
 @click.pass_obj
-def list_(client_obj, path):
+def list_(client_obj: client.VaultClientBase, path: str):
     """
     List all the secrets at the given path. Folders are listed too. If no path
     is given, list the objects at the root.
@@ -143,7 +146,7 @@ def list_(client_obj, path):
 @cli.command(name="get-all")
 @click.argument("path", required=False, nargs=-1)
 @click.pass_obj
-def get_all(client_obj, path):
+def get_all(client_obj: client.VaultClientBase, path: str):
     """
     Return multiple secrets. Return a single yaml with all the secrets located
     at the given paths. Folders are recursively explored. Without a path,
@@ -169,7 +172,7 @@ def get_all(client_obj, path):
     ),
 )
 @click.argument("name")
-def get(client_obj, text, name):
+def get(client_obj: client.VaultClientBase, text: bool, name: str):
     """
     Return a single secret value.
     """
@@ -189,36 +192,45 @@ def get(client_obj, text, name):
 @click.option("--stdin/--no-stdin", default=False)
 @click.argument("name")
 @click.argument("value", nargs=-1)
-def set_(client_obj, format_yaml, stdin, name, value):
+def set_(
+    client_obj: client.VaultClientBase,
+    format_yaml: bool,
+    stdin: bool,
+    name: str,
+    value: Sequence[str],
+):
     """
     Set a single secret to the given value(s).
 
     Value can be either passed as argument (several arguments will be
     interpreted as a list) or via stdin with the --stdin flag.
     """
+
     if stdin and value:
         raise click.UsageError("Can't set both --stdin and a value")
 
+    final_value: types.JSONValue
     if stdin:
-        value = click.get_text_stream("stdin").read().strip()
+        final_value = click.get_text_stream("stdin").read().strip()
 
     elif len(value) == 1:
-        value = value[0]
+        final_value = value[0]
 
     else:
-        value = list(value)
+        final_value = list(value)
 
     if format_yaml:
-        value = yaml.safe_load(value)
+        assert isinstance(final_value, str)
+        final_value = yaml.safe_load(final_value)
 
-    client_obj.set_secret(path=name, value=value)
+    client_obj.set_secret(path=name, value=final_value)
     click.echo("Done")
 
 
 @cli.command()
 @click.pass_obj
 @click.argument("name")
-def delete(client_obj, name):
+def delete(client_obj: client.VaultClientBase, name: str) -> None:
     """
     Deletes a single secret.
     """

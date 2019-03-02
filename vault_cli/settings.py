@@ -20,9 +20,11 @@ limitations under the License.
 import os
 import sys
 from functools import lru_cache
+from typing import Dict, Optional, Union
 
 import yaml
 
+from vault_cli import types
 
 ENV_PREFIX = "VAULT_CLI"
 
@@ -42,7 +44,7 @@ DEFAULTS = {
 }
 
 
-def read_config_file(file_path):
+def read_config_file(file_path: str) -> Optional[types.SettingsDict]:
     try:
         with open(os.path.expanduser(file_path), "r") as f:
             return yaml.safe_load(f)
@@ -50,13 +52,13 @@ def read_config_file(file_path):
         return None
 
 
-def dash_to_underscores(config):
+def dash_to_underscores(config: types.SettingsDict) -> types.SettingsDict:
     # Because we're modifying the dict during iteration, we need to
     # consolidate the keys into a list
     return {key.replace("-", "_"): value for key, value in config.items()}
 
 
-def load_bool(value):
+def load_bool(value: str) -> bool:
     lower_value = value.lower()
 
     if lower_value in ("true", "t", "1", "yes", "y"):
@@ -67,12 +69,14 @@ def load_bool(value):
     raise ValueError("Value {} could not be interpreted as boolean")
 
 
-def build_config_from_env(environ):
-    result = {}
+def build_config_from_env(environ: Dict[str, str]) -> types.SettingsDict:
+    result: types.SettingsDict = {}
 
     skip_len = len(ENV_PREFIX) + 1
 
-    for key, value in environ.items():
+    value: Union[str, bool]
+
+    for key, str_value in environ.items():
 
         if not key.startswith(ENV_PREFIX + "_"):
             continue
@@ -83,47 +87,52 @@ def build_config_from_env(environ):
             continue
 
         if isinstance(DEFAULTS[key], bool):
-            value = load_bool(value)
+            value = load_bool(str_value)
+        else:
+            value = str_value
 
         result[key] = value
 
     return result
 
 
-def read_all_files(config):
+def read_all_files(config: types.SettingsDict) -> types.SettingsDict:
     config = config.copy()
     # Files override direct values when both are defined
     certificate_file = config.pop("certificate_file", None)
     if certificate_file:
+        assert isinstance(certificate_file, str)
         config["certificate"] = read_file(certificate_file)
 
     password_file = config.pop("password_file", None)
     if password_file:
+        assert isinstance(password_file, str)
         config["password"] = read_file(password_file)
 
     token_file = config.pop("token_file", None)
     if token_file:
+        assert isinstance(token_file, str)
         config["token"] = read_file(token_file)
 
     return config
 
 
-def read_file(path):
+def read_file(path: str) -> Optional[str]:
     """
     Returns the content of the pointed file
     """
     if not path:
-        return
+        return None
 
     if path == "-":
         return sys.stdin.read().strip()
 
-    with open(os.path.expanduser(path), "rb") as file_handler:
-        return file_handler.read().decode("utf-8").strip()
+    with open(os.path.expanduser(path)) as file_handler:
+        return file_handler.read().strip()
 
 
 @lru_cache()
-def build_config_from_files(*config_files):
+def build_config_from_files(*config_files: str):
     values = DEFAULTS.copy()
 
     for potential_file in config_files:
@@ -137,9 +146,9 @@ def build_config_from_files(*config_files):
     return values
 
 
-def get_vault_options(**kwargs):
+def get_vault_options(**kwargs: types.Settings):
     values = build_config_from_files(*CONFIG_FILES).copy()
-    values.update(build_config_from_env(os.environ))
+    values.update(build_config_from_env(os.environ.copy()))
     values.update(kwargs)
 
     return values

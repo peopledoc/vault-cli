@@ -17,11 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
+from typing import Iterable, Type, Union
 
-from vault_cli import settings
+from vault_cli import settings, types
 
 
-def get_client(**kwargs):
+def get_client(**kwargs) -> "VaultClientBase":
     """
     Reads the kwargs and associate them with the
     config files and default values to produce
@@ -73,11 +74,13 @@ def get_client(**kwargs):
     return get_client_from_kwargs(backend=backend, **options)
 
 
-def get_client_from_kwargs(backend, **kwargs):
+def get_client_from_kwargs(
+    backend: Union[str, Type["VaultClientBase"]], **kwargs
+) -> "VaultClientBase":
     """
-    Initializes a client object from the given final
-    kwargs.
+    Initializes a client object from the given final kwargs.
     """
+    client_class: Type[VaultClientBase]
     if backend == "requests":
         from vault_cli import requests
 
@@ -95,30 +98,39 @@ def get_client_from_kwargs(backend, **kwargs):
 
 
 class VaultAPIException(Exception):
-    def __init__(self, status_code, body, *args, **kwargs):
-        super(VaultAPIException, self).__init__(*args, **kwargs)
+    def __init__(self, status_code: int, body: str, *args):
+        super(VaultAPIException, self).__init__(*args)
         self.status_code = status_code
         try:
             self.error = "\n".join(json.loads(body)["errors"])
         except Exception:
             self.error = body
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'status={} error="{}"'.format(self.status_code, self.error)
 
 
 class VaultClientBase:
     def __init__(
-        self, url, verify, ca_bundle, base_path, certificate, token, username, password
+        self,
+        url: str,
+        verify: bool,
+        ca_bundle: str,
+        base_path: str,
+        certificate: str,
+        token: str,
+        username: str,
+        password: str,
     ):
         """
         All parameters are mandatory but may be None
         """
 
+        verify_ca_bundle: types.VerifyOrCABundle = verify
         if verify and ca_bundle:
-            verify = ca_bundle
+            verify_ca_bundle = ca_bundle
 
-        self._init_session(url=url, verify=verify)
+        self._init_session(url=url, verify=verify_ca_bundle)
 
         self.base_path = (base_path or "").rstrip("/") + "/"
 
@@ -134,8 +146,8 @@ class VaultClientBase:
         else:
             raise ValueError("No authentication method supplied")
 
-    def _get_recursive_secrets(self, path):
-        result = {}
+    def _get_recursive_secrets(self, path: str) -> types.JSONDict:
+        result: types.JSONDict = {}
         path = path.rstrip("/")
         for key in self.list_secrets(path=path):
             key_url = "/".join([path, key]) if path else key
@@ -151,44 +163,46 @@ class VaultClientBase:
 
         return result
 
-    def get_all(self, paths):
-        result = {}
+    def get_all(self, paths: Iterable[str]) -> types.JSONDict:
+        result: types.JSONDict = {}
 
         for path in paths:
             secrets = self._get_recursive_secrets(path=path)
             result.update(nested_keys(path, secrets))
 
         if "" in result:
-            result.update(result.pop(""))
+            root_val = result.pop("")
+            assert isinstance(root_val, dict)
+            result.update(root_val)
 
         return result
 
-    def _init_session(self, url, verify):
+    def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
         raise NotImplementedError
 
-    def _authenticate_token(self, token):
+    def _authenticate_token(self, token: str) -> None:
         raise NotImplementedError
 
-    def _authenticate_certificate(self, certificate):
+    def _authenticate_certificate(self, certificate: str) -> None:
         raise NotImplementedError
 
-    def _authenticate_userpass(self, username, password):
+    def _authenticate_userpass(self, username: str, password: str) -> None:
         raise NotImplementedError
 
-    def list_secrets(self, path):
+    def list_secrets(self, path: str) -> Iterable[str]:
         raise NotImplementedError
 
-    def get_secret(self, path):
+    def get_secret(self, path: str) -> types.JSONValue:
         raise NotImplementedError
 
-    def delete_secret(self, path):
+    def delete_secret(self, path: str) -> None:
         raise NotImplementedError
 
-    def set_secret(self, path, value):
+    def set_secret(self, path: str, value: types.JSONValue) -> None:
         raise NotImplementedError
 
 
-def nested_keys(path, value):
+def nested_keys(path: str, value: types.JSONValue) -> types.JSONDict:
     """
     >>> nested_path('test', 'foo')
     {'test': 'foo'}
