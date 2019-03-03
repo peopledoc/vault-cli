@@ -20,6 +20,7 @@ limitations under the License.
 from typing import Iterable
 
 import hvac
+
 from vault_cli import types
 from vault_cli.client import VaultAPIException, VaultClientBase
 
