@@ -69,9 +69,15 @@ def test_integration_lib():
     client.delete_secret("c/d")
 
 
-def test_env_var_config():
+@pytest.fixture
+def environ():
+    yield os.environ
+    os.environ.pop("VAULT_CLI_TOKEN")
+
+
+def test_env_var_config(environ):
     # Test env var config
-    os.environ["VAULT_CLI_TOKEN"] = "some-other-token"
+    environ["VAULT_CLI_TOKEN"] = "some-other-token"
     with pytest.raises(vault_cli.VaultAPIException):
         vault_cli.get_client().set_secret("a", "b")
 
