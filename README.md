@@ -49,11 +49,12 @@ Options:
   -h, --help                   Show this message and exit.
 
 Commands:
-  delete   Deletes a single secret.
-  get      Return a single secret value.
-  get-all  Return multiple secrets.
-  list     List all the secrets at the given path.
-  set      Set a single secret to the given value(s).
+  bootstrap-env  Launches the given command with all secrets from --path...
+  delete         Deletes a single secret.
+  get            Return a single secret value.
+  get-all        Return multiple secrets.
+  list           List all the secrets at the given path.
+  set            Set a single secret to the given value(s).
 
 ```
 
@@ -114,6 +115,12 @@ test:
 # Delete a secret
 $ vault delete my_other_secret
 Done
+
+# Launch a process with all secrets from folder blob_secret as environment variables
+$ vault bootstrap-env --path blob_secret -- env
+...
+code=supercode
+...
 ```
 
 ## Configuration
