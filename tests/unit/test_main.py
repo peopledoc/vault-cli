@@ -1,5 +1,4 @@
-from vault_cli import __main__
-from vault_cli import cli
+from vault_cli import __main__, cli
 
 
 def test_main():
