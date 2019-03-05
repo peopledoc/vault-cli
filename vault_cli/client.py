@@ -18,7 +18,7 @@ limitations under the License.
 """
 import json
 import logging
-from typing import Iterable, Optional, Type, Union
+from typing import Iterable, Optional, Type, Union, Dict
 
 from vault_cli import settings, types
 
@@ -69,8 +69,11 @@ def get_client(**kwargs) -> "VaultClientBase":
     - set_secret(path, value)
         Writes the secret at the given path
     - get_all_secrets(paths=None)
-        Given an iterable of path, recursively returns all
+        Given an iterable of paths, recursively returns all
         the secrets
+    - delete_all_secrets(paths=None)
+        Given an iterable of paths, recursively deletes all
+        the secrets. Use with extreme caution.
     """
     options = settings.get_vault_options(**kwargs)
     backend = options.pop("backend")
@@ -152,27 +155,35 @@ class VaultClientBase:
         else:
             raise ValueError("No authentication method supplied")
 
-    def _get_recursive_secrets(self, path: str) -> types.JSONValue:
-        result: types.JSONDict = {}
-        path = path.rstrip("/")
+    def _browse_recursive_secrets(self, path: str) -> Iterable[str]:
+        """
+        Given a secret or folder path, return the path of all secrets
+        under it (or the path itself)
+        """
+        # 4 things can happen:
+        # - path is "", it's the root (and a folder)
+        # - path ends with /, we know it's a folder
+        # - path doesn't end with a / and yet it's a folder
+        # - path is a secret
+
+        folder = path.endswith("/") or path == ""
+
         sub_secrets = self.list_secrets(path=path)
 
-        if not sub_secrets:
-            return self.get_secret(path=path)
+        if not folder and not sub_secrets:
+            # It's most probably a secret
+            yield path
 
         for key in sub_secrets:
-            key_url = "/".join([path, key]) if path else key
-
-            folder = key_url.endswith("/")
+            folder = key.endswith("/")
             key = key.rstrip("/")
-            if folder:
-                result[key] = self._get_recursive_secrets(key_url)
+            key_url = f"{path}/{key}" if path else key
+            if not folder:
+                yield key_url
                 continue
 
-            secret = self.get_secret(path=key_url)
-            result[key] = secret
-
-        return result
+            for sub_path in self._browse_recursive_secrets(key_url):
+                yield sub_path
 
     def get_all_secrets(
         self, paths: Iterable[str], merged: bool = False
@@ -180,13 +191,10 @@ class VaultClientBase:
         result: types.JSONDict = {}
 
         for path in paths:
-            secrets = self._get_recursive_secrets(path=path)
-            result.update(nested_keys(path, secrets))
-
-        if "" in result:
-            root_val = result.pop("")
-            assert isinstance(root_val, dict)
-            result.update(root_val)
+            secrets_paths = self._browse_recursive_secrets(path=path)
+            for secret_path in secrets_paths:
+                value = self.get_secret(path=secret_path)
+                deep_update(dict_obj=result, path=secret_path, value=value)
 
         if merged:
             result = self._merge_secrets(result)
@@ -231,6 +239,11 @@ class VaultClientBase:
 
         return secrets
 
+    def delete_all_secrets(self, paths: Iterable[str]) -> None:
+        """
+        Recursively deletes all the secrets at the given paths
+        """
+
     def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
         raise NotImplementedError
 
@@ -256,16 +269,26 @@ class VaultClientBase:
         raise NotImplementedError
 
 
-def nested_keys(path: str, value: types.JSONValue) -> types.JSONDict:
+def deep_update(
+    dict_obj: types.JSONDict, path: str, value: types.JSONValue
+) -> types.JSONDict:
     """
-    >>> nested_path('test', 'foo')
-    {'test': 'foo'}
+    Adds value at the given path, creating necessary levels
+    >>> deep_update(dict_obj={"a": "b"}, path="c", "d")
+    {"a": "b", "c": "d"}
+    >>> deep_update(dict_obj={"a": {"b": "c"}}, path="a/d", "e")
+    {"a": {"b": "c", "d": "e"}}
+    >>> deep_update(dict_obj={"a": {"b": "c"}}, path="a/d/e", "f")
+    {"a": {"b": "c", "d": {"e": "f}}}
+    """
 
-    >>> nested_path('test/bla', 'foo')
-    {'test': {'bla': 'foo'}}
-    """
-    try:
-        base, subpath = path.strip("/").split("/", 1)
-    except ValueError:
-        return {path: value}
-    return {base: nested_keys(subpath, value)}
+    *folders, subpath = path.strip("/").split("/")
+    original_dict_obj = dict_obj
+
+    for folder in folders:
+        sub_obj = dict_obj.setdefault(folder, {})
+        assert isinstance(sub_obj, dict)
+        dict_obj = sub_obj
+
+    dict_obj[subpath] = value
+    return original_dict_obj
