@@ -6,6 +6,7 @@ CHANGELOG
 
 - Added vault dump-config
 - Added vault bootstrap-env
+- API break : client.get_all() becomes client.get_all_secrets()
 
 0.3.9
 -----

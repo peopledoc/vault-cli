@@ -61,7 +61,7 @@ def test_integration_lib():
 
     assert client.list_secrets("c") == ["d"]
 
-    assert client.get_all([""]) == {"a": "b", "c": {"d": "e"}}
+    assert client.get_all_secrets([""]) == {"a": "b", "c": {"d": "e"}}
 
     client.delete_secret("a")
 

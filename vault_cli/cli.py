@@ -176,7 +176,7 @@ def get_all(client_obj: client.VaultClientBase, path: Sequence[str]):
     """
     paths = list(path) or [""]
 
-    result = client_obj.get_all(paths)
+    result = client_obj.get_all_secrets(paths)
 
     click.echo(
         yaml.safe_dump(result, default_flow_style=False, explicit_start=True), nl=False

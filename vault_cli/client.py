@@ -17,9 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
+import logging
 from typing import Iterable, Optional, Type, Union
 
 from vault_cli import settings, types
+
+logger = logging.getLogger(__name__)
 
 
 def get_client(**kwargs) -> "VaultClientBase":
@@ -65,7 +68,7 @@ def get_client(**kwargs) -> "VaultClientBase":
         Deletes the secret at the given path
     - set_secret(path, value)
         Writes the secret at the given path
-    - get_all(paths=None)
+    - get_all_secrets(paths=None)
         Given an iterable of path, recursively returns all
         the secrets
     """
@@ -171,7 +174,9 @@ class VaultClientBase:
 
         return result
 
-    def get_all(self, paths: Iterable[str], merged: bool = False) -> types.JSONDict:
+    def get_all_secrets(
+        self, paths: Iterable[str], merged: bool = False
+    ) -> types.JSONDict:
         result: types.JSONDict = {}
 
         for path in paths:
@@ -187,6 +192,15 @@ class VaultClientBase:
             result = self._merge_secrets(result)
 
         return result
+
+    def get_all(self, *args, **kwargs):
+        """
+        Synonym to get_all_secrets. Can be removed on 0.6.0.
+        """
+        logger.warning(
+            "Using deprecated 'get_all' method. Use 'get_all_secrets' instead."
+        )
+        return self.get_all_secrets(*args, **kwargs)
 
     def _merge_secrets(self, secrets: types.JSONDict) -> types.JSONDict:
         """
