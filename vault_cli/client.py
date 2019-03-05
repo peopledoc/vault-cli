@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
-from typing import Iterable, Type, Union
+from typing import Iterable, Optional, Type, Union
 
 from vault_cli import settings, types
 
@@ -111,6 +111,9 @@ class VaultAPIException(Exception):
 
 
 class VaultClientBase:
+
+    saved_settings: Optional[types.SettingsDict] = None
+
     def __init__(
         self,
         url: str,

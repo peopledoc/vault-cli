@@ -3,7 +3,7 @@ import logging
 import pytest
 import yaml
 
-from vault_cli import cli, client
+from vault_cli import cli, client, settings
 
 
 class FakeClient(client.VaultClientBase):
@@ -287,3 +287,20 @@ def test_set_verbosity(mocker):
     cli.set_verbosity(None, None, 1)
 
     basic_config.assert_called_with(level=logging.INFO)
+
+
+def test_dump_config(cli_runner, backend):
+    result = cli_runner.invoke(
+        cli.cli,
+        ["--base-path", "mybase/", "--token-file", "-", "dump-config"],
+        input="some-token",
+    )
+
+    expected_settings = settings.DEFAULTS.copy()
+    expected_settings.update(
+        {"base_path": "mybase/", "token": "some-token", "verbose": 0}
+    )
+
+    output = yaml.safe_load(result.output)
+
+    assert output == expected_settings

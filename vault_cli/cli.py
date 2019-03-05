@@ -47,10 +47,11 @@ def load_config(ctx: click.Context, param: click.Parameter, value: str) -> None:
     ctx.default_map = config
 
 
-def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> None:
+def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int:
     level = settings.get_log_level(verbosity=value)
     logging.basicConfig(level=level)
     logger.info(f"Log level set to {logging.getLevelName(level)}")
+    return value
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -122,15 +123,18 @@ def cli(ctx: click.Context, **kwargs) -> None:
 
     """
     kwargs.pop("config_file")
-    kwargs.pop("verbose")
+    verbose = kwargs.pop("verbose")
     backend: str = kwargs.pop("backend")
 
     kwargs.update(extract_special_args(ctx.default_map, os.environ))
 
     # There might still be files to read, so let's do it now
     kwargs = settings.read_all_files(kwargs)
+    saved_settings = kwargs.copy()
+    saved_settings.update({"backend": backend, "verbose": verbose})
     try:
         ctx.obj = client.get_client_from_kwargs(backend=backend, **kwargs)
+        ctx.obj.saved_settings = saved_settings
     except ValueError as exc:
         raise click.UsageError(str(exc))
 
@@ -295,6 +299,21 @@ def write_yaml(filepath, content) -> None:
 
 def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
     os.execvpe(command[0], tuple(command), environ)
+
+
+@cli.command("dump-config")
+@click.pass_obj
+def dump_config(client_obj: client.VaultClientBase,) -> None:
+    """
+    Displays all the current settings in the format of a config file.
+    """
+    assert client_obj.saved_settings
+    click.echo(
+        yaml.safe_dump(
+            client_obj.saved_settings, default_flow_style=False, explicit_start=True
+        ),
+        nl=False,
+    )
 
 
 def main():
