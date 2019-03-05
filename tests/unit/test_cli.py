@@ -279,3 +279,11 @@ def test_extract_special_args(config, environ, expected):
     result = {key: value for key, value in result.items() if value is not None}
 
     assert result == expected
+
+
+def test_set_verbosity(mocker):
+    basic_config = mocker.patch("logging.basicConfig")
+
+    cli.set_verbosity(None, None, 1)
+
+    basic_config.assert_called_with(level=logging.INFO)

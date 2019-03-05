@@ -152,3 +152,13 @@ def get_vault_options(**kwargs: types.Settings):
     values.update(kwargs)
 
     return values
+
+
+def get_log_level(verbosity: int) -> int:
+    """
+    Given the number of repetitions of the flag -v,
+    returns the desired log level
+    """
+    return {0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}.get(
+        min((2, verbosity)), 0
+    )

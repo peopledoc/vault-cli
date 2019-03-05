@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import logging
 import os
 from typing import Any, Dict, Mapping, NoReturn, Sequence
 
@@ -23,6 +24,8 @@ import click
 import yaml
 
 from vault_cli import client, settings, types
+
+logger = logging.getLogger(__name__)
 
 CONTEXT_SETTINGS = {
     "help_option_names": ["-h", "--help"],
@@ -42,6 +45,12 @@ def load_config(ctx: click.Context, param: click.Parameter, value: str) -> None:
 
     config = settings.build_config_from_files(*config_files)
     ctx.default_map = config
+
+
+def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> None:
+    level = settings.get_log_level(verbosity=value)
+    logging.basicConfig(level=level)
+    logger.info(f"Log level set to {logging.getLevelName(level)}")
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -89,6 +98,14 @@ def load_config(ctx: click.Context, param: click.Parameter, value: str) -> None:
     help="Name of the backend to use (requests, hvac)",
 )
 @click.option(
+    "-v",
+    "--verbose",
+    is_eager=True,
+    callback=set_verbosity,
+    count=True,
+    help="Use multiple times to increase verbosity",
+)
+@click.option(
     "--config-file",
     is_eager=True,
     callback=load_config,
@@ -105,6 +122,7 @@ def cli(ctx: click.Context, **kwargs) -> None:
 
     """
     kwargs.pop("config_file")
+    kwargs.pop("verbose")
     backend: str = kwargs.pop("backend")
 
     kwargs.update(extract_special_args(ctx.default_map, os.environ))
