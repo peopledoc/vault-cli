@@ -1,6 +1,8 @@
-import yaml
+import logging
 
 import pytest
+import yaml
+
 from vault_cli import cli, client
 
 
