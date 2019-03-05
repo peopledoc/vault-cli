@@ -185,9 +185,7 @@ class VaultClientBase:
             for sub_path in self._browse_recursive_secrets(key_url):
                 yield sub_path
 
-    def get_all_secrets(
-        self, paths: Iterable[str], merged: bool = False
-    ) -> types.JSONDict:
+    def get_all_secrets(self, *paths: str, merged: bool = False) -> types.JSONDict:
         result: types.JSONDict = {}
 
         for path in paths:

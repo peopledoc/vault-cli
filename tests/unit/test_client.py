@@ -302,14 +302,14 @@ def test_vault_client_base_get_all_secrets():
         def get_secret(self, path):
             return {"a/c": "secret-ac", "b": "secret-b"}[path]
 
-    result = TestVaultClient().get_all_secrets(["a", ""])
+    result = TestVaultClient().get_all_secrets("a", "")
 
     assert result == {"a": {"c": "secret-ac"}, "b": "secret-b"}
 
-    result = TestVaultClient().get_all_secrets(["a"])
+    result = TestVaultClient().get_all_secrets("a")
 
     assert result == {"a": {"c": "secret-ac"}}
 
-    result = TestVaultClient().get_all_secrets(["a", ""], merged=True)
+    result = TestVaultClient().get_all_secrets("a", "", merged=True)
 
     assert result == {"c": "secret-ac", "b": "secret-b"}

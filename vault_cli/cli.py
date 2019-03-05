@@ -176,7 +176,7 @@ def get_all(client_obj: client.VaultClientBase, path: Sequence[str]):
     """
     paths = list(path) or [""]
 
-    result = client_obj.get_all_secrets(paths)
+    result = client_obj.get_all_secrets(*paths)
 
     click.echo(
         yaml.safe_dump(result, default_flow_style=False, explicit_start=True), nl=False
@@ -278,7 +278,7 @@ def env(
     """
     paths = list(path) or [""]
 
-    secrets = client_obj.get_all(paths, merged=True)
+    secrets = client_obj.get_all(*paths, merged=True)
     secrets_str = {key: str(value) for key, value in secrets.items()}
 
     environ = os.environ.copy()
