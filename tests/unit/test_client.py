@@ -313,3 +313,30 @@ def test_vault_client_base_get_all_secrets():
     result = TestVaultClient().get_all_secrets("a", "", merged=True)
 
     assert result == {"c": "secret-ac", "b": "secret-b"}
+
+
+def test_vault_client_base_delete_all_secrets():
+    deleted = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def delete_secret(self, path):
+            deleted.append(path)
+
+        def list_secrets(self, path):
+            return {"": ["a/", "b/"], "a": ["c"], "b": ["d"]}[path]
+
+    result = TestVaultClient().delete_all_secrets("a", "b")
+    next(result)
+
+    assert deleted == []
+
+    next(result)
+
+    assert deleted == ["a/c"]
+
+    list(result)
+
+    assert deleted == ["a/c", "b/d"]

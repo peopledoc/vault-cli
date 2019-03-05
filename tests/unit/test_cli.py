@@ -10,6 +10,7 @@ class FakeClient(client.VaultClientBase):
     def __init__(self, **kwargs):
         self.init_kwargs = kwargs
         print(kwargs)
+        self.deleted = []
 
     def get_secret(self, path):
         return "bar"
@@ -21,7 +22,7 @@ class FakeClient(client.VaultClientBase):
         self.set = [path, value]
 
     def delete_secret(self, path):
-        self.deleted = path
+        self.deleted.append(path)
 
 
 @pytest.fixture
@@ -174,7 +175,7 @@ def test_delete(cli_runner, backend):
     result = cli_runner.invoke(cli.cli, ["delete", "a"])
 
     assert result.exit_code == 0
-    assert backend.deleted == "a"
+    assert backend.deleted == ["a"]
 
 
 def test_env(cli_runner, backend, mocker):
@@ -304,3 +305,38 @@ def test_dump_config(cli_runner, backend):
     output = yaml.safe_load(result.output)
 
     assert output == expected_settings
+
+
+def test_delete_all(cli_runner, backend):
+
+    result = cli_runner.invoke(cli.cli, ["delete-all"], input="y\ny")
+    assert result.output.splitlines() == [
+        "Delete 'foo'? [y/N]: y",
+        "Deleted 'foo'",
+        "Delete 'baz'? [y/N]: y",
+        "Deleted 'baz'",
+    ]
+    assert backend.deleted == ["foo", "baz"]
+    assert result.exit_code == 0
+
+
+def test_delete_all_cancel(cli_runner, backend):
+
+    result = cli_runner.invoke(cli.cli, ["delete-all"], input="y\nn")
+    assert result.output.splitlines() == [
+        "Delete 'foo'? [y/N]: y",
+        "Deleted 'foo'",
+        "Delete 'baz'? [y/N]: n",
+        "Aborted!",
+    ]
+    assert backend.deleted == ["foo"]
+    assert result.exit_code != 0
+
+
+def test_delete_all_force(cli_runner, backend):
+
+    result = cli_runner.invoke(cli.cli, ["delete-all", "--force"])
+    assert result.output.splitlines() == ["Deleted 'foo'", "Deleted 'baz'"]
+    assert backend.deleted == ["foo", "baz"]
+    assert result.exit_code == 0
+

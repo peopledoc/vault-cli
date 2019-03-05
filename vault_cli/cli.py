@@ -316,6 +316,29 @@ def dump_config(client_obj: client.VaultClientBase,) -> None:
     )
 
 
+@cli.command("delete-all")
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    help="If not force, prompt for confirmation before each deletion.",
+)
+@click.argument("path", required=False, nargs=-1)
+@click.pass_obj
+def delete_all(
+    client_obj: client.VaultClientBase, path: Sequence[str], force: bool
+) -> None:
+    """
+    Displays all the current settings in the format of a config file.
+    """
+    paths = list(path) or [""]
+
+    for secret in client_obj.delete_all_secrets(*paths):
+        if not force and not click.confirm(text=f"Delete '{secret}'?", default=False):
+            raise click.Abort()
+        click.echo(f"Deleted '{secret}'")
+
+
 def main():
     # https://click.palletsprojects.com/en/7.x/python3/
     os.environ.setdefault("LC_ALL", "C.UTF-8")

@@ -72,8 +72,8 @@ def get_client(**kwargs) -> "VaultClientBase":
         Given an iterable of paths, recursively returns all
         the secrets
     - delete_all_secrets(paths=None)
-        Given an iterable of paths, recursively deletes all
-        the secrets. Use with extreme caution.
+        Given an iterable of paths, recursively yields then deletes
+        all the secrets under those paths. Use with extreme caution.
     """
     options = settings.get_vault_options(**kwargs)
     backend = options.pop("backend")
@@ -237,10 +237,15 @@ class VaultClientBase:
 
         return secrets
 
-    def delete_all_secrets(self, paths: Iterable[str]) -> None:
+    def delete_all_secrets(self, *paths: str) -> Iterable[str]:
         """
-        Recursively deletes all the secrets at the given paths
+        Recursively deletes all the secrets at the given paths.
         """
+        for path in paths:
+            secrets_paths = self._browse_recursive_secrets(path=path)
+            for secret_path in secrets_paths:
+                yield secret_path
+                self.delete_secret(secret_path)
 
     def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
         raise NotImplementedError
