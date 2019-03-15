@@ -190,7 +190,23 @@ class VaultClientBase:
         From a dict containing both individual values and folders of
         individual values, create a dict with all the secrets at the same
         level. Mainly meant for when all values are strings or dicts of strings.
+
+        Imagine you've constructed a dict with 3 paths: 2 folders and a secret
+        >>> d = {
+            "django": {"b": {"m": "n"}, "d": "e"},
+            "conf": {"g": "h", "i": "j", "b": {"x": "y"}},
+            "some_secret": "l",
+        }
+        >>> _merge_secrets(d)
+        {
+            "b": {"x": "y"},
+            "d": "e",
+            "g": "h",
+            "i": "j",
+            "some_secret": "l",
+        }
         """
+
         for key, value in list(secrets.items()):
             if isinstance(value, dict):
                 secrets.pop(key)

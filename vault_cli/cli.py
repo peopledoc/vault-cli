@@ -17,8 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-import traceback
-from typing import Any, Dict, Mapping, NoReturn, Optional, Sequence
+from typing import Any, Dict, Mapping, NoReturn, Sequence
 
 import click
 import yaml
@@ -238,7 +237,7 @@ def delete(client_obj: client.VaultClientBase, name: str) -> None:
     click.echo("Done")
 
 
-@cli.command("bootstrap-env")
+@cli.command("env")
 @click.option(
     "-p",
     "--path",
@@ -246,19 +245,10 @@ def delete(client_obj: client.VaultClientBase, name: str) -> None:
     required=True,
     help="Folder or single item. Pass several times to load multiple values",
 )
-@click.option(
-    "-b",
-    "--backup",
-    help="Path to a file where secrets will be stored upon succesful load. "
-    "This file will be used in case secrets loading fails.",
-)
 @click.argument("command", nargs=-1)
 @click.pass_obj
-def boostrap_env(
-    client_obj: client.VaultClientBase,
-    path: Sequence[str],
-    command: Sequence[str],
-    backup: Optional[str],
+def env(
+    client_obj: client.VaultClientBase, path: Sequence[str], command: Sequence[str]
 ) -> NoReturn:
     """
     Launches the given command with all secrets from --path
@@ -266,28 +256,8 @@ def boostrap_env(
     """
     paths = list(path) or [""]
 
-    try:
-        secrets: types.JSONDict = client_obj.get_all(paths, merged=True)
-    except Exception:
-        if backup is None:
-            raise
-        click.echo("Error while loading secrets from distant vault.", err=True)
-        click.echo(traceback.format_exc(), err=True)
-
-        click.echo(f"Trying to load secrets from backup file at {backup}.", err=True)
-
-        try:
-            secrets_str = read_yaml(filepath=backup)
-        except IOError as exc:
-            raise click.ClickException(
-                f"Could not load secrets from backup file at {backup}."
-            ) from exc
-    else:
-        secrets_str = {key: str(value) for key, value in secrets.items()}
-
-        if backup:
-            click.echo(f"Saving secrets to backup file at {backup}.", err=True)
-            write_yaml(filepath=backup, content=secrets)
+    secrets = client_obj.get_all(paths, merged=True)
+    secrets_str = {key: str(value) for key, value in secrets.items()}
 
     environ = os.environ.copy()
     environ.update(secrets_str)

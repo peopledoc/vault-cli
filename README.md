@@ -49,12 +49,12 @@ Options:
   -h, --help                   Show this message and exit.
 
 Commands:
-  bootstrap-env  Launches the given command with all secrets from --path...
-  delete         Deletes a single secret.
-  get            Return a single secret value.
-  get-all        Return multiple secrets.
-  list           List all the secrets at the given path.
-  set            Set a single secret to the given value(s).
+  env      Launches the given command with all secrets from --path...
+  delete   Deletes a single secret.
+  get      Return a single secret value.
+  get-all  Return multiple secrets.
+  list     List all the secrets at the given path.
+  set      Set a single secret to the given value(s).
 
 ```
 
