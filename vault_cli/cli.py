@@ -273,8 +273,10 @@ def env(
     client_obj: client.VaultClientBase, path: Sequence[str], command: Sequence[str]
 ) -> NoReturn:
     """
-    Launches the given command with all secrets from --path
-    loaded in environment.
+    Launches a command, loading secrets in environment.
+
+    Strings are exported as-is, other types (including booleans, nulls, dicts, lists)
+    are exported as yaml (more specifically as json).
     """
     paths = list(path) or [""]
 
@@ -295,7 +297,7 @@ def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
 @click.pass_obj
 def dump_config(client_obj: client.VaultClientBase,) -> None:
     """
-    Displays all the current settings in the format of a config file.
+    Displays settings in the format of a config file.
     """
     assert client_obj.saved_settings
     click.echo(
@@ -319,7 +321,7 @@ def delete_all(
     client_obj: client.VaultClientBase, path: Sequence[str], force: bool
 ) -> None:
     """
-    Displays all the current settings in the format of a config file.
+    Delete multiple secrets.
     """
     paths = list(path) or [""]
 
