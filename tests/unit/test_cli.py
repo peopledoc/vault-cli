@@ -191,20 +191,6 @@ def test_env(cli_runner, backend, mocker):
     assert kwargs["environ"]["baz"] == "bar"
 
 
-def test_read_yaml(tmpdir):
-    path = str(tmpdir.join("test.yml"))
-    open(path, "w").write('{"yay": 1}')
-
-    assert cli.read_yaml(path) == {"yay": 1}
-
-
-def test_write_yaml(tmpdir):
-    path = str(tmpdir.join("test.yml"))
-    cli.write_yaml(path, {"yay": 1})
-
-    assert open(path, "r").read() == "yay: 1\n"
-
-
 def test_exec_command(mocker):
     execvpe = mocker.patch("os.execvpe")
 

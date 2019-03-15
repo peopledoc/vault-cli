@@ -287,16 +287,6 @@ def env(
     exec_command(command=command, environ=environ)
 
 
-def read_yaml(filepath) -> Dict[str, str]:
-    with open(os.path.expanduser(filepath), "r") as f:
-        return yaml.safe_load(f)
-
-
-def write_yaml(filepath, content) -> None:
-    with open(os.path.expanduser(filepath), "w") as f:
-        f.write(yaml.safe_dump(content, default_flow_style=False))
-
-
 def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
     os.execvpe(command[0], tuple(command), environ)
 
