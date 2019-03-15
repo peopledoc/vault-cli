@@ -23,7 +23,7 @@ from typing import Any, Dict, Mapping, NoReturn, Sequence
 import click
 import yaml
 
-from vault_cli import client, settings, types
+from vault_cli import client, environment, settings, types
 
 logger = logging.getLogger(__name__)
 
@@ -280,17 +280,23 @@ def env(
     """
     paths = list(path) or [""]
 
-    secrets = client_obj.get_all(*paths, merged=True)
-    secrets_str = {key: str(value) for key, value in secrets.items()}
+    env_secrets = {}
+
+    for path in paths:
+        secrets = client_obj.get_secrets(path)
+        env_secrets.update(
+            {
+                environment.make_env_key(
+                    path=path, key=key
+                ): environment.make_env_value(value)
+                for key, value in secrets.items()
+            }
+        )
 
     environ = os.environ.copy()
-    environ.update(secrets_str)
+    environ.update(env_secrets)
 
-    exec_command(command=command, environ=environ)
-
-
-def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
-    os.execvpe(command[0], tuple(command), environ)
+    environment.exec_command(command=command, environ=environ)
 
 
 @cli.command("dump-config")

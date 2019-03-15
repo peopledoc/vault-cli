@@ -205,7 +205,6 @@ class VaultClientBase:
         Takes a single path an return a path dict with all the secrets
         below this path, recursively
         """
-
         secrets_paths = self._browse_recursive_secrets(path=path)
         return {subpath: self.get_secret(path=subpath) for subpath in secrets_paths}
 

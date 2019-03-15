@@ -267,7 +267,8 @@ def test_vault_client_base_browse_recursive_secrets_single_secret():
     assert result == ["a"]
 
 
-def test_vault_client_base_get_all_secrets():
+@pytest.mark.parametrize("method_name", ["get_all", "get_all_secrets"])
+def test_vault_client_base_get_all_secrets(method_name):
     class TestVaultClient(client.VaultClientBase):
         def __init__(self):
             pass
@@ -278,11 +279,13 @@ def test_vault_client_base_get_all_secrets():
         def get_secret(self, path):
             return {"a/c": "secret-ac", "b": "secret-b"}[path]
 
-    result = TestVaultClient().get_all_secrets("a", "")
+    get_all_secrets = getattr(TestVaultClient(), method_name)
+
+    result = get_all_secrets("a", "")
 
     assert result == {"a": {"c": "secret-ac"}, "b": "secret-b"}
 
-    result = TestVaultClient().get_all_secrets("a")
+    result = get_all_secrets("a")
 
     assert result == {"a": {"c": "secret-ac"}}
 

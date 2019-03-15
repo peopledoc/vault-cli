@@ -83,7 +83,7 @@ class RequestsVaultClient(VaultClientBase):
             {"X-Vault-Token": json_response.get("auth").get("client_token")}
         )
 
-    def get_secrets(self, path: str) -> types.JSONDict:
+    def _get_secret_and_metadata(self, path: str) -> types.JSONDict:
         url = self._full_url(path)
         response = self.session.get(url)
         self.handle_error(response)
@@ -91,7 +91,7 @@ class RequestsVaultClient(VaultClientBase):
         return json_response["data"]
 
     def get_secret(self, path: str) -> types.JSONValue:
-        data = self.get_secrets(path)
+        data = self._get_secret_and_metadata(path)
         return data["value"]
 
     def list_secrets(self, path: str) -> Iterable[str]:
