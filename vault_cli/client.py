@@ -146,10 +146,15 @@ class VaultClientBase:
         else:
             raise ValueError("No authentication method supplied")
 
-    def _get_recursive_secrets(self, path: str) -> types.JSONDict:
+    def _get_recursive_secrets(self, path: str) -> types.JSONValue:
         result: types.JSONDict = {}
         path = path.rstrip("/")
-        for key in self.list_secrets(path=path):
+        sub_secrets = self.list_secrets(path=path)
+
+        if not sub_secrets:
+            return self.get_secret(path=path)
+
+        for key in sub_secrets:
             key_url = "/".join([path, key]) if path else key
 
             folder = key_url.endswith("/")
@@ -163,7 +168,7 @@ class VaultClientBase:
 
         return result
 
-    def get_all(self, paths: Iterable[str]) -> types.JSONDict:
+    def get_all(self, paths: Iterable[str], merged: bool = False) -> types.JSONDict:
         result: types.JSONDict = {}
 
         for path in paths:
@@ -175,7 +180,39 @@ class VaultClientBase:
             assert isinstance(root_val, dict)
             result.update(root_val)
 
+        if merged:
+            result = self._merge_secrets(result)
+
         return result
+
+    def _merge_secrets(self, secrets: types.JSONDict) -> types.JSONDict:
+        """
+        From a dict containing both individual values and folders of
+        individual values, create a dict with all the secrets at the same
+        level. Mainly meant for when all values are strings or dicts of strings.
+
+        Imagine you've constructed a dict with 3 paths: 2 folders and a secret
+        >>> d = {
+            "django": {"b": {"m": "n"}, "d": "e"},
+            "conf": {"g": "h", "i": "j", "b": {"x": "y"}},
+            "some_secret": "l",
+        }
+        >>> _merge_secrets(d)
+        {
+            "b": {"x": "y"},
+            "d": "e",
+            "g": "h",
+            "i": "j",
+            "some_secret": "l",
+        }
+        """
+
+        for key, value in list(secrets.items()):
+            if isinstance(value, dict):
+                secrets.pop(key)
+                secrets.update(value)
+
+        return secrets
 
     def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
         raise NotImplementedError

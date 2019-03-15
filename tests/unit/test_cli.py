@@ -175,6 +175,41 @@ def test_delete(cli_runner, backend):
     assert backend.deleted == "a"
 
 
+def test_env(cli_runner, backend, mocker):
+    exec_command = mocker.patch("vault_cli.cli.exec_command")
+
+    cli_runner.invoke(
+        cli.cli, ["env", "--path", "foo", "--", "echo", "yay"], catch_exceptions=False
+    )
+
+    _, kwargs = exec_command.call_args
+    assert kwargs["command"] == ("echo", "yay")
+    assert kwargs["environ"]["foo"] == "bar"
+    assert kwargs["environ"]["baz"] == "bar"
+
+
+def test_read_yaml(tmpdir):
+    path = str(tmpdir.join("test.yml"))
+    open(path, "w").write('{"yay": 1}')
+
+    assert cli.read_yaml(path) == {"yay": 1}
+
+
+def test_write_yaml(tmpdir):
+    path = str(tmpdir.join("test.yml"))
+    cli.write_yaml(path, {"yay": 1})
+
+    assert open(path, "r").read() == "yay: 1\n"
+
+
+def test_exec_command(mocker):
+    execvpe = mocker.patch("os.execvpe")
+
+    cli.exec_command(["a", "b"], {"c": "d"})
+
+    execvpe.assert_called_with("a", ("a", "b"), {"c": "d"})
+
+
 def test_main(mocker):
     mock_cli = mocker.patch("vault_cli.cli.cli")
     environ = mocker.patch("os.environ", {})
