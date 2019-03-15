@@ -43,19 +43,20 @@ Options:
                                a "password" key.
   -b, --base-path TEXT         Base path for requests
   --backend TEXT               Name of the backend to use (requests, hvac)
+  -v, --verbose                Use multiple times to increase verbosity
   --config-file PATH           Config file to use. Use 'no' to disable config
                                file. Default value: first of ./.vault.yml,
                                ~/.vault.yml, /etc/vault.yml
   -h, --help                   Show this message and exit.
 
 Commands:
-  env      Launches the given command with all secrets from --path...
-  delete   Deletes a single secret.
-  get      Return a single secret value.
-  get-all  Return multiple secrets.
-  list     List all the secrets at the given path.
-  set      Set a single secret to the given value(s).
-
+  delete       Deletes a single secret.
+  dump-config  Displays all the current settings in the format of a config...
+  env          Launches the given command with all secrets from --path...
+  get          Return a single secret value.
+  get-all      Return multiple secrets.
+  list         List all the secrets at the given path.
+  set          Set a single secret to the given value(s).
 ```
 
 ## Authentication
@@ -121,6 +122,9 @@ $ vault bootstrap-env --path blob_secret -- env
 ...
 code=supercode
 ...
+
+# Recreate a configuration file based on the current settings
+$ vault --url https://something --token mytoken dump-config > .vault.yaml
 ```
 
 ## Configuration

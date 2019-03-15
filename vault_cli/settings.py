@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import logging
 import os
 import sys
 from functools import lru_cache
@@ -25,6 +26,8 @@ from typing import Dict, Optional, Union
 import yaml
 
 from vault_cli import types
+
+logger = logging.getLogger(__name__)
 
 ENV_PREFIX = "VAULT_CLI"
 
@@ -47,9 +50,21 @@ DEFAULTS = {
 def read_config_file(file_path: str) -> Optional[types.SettingsDict]:
     try:
         with open(os.path.expanduser(file_path), "r") as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f)
+            logger.info(
+                f"Reading yaml config file at {file_path}, "
+                f"contains keys: {', '.join(config)}"
+            )
+            return config
+    except FileNotFoundError:
+        logger.debug(f"No config file at {file_path} (skipping)")
     except IOError:
-        return None
+        logger.warning(
+            f"Config file exists at {file_path}, but cannot be read. "
+            "Have you checked permissions? (skipping)"
+        )
+
+    return None
 
 
 def dash_to_underscores(config: types.SettingsDict) -> types.SettingsDict:
@@ -98,36 +113,36 @@ def build_config_from_env(environ: Dict[str, str]) -> types.SettingsDict:
 
 def read_all_files(config: types.SettingsDict) -> types.SettingsDict:
     config = config.copy()
-    # Files override direct values when both are defined
-    certificate_file = config.pop("certificate_file", None)
-    if certificate_file:
-        assert isinstance(certificate_file, str)
-        config["certificate"] = read_file(certificate_file)
 
-    password_file = config.pop("password_file", None)
-    if password_file:
-        assert isinstance(password_file, str)
-        config["password"] = read_file(password_file)
-
-    token_file = config.pop("token_file", None)
-    if token_file:
-        assert isinstance(token_file, str)
-        config["token"] = read_file(token_file)
+    replace_path_with_content(config=config, setting_name="certificate")
+    replace_path_with_content(config=config, setting_name="password")
+    replace_path_with_content(config=config, setting_name="token")
 
     return config
+
+
+def replace_path_with_content(config: types.SettingsDict, setting_name: str) -> None:
+    """
+    Modifies config dict in place: reads the file at <setting_name>_file
+    and put its contents at <setting_name> instead.
+    """
+    # Files override direct values when both are defined
+    filename = config.pop(f"{setting_name}_file", None)
+    if filename:
+        assert isinstance(filename, str)
+        logger.info(f"Reading value of '{setting_name}' from file {filename}")
+        config[setting_name] = read_file(filename)
 
 
 def read_file(path: str) -> Optional[str]:
     """
     Returns the content of the pointed file
     """
-    if not path:
-        return None
-
     if path == "-":
         return sys.stdin.read().strip()
 
     with open(os.path.expanduser(path)) as file_handler:
+
         return file_handler.read().strip()
 
 
@@ -152,3 +167,13 @@ def get_vault_options(**kwargs: types.Settings):
     values.update(kwargs)
 
     return values
+
+
+def get_log_level(verbosity: int) -> int:
+    """
+    Given the number of repetitions of the flag -v,
+    returns the desired log level
+    """
+    return {0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}.get(
+        min((2, verbosity)), 0
+    )

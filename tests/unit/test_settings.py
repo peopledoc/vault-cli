@@ -1,13 +1,19 @@
 from __future__ import unicode_literals
 
 import io
+import logging
 
 import pytest
+
 from vault_cli import settings
 
 
 def test_read_config_file_not_existing():
     assert settings.read_config_file("/non-existant-file") is None
+
+
+def test_read_config_file_other_error():
+    assert settings.read_config_file("/") is None
 
 
 def test_read_config_file(tmpdir):
@@ -43,10 +49,6 @@ def test_read_all_files(tmpdir):
     }
     expected = {"token": "yay", "certificate": "yo", "password": "aaa"}
     assert settings.read_all_files(d) == expected
-
-
-def test_read_file_no_path():
-    assert settings.read_file(None) is None
 
 
 def test_read_file_stdin(mocker):
@@ -136,3 +138,11 @@ def test_load_bool_wrong():
 )
 def test_build_config_from_env(value, expected):
     assert settings.build_config_from_env(value) == expected
+
+
+@pytest.mark.parametrize(
+    "verbosity, log_level",
+    [(0, "WARNING"), (1, "INFO"), (2, "DEBUG"), (3, "DEBUG"), (None, "WARNING")],
+)
+def get_log_level(verbosity, log_level):
+    assert settings.get_log_level(verbosity=verbosity) == getattr(logging, log_level)

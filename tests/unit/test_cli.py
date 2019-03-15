@@ -1,7 +1,9 @@
-import yaml
+import logging
 
 import pytest
-from vault_cli import cli, client
+import yaml
+
+from vault_cli import cli, client, settings
 
 
 class FakeClient(client.VaultClientBase):
@@ -277,3 +279,28 @@ def test_extract_special_args(config, environ, expected):
     result = {key: value for key, value in result.items() if value is not None}
 
     assert result == expected
+
+
+def test_set_verbosity(mocker):
+    basic_config = mocker.patch("logging.basicConfig")
+
+    cli.set_verbosity(None, None, 1)
+
+    basic_config.assert_called_with(level=logging.INFO)
+
+
+def test_dump_config(cli_runner, backend):
+    result = cli_runner.invoke(
+        cli.cli,
+        ["--base-path", "mybase/", "--token-file", "-", "dump-config"],
+        input="some-token",
+    )
+
+    expected_settings = settings.DEFAULTS.copy()
+    expected_settings.update(
+        {"base_path": "mybase/", "token": "some-token", "verbose": 0}
+    )
+
+    output = yaml.safe_load(result.output)
+
+    assert output == expected_settings

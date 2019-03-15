@@ -2,6 +2,7 @@ import os
 import subprocess
 
 import pytest
+
 import vault_cli
 from vault_cli import cli
 

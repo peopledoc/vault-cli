@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+0.4.0 (unreleased)
+------------------
+
+- Added vault dump-config
+- Added vault bootstrap-env
+
 0.3.9
 -----
 
