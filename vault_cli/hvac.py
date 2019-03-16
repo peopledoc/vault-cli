@@ -53,3 +53,6 @@ class HVACVaultClient(VaultClientBase):
 
     def set_secret(self, path: str, value: types.JSONValue) -> None:
         self.client.write(self.base_path + path, value=value)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.session.__exit__(exc_type, exc_value, traceback)

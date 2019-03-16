@@ -155,6 +155,16 @@ class VaultClientBase:
         else:
             raise ValueError("No authentication method supplied")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Implement this with the relevant behaviour in children classes
+        for when exiting the client used as context manager.
+        """
+        pass
+
     def _browse_recursive_secrets(self, path: str) -> Iterable[str]:
         """
         Given a secret or folder path, return the path of all secrets

@@ -49,6 +49,9 @@ class RequestsVaultClient(VaultClientBase):
         session.verify = verify
         return session
 
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.session.__exit__(exc_type, exc_value, traceback)
+
     def _authenticate_token(self, token: str) -> None:
         self.session.headers.update({"X-Vault-Token": token})
 
