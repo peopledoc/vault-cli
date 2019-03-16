@@ -129,3 +129,12 @@ def test_set_secret(requests_mock, any_backend):
 
     assert requests_mock.called
     assert requests_mock.request_history[0].json() == {"value": "b"}
+
+
+def test_set_context_manager(any_backend):
+    client_obj = get_client(any_backend)
+    with client_obj as c:
+        assert client_obj is c
+
+    # Assert connection is closed ?
+    # At least we make sure our context manager doesn't crash.

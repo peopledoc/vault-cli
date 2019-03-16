@@ -335,3 +335,14 @@ def test_vault_client_base_delete_all_secrets():
     list(result)
 
     assert deleted == ["a/c", "b/d"]
+
+
+def test_vault_client_base_context_manager():
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+    client_obj = TestVaultClient()
+
+    with client_obj as c:
+        assert c is client_obj
