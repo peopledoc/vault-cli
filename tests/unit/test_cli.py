@@ -339,4 +339,3 @@ def test_delete_all_force(cli_runner, backend):
     assert result.output.splitlines() == ["Deleted 'foo'", "Deleted 'baz'"]
     assert backend.deleted == ["foo", "baz"]
     assert result.exit_code == 0
-

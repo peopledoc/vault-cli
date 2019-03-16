@@ -18,7 +18,7 @@ limitations under the License.
 """
 import json
 import logging
-from typing import Iterable, Optional, Type, Union, Dict
+from typing import Iterable, Optional, Type, Union
 
 from vault_cli import settings, types
 
