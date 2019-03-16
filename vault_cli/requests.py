@@ -21,28 +21,9 @@ from typing import Iterable
 from urllib.parse import urljoin
 
 import requests
-import urllib3
 
-from vault_cli import types
+from vault_cli import sessions, types
 from vault_cli.client import VaultAPIException, VaultClientBase
-
-
-class Session(requests.Session):
-    """A wrapper for requests.Session to override 'verify' property, ignoring
-    REQUESTS_CA_BUNDLE environment variable.
-
-    This is a workaround for
-    https://github.com/requests/requests/issues/3829
-    """
-
-    def merge_environment_settings(self, url, proxies, stream, verify, *args, **kwargs):
-        if self.verify is False:
-            verify = False
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-        return super(Session, self).merge_environment_settings(
-            url, proxies, stream, verify, *args, **kwargs
-        )
 
 
 class RequestsVaultClient(VaultClientBase):
@@ -64,7 +45,7 @@ class RequestsVaultClient(VaultClientBase):
 
     @staticmethod
     def create_session(verify: types.VerifyOrCABundle) -> requests.Session:
-        session = Session()
+        session = sessions.Session()
         session.verify = verify
         return session
 
