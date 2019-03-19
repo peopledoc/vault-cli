@@ -21,13 +21,14 @@ from typing import Iterable
 
 import hvac
 
-from vault_cli import types
+from vault_cli import sessions, types
 from vault_cli.client import VaultAPIException, VaultClientBase
 
 
 class HVACVaultClient(VaultClientBase):
     def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
-        self.client = hvac.Client(url=url, verify=verify)
+        self.session = sessions.Session()
+        self.client = hvac.Client(url=url, verify=verify, session=self.session)
 
     def _authenticate_token(self, token: str) -> None:
         self.client.token = token
@@ -52,3 +53,6 @@ class HVACVaultClient(VaultClientBase):
 
     def set_secret(self, path: str, value: types.JSONValue) -> None:
         self.client.write(self.base_path + path, value=value)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.session.__exit__(exc_type, exc_value, traceback)

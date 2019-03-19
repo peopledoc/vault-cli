@@ -19,9 +19,13 @@ def get_client(backend, **additional_kwargs):
     return client.get_client_from_kwargs(**kwargs)
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_token(requests_mock, backend):
-    client_obj = get_client(backend)
+@pytest.fixture(params=["requests", "hvac"])
+def any_backend(request):
+    yield request.param
+
+
+def test_token(requests_mock, any_backend):
+    client_obj = get_client(any_backend)
     requests_mock.get(
         "http://vault:8000/v1/bla/a",
         request_headers={"X-Vault-Token": "tok"},
@@ -33,8 +37,7 @@ def test_token(requests_mock, backend):
     assert requests_mock.called
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_userpass(requests_mock, backend):
+def test_userpass(requests_mock, any_backend):
     requests_mock.post(
         "http://vault:8000/v1/auth/userpass/login/myuser",
         json={"auth": {"client_token": "newtok"}},
@@ -42,7 +45,7 @@ def test_userpass(requests_mock, backend):
 
     # Initialize a client, check that we get a token
     client_obj = get_client(
-        backend=backend, token=None, username="myuser", password="pass"
+        backend=any_backend, token=None, username="myuser", password="pass"
     )
 
     # Check that the token is used
@@ -57,16 +60,14 @@ def test_userpass(requests_mock, backend):
     assert requests_mock.request_history[0].json() == {"password": "pass"}
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_get_secret(requests_mock, backend):
-    client_obj = get_client(backend)
+def test_get_secret(requests_mock, any_backend):
+    client_obj = get_client(any_backend)
     requests_mock.get("http://vault:8000/v1/bla/a", json={"data": {"value": "b"}})
     assert client_obj.get_secret("a") == "b"
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_get_secret_not_found(requests_mock, backend):
-    client_obj = get_client(backend)
+def test_get_secret_not_found(requests_mock, any_backend):
+    client_obj = get_client(any_backend)
     requests_mock.get(
         "http://vault:8000/v1/bla/a", status_code=404, json={"errors": ["Not found"]}
     )
@@ -74,26 +75,23 @@ def test_get_secret_not_found(requests_mock, backend):
         assert client_obj.get_secret("a")
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_get_secret_no_verify(requests_mock, backend):
-    client_obj = get_client(backend, verify=False)
+def test_get_secret_no_verify(requests_mock, any_backend):
+    client_obj = get_client(any_backend, verify=False)
     requests_mock.get("http://vault:8000/v1/bla/a", json={"data": {"value": "b"}})
     assert client_obj.get_secret("a") == "b"
     assert requests_mock.last_request.verify is False
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_list_secrets(requests_mock, backend):
-    client_obj = get_client(backend)
+def test_list_secrets(requests_mock, any_backend):
+    client_obj = get_client(any_backend)
     requests_mock.get(
         "http://vault:8000/v1/bla/a?list=True", json={"data": {"keys": ["b"]}}
     )
     assert client_obj.list_secrets("a") == ["b"]
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_list_secrets_empty(requests_mock, backend):
-    client_obj = get_client(backend)
+def test_list_secrets_empty(requests_mock, any_backend):
+    client_obj = get_client(any_backend)
     requests_mock.get(
         "http://vault:8000/v1/bla/a?list=True",
         status_code=404,
@@ -102,9 +100,8 @@ def test_list_secrets_empty(requests_mock, backend):
     assert client_obj.list_secrets("a") == []
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_list_secrets_other_error(requests_mock, backend):
-    client_obj = get_client(backend)
+def test_list_secrets_other_error(requests_mock, any_backend):
+    client_obj = get_client(any_backend)
     requests_mock.get(
         "http://vault:8000/v1/bla/a?list=True",
         status_code=500,
@@ -115,18 +112,16 @@ def test_list_secrets_other_error(requests_mock, backend):
         client_obj.list_secrets("a")
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_delete_secret(requests_mock, backend):
-    client_obj = get_client(backend)
+def test_delete_secret(requests_mock, any_backend):
+    client_obj = get_client(any_backend)
     requests_mock.delete("http://vault:8000/v1/bla/a", status_code=204)
     client_obj.delete_secret("a")
 
     assert requests_mock.called
 
 
-@pytest.mark.parametrize("backend", ["requests", "hvac"])
-def test_set_secret(requests_mock, backend):
-    client_obj = get_client(backend)
+def test_set_secret(requests_mock, any_backend):
+    client_obj = get_client(any_backend)
     # Both post and put can be used
     requests_mock.put("http://vault:8000/v1/bla/a", status_code=204, json={})
     requests_mock.post("http://vault:8000/v1/bla/a", status_code=204, json={})
@@ -134,3 +129,12 @@ def test_set_secret(requests_mock, backend):
 
     assert requests_mock.called
     assert requests_mock.request_history[0].json() == {"value": "b"}
+
+
+def test_set_context_manager(any_backend):
+    client_obj = get_client(any_backend)
+    with client_obj as c:
+        assert client_obj is c
+
+    # Assert connection is closed ?
+    # At least we make sure our context manager doesn't crash.
