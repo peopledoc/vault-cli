@@ -51,9 +51,9 @@ Options:
 
 Commands:
   delete       Deletes a single secret.
-  delete-all   Displays all the current settings in the format of a config...
-  dump-config  Displays all the current settings in the format of a config...
-  env          Launches the given command with all secrets from --path...
+  delete-all   Delete multiple secrets.
+  dump-config  Displays settings in the format of a config file.
+  env          Launches a command, loading secrets in environment.
   get          Return a single secret value.
   get-all      Return multiple secrets.
   list         List all the secrets at the given path.

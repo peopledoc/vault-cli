@@ -23,7 +23,7 @@ from typing import Any, Dict, Mapping, NoReturn, Sequence
 import click
 import yaml
 
-from vault_cli import client, settings, types
+from vault_cli import client, environment, settings, types
 
 logger = logging.getLogger(__name__)
 
@@ -273,39 +273,37 @@ def env(
     client_obj: client.VaultClientBase, path: Sequence[str], command: Sequence[str]
 ) -> NoReturn:
     """
-    Launches the given command with all secrets from --path
-    loaded in environment.
+    Launches a command, loading secrets in environment.
+
+    Strings are exported as-is, other types (including booleans, nulls, dicts, lists)
+    are exported as yaml (more specifically as json).
     """
     paths = list(path) or [""]
 
-    secrets = client_obj.get_all(*paths, merged=True)
-    secrets_str = {key: str(value) for key, value in secrets.items()}
+    env_secrets = {}
+
+    for path in paths:
+        secrets = client_obj.get_secrets(path)
+        env_secrets.update(
+            {
+                environment.make_env_key(
+                    path=path, key=key
+                ): environment.make_env_value(value)
+                for key, value in secrets.items()
+            }
+        )
 
     environ = os.environ.copy()
-    environ.update(secrets_str)
+    environ.update(env_secrets)
 
-    exec_command(command=command, environ=environ)
-
-
-def read_yaml(filepath) -> Dict[str, str]:
-    with open(os.path.expanduser(filepath), "r") as f:
-        return yaml.safe_load(f)
-
-
-def write_yaml(filepath, content) -> None:
-    with open(os.path.expanduser(filepath), "w") as f:
-        f.write(yaml.safe_dump(content, default_flow_style=False))
-
-
-def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
-    os.execvpe(command[0], tuple(command), environ)
+    environment.exec_command(command=command, environ=environ)
 
 
 @cli.command("dump-config")
 @click.pass_obj
 def dump_config(client_obj: client.VaultClientBase,) -> None:
     """
-    Displays all the current settings in the format of a config file.
+    Displays settings in the format of a config file.
     """
     assert client_obj.saved_settings
     click.echo(
@@ -329,7 +327,7 @@ def delete_all(
     client_obj: client.VaultClientBase, path: Sequence[str], force: bool
 ) -> None:
     """
-    Displays all the current settings in the format of a config file.
+    Delete multiple secrets.
     """
     paths = list(path) or [""]
 

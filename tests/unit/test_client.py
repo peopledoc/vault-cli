@@ -78,18 +78,6 @@ def test_vault_client_base_not_implemented(func, args):
         getattr(c, func)(**{name: None for name in args.split()})
 
 
-@pytest.mark.parametrize(
-    "dict_obj, path, value, expected",
-    [
-        ({"a": "b"}, "c", "d", {"a": "b", "c": "d"}),
-        ({"a": {"b": "c"}}, "a/d", "e", {"a": {"b": "c", "d": "e"}}),
-        ({"a": {"b": "c"}}, "a/d/e", "f", {"a": {"b": "c", "d": {"e": "f"}}}),
-    ],
-)
-def test_deep_update(dict_obj, path, value, expected):
-    assert client.deep_update(dict_obj=dict_obj, path=path, value=value) == expected
-
-
 def test_vault_client_base_call_init_session():
     called_with = {}
 
@@ -279,19 +267,8 @@ def test_vault_client_base_browse_recursive_secrets_single_secret():
     assert result == ["a"]
 
 
-def test_vault_client_base__merge_secrets():
-    class TestVaultClient(client.VaultClientBase):
-        def __init__(self):
-            pass
-
-    assert TestVaultClient()._merge_secrets({"a": "b", "c": {"d": "e", "f": "g"}}) == {
-        "a": "b",
-        "d": "e",
-        "f": "g",
-    }
-
-
-def test_vault_client_base_get_all_secrets():
+@pytest.mark.parametrize("method_name", ["get_all", "get_all_secrets"])
+def test_vault_client_base_get_all_secrets(method_name):
     class TestVaultClient(client.VaultClientBase):
         def __init__(self):
             pass
@@ -302,17 +279,35 @@ def test_vault_client_base_get_all_secrets():
         def get_secret(self, path):
             return {"a/c": "secret-ac", "b": "secret-b"}[path]
 
-    result = TestVaultClient().get_all_secrets("a", "")
+    get_all_secrets = getattr(TestVaultClient(), method_name)
+
+    result = get_all_secrets("a", "")
 
     assert result == {"a": {"c": "secret-ac"}, "b": "secret-b"}
 
-    result = TestVaultClient().get_all_secrets("a")
+    result = get_all_secrets("a")
 
     assert result == {"a": {"c": "secret-ac"}}
 
-    result = TestVaultClient().get_all_secrets("a", "", merged=True)
 
-    assert result == {"c": "secret-ac", "b": "secret-b"}
+def test_vault_client_base_get_secrets():
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def list_secrets(self, path):
+            return {"": ["a/", "b"], "a": ["c"], "b": []}[path]
+
+        def get_secret(self, path):
+            return {"a/c": "secret-ac", "b": "secret-b"}[path]
+
+    result = TestVaultClient().get_secrets("a")
+
+    assert result == {"a/c": "secret-ac"}
+
+    result = TestVaultClient().get_secrets("b")
+
+    assert result == {"b": "secret-b"}
 
 
 def test_vault_client_base_delete_all_secrets():

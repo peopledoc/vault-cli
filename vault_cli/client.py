@@ -20,7 +20,7 @@ import json
 import logging
 from typing import Iterable, Optional, Type, Union
 
-from vault_cli import settings, types
+from vault_cli import settings, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -185,19 +185,28 @@ class VaultClientBase:
             for sub_path in self._browse_recursive_secrets(key_url):
                 yield sub_path
 
-    def get_all_secrets(self, *paths: str, merged: bool = False) -> types.JSONDict:
+    def get_all_secrets(self, *paths: str) -> types.JSONDict:
+        """
+        Takes several paths, return the nested dict of all secrets below
+        those paths
+        """
+
         result: types.JSONDict = {}
 
         for path in paths:
-            secrets_paths = self._browse_recursive_secrets(path=path)
-            for secret_path in secrets_paths:
-                value = self.get_secret(path=secret_path)
-                deep_update(dict_obj=result, path=secret_path, value=value)
+            path_dict = self.get_secrets(path)
 
-        if merged:
-            result = self._merge_secrets(result)
+            result.update(utils.path_to_nested(path_dict))
 
         return result
+
+    def get_secrets(self, path: str) -> types.JSONDict:
+        """
+        Takes a single path an return a path dict with all the secrets
+        below this path, recursively
+        """
+        secrets_paths = self._browse_recursive_secrets(path=path)
+        return {subpath: self.get_secret(path=subpath) for subpath in secrets_paths}
 
     def get_all(self, *args, **kwargs):
         """
@@ -207,35 +216,6 @@ class VaultClientBase:
             "Using deprecated 'get_all' method. Use 'get_all_secrets' instead."
         )
         return self.get_all_secrets(*args, **kwargs)
-
-    def _merge_secrets(self, secrets: types.JSONDict) -> types.JSONDict:
-        """
-        From a dict containing both individual values and folders of
-        individual values, create a dict with all the secrets at the same
-        level. Mainly meant for when all values are strings or dicts of strings.
-
-        Imagine you've constructed a dict with 3 paths: 2 folders and a secret
-        >>> d = {
-            "django": {"b": {"m": "n"}, "d": "e"},
-            "conf": {"g": "h", "i": "j", "b": {"x": "y"}},
-            "some_secret": "l",
-        }
-        >>> _merge_secrets(d)
-        {
-            "b": {"x": "y"},
-            "d": "e",
-            "g": "h",
-            "i": "j",
-            "some_secret": "l",
-        }
-        """
-
-        for key, value in list(secrets.items()):
-            if isinstance(value, dict):
-                secrets.pop(key)
-                secrets.update(value)
-
-        return secrets
 
     def delete_all_secrets(self, *paths: str) -> Iterable[str]:
         """
@@ -270,28 +250,3 @@ class VaultClientBase:
 
     def set_secret(self, path: str, value: types.JSONValue) -> None:
         raise NotImplementedError
-
-
-def deep_update(
-    dict_obj: types.JSONDict, path: str, value: types.JSONValue
-) -> types.JSONDict:
-    """
-    Adds value at the given path, creating necessary levels
-    >>> deep_update(dict_obj={"a": "b"}, path="c", "d")
-    {"a": "b", "c": "d"}
-    >>> deep_update(dict_obj={"a": {"b": "c"}}, path="a/d", "e")
-    {"a": {"b": "c", "d": "e"}}
-    >>> deep_update(dict_obj={"a": {"b": "c"}}, path="a/d/e", "f")
-    {"a": {"b": "c", "d": {"e": "f}}}
-    """
-
-    *folders, subpath = path.strip("/").split("/")
-    original_dict_obj = dict_obj
-
-    for folder in folders:
-        sub_obj = dict_obj.setdefault(folder, {})
-        assert isinstance(sub_obj, dict)
-        dict_obj = sub_obj
-
-    dict_obj[subpath] = value
-    return original_dict_obj
