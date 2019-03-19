@@ -79,11 +79,15 @@ def test_vault_client_base_not_implemented(func, args):
 
 
 @pytest.mark.parametrize(
-    "path, value, expected",
-    [("test", "foo", {"test": "foo"}), ("test/bla", "foo", {"test": {"bla": "foo"}})],
+    "dict_obj, path, value, expected",
+    [
+        ({"a": "b"}, "c", "d", {"a": "b", "c": "d"}),
+        ({"a": {"b": "c"}}, "a/d", "e", {"a": {"b": "c", "d": "e"}}),
+        ({"a": {"b": "c"}}, "a/d/e", "f", {"a": {"b": "c", "d": {"e": "f"}}}),
+    ],
 )
-def test_nested_keys(path, value, expected):
-    assert client.nested_keys(path, value) == expected
+def test_deep_update(dict_obj, path, value, expected):
+    assert client.deep_update(dict_obj=dict_obj, path=path, value=value) == expected
 
 
 def test_vault_client_base_call_init_session():
@@ -246,7 +250,7 @@ def test_vault_client_set_ca_bundle_no_verify():
     assert session_kwargs["verify"] is False
 
 
-def test_vault_client_base_get_recursive_secrets():
+def test_vault_client_base_browse_recursive_secrets():
     class TestVaultClient(client.VaultClientBase):
         def __init__(self):
             pass
@@ -257,12 +261,12 @@ def test_vault_client_base_get_recursive_secrets():
         def get_secret(self, path):
             return {"a": "secret-a", "b/c": "secret-bc"}[path]
 
-    result = TestVaultClient()._get_recursive_secrets("")
+    result = list(TestVaultClient()._browse_recursive_secrets(""))
 
-    assert result == {"a": "secret-a", "b": {"c": "secret-bc"}}
+    assert result == ["a", "b/c"]
 
 
-def test_vault_client_base_get_recursive_secrets_single_secret():
+def test_vault_client_base_browse_recursive_secrets_single_secret():
     class TestVaultClient(client.VaultClientBase):
         def __init__(self):
             pass
@@ -270,12 +274,9 @@ def test_vault_client_base_get_recursive_secrets_single_secret():
         def list_secrets(self, path):
             return {"a": []}[path]
 
-        def get_secret(self, path):
-            return "secret-a"
+    result = list(TestVaultClient()._browse_recursive_secrets("a"))
 
-    result = TestVaultClient()._get_recursive_secrets("a")
-
-    assert result == "secret-a"
+    assert result == ["a"]
 
 
 def test_vault_client_base__merge_secrets():
@@ -290,7 +291,7 @@ def test_vault_client_base__merge_secrets():
     }
 
 
-def test_vault_client_base_get_all():
+def test_vault_client_base_get_all_secrets():
     class TestVaultClient(client.VaultClientBase):
         def __init__(self):
             pass
@@ -301,14 +302,41 @@ def test_vault_client_base_get_all():
         def get_secret(self, path):
             return {"a/c": "secret-ac", "b": "secret-b"}[path]
 
-    result = TestVaultClient().get_all(["a", ""])
+    result = TestVaultClient().get_all_secrets("a", "")
 
     assert result == {"a": {"c": "secret-ac"}, "b": "secret-b"}
 
-    result = TestVaultClient().get_all(["a"])
+    result = TestVaultClient().get_all_secrets("a")
 
     assert result == {"a": {"c": "secret-ac"}}
 
-    result = TestVaultClient().get_all(["a", ""], merged=True)
+    result = TestVaultClient().get_all_secrets("a", "", merged=True)
 
     assert result == {"c": "secret-ac", "b": "secret-b"}
+
+
+def test_vault_client_base_delete_all_secrets():
+    deleted = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def delete_secret(self, path):
+            deleted.append(path)
+
+        def list_secrets(self, path):
+            return {"": ["a/", "b/"], "a": ["c"], "b": ["d"]}[path]
+
+    result = TestVaultClient().delete_all_secrets("a", "b")
+    next(result)
+
+    assert deleted == []
+
+    next(result)
+
+    assert deleted == ["a/c"]
+
+    list(result)
+
+    assert deleted == ["a/c", "b/d"]

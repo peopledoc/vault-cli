@@ -51,6 +51,7 @@ Options:
 
 Commands:
   delete       Deletes a single secret.
+  delete-all   Displays all the current settings in the format of a config...
   dump-config  Displays all the current settings in the format of a config...
   env          Launches the given command with all secrets from --path...
   get          Return a single secret value.
@@ -125,6 +126,12 @@ code=supercode
 
 # Recreate a configuration file based on the current settings
 $ vault --url https://something --token mytoken dump-config > .vault.yaml
+
+# Delete everything under blob-secret
+$ vault delete-all blob-secret
+
+# Delete everything, no confirmation
+$ vault delete-all --force
 ```
 
 ## Configuration

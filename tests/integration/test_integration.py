@@ -14,9 +14,17 @@ def call(cli_runner, *args):
 
 
 def test_integration_cli(cli_runner):
+
     call(cli_runner, ["set", "a", "b"])
 
     assert call(cli_runner, ["get", "a", "--text"]).output == "b\n"
+
+    # Both testing it and using it to clean the vault
+    call(cli_runner, ["delete-all", "--force"])
+
+    assert call(cli_runner, ["list"]).output == "\n"
+
+    call(cli_runner, ["set", "a", "b"])
 
     assert call(cli_runner, ["list"]).output == "a\n"
 
@@ -40,7 +48,9 @@ c:
 
     assert call(cli_runner, ["list"]).output == "c/\n"
 
-    call(cli_runner, ["delete", "c/d"])
+    call(cli_runner, ["delete-all", "--force"])
+
+    assert call(cli_runner, ["list"]).output == "\n"
 
 
 def test_integration_lib():
@@ -50,6 +60,12 @@ def test_integration_lib():
     client.set_secret("a", "b")
 
     assert client.get_secret("a") == "b"
+
+    assert "a" in list(client.delete_all_secrets(""))
+
+    assert client.list_secrets("") == []
+
+    client.set_secret("a", "b")
 
     assert client.list_secrets("") == ["a"]
 
@@ -61,13 +77,13 @@ def test_integration_lib():
 
     assert client.list_secrets("c") == ["d"]
 
-    assert client.get_all([""]) == {"a": "b", "c": {"d": "e"}}
+    assert client.get_all_secrets("") == {"a": "b", "c": {"d": "e"}}
 
     client.delete_secret("a")
 
     assert client.list_secrets("") == ["c/"]
 
-    client.delete_secret("c/d")
+    assert list(client.delete_all_secrets("")) == ["c/d"]
 
 
 @pytest.fixture

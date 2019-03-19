@@ -176,7 +176,7 @@ def get_all(client_obj: client.VaultClientBase, path: Sequence[str]):
     """
     paths = list(path) or [""]
 
-    result = client_obj.get_all(paths)
+    result = client_obj.get_all_secrets(*paths)
 
     click.echo(
         yaml.safe_dump(result, default_flow_style=False, explicit_start=True), nl=False
@@ -278,7 +278,7 @@ def env(
     """
     paths = list(path) or [""]
 
-    secrets = client_obj.get_all(paths, merged=True)
+    secrets = client_obj.get_all(*paths, merged=True)
     secrets_str = {key: str(value) for key, value in secrets.items()}
 
     environ = os.environ.copy()
@@ -314,6 +314,29 @@ def dump_config(client_obj: client.VaultClientBase,) -> None:
         ),
         nl=False,
     )
+
+
+@cli.command("delete-all")
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    help="If not force, prompt for confirmation before each deletion.",
+)
+@click.argument("path", required=False, nargs=-1)
+@click.pass_obj
+def delete_all(
+    client_obj: client.VaultClientBase, path: Sequence[str], force: bool
+) -> None:
+    """
+    Displays all the current settings in the format of a config file.
+    """
+    paths = list(path) or [""]
+
+    for secret in client_obj.delete_all_secrets(*paths):
+        if not force and not click.confirm(text=f"Delete '{secret}'?", default=False):
+            raise click.Abort()
+        click.echo(f"Deleted '{secret}'")
 
 
 def main():
