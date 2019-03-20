@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+0.4.1 (2019-04-03)
+------------------
+
+- Fix 0.4.0 changelog
+- Fix package python version compatibility advertising
+- Make wheels for python 3 only
+
 0.4.0 (2019-03-20)
 ------------------
 
