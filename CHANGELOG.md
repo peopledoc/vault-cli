@@ -1,13 +1,14 @@
 CHANGELOG
 =========
 
-0.4.0 (unreleased)
+0.4.0 (2019-03-20)
 ------------------
 
 - Added vault dump-config
 - Added vault bootstrap-env
 - API break : `client.get_all(paths)` becomes `client.get_all_secrets(*paths)`
 - Added vault delete-all
+- Added context manager interface for lib usage
 
 0.3.9
 -----
