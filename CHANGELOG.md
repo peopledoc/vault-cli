@@ -9,6 +9,9 @@ CHANGELOG
 - API break : `client.get_all(paths)` becomes `client.get_all_secrets(*paths)`
 - Added vault delete-all
 - Added context manager interface for lib usage
+- Drop official support for python 2.7
+- Drop unofficial support for python 3.5 (wrongly advertised as supported, see #53)
+- Add support for python 3.7
 
 0.3.9
 -----
