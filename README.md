@@ -119,7 +119,7 @@ $ vault delete my_other_secret
 Done
 
 # Launch a process with all secrets from folder blob_secret as environment variables
-$ vault bootstrap-env --path blob_secret -- env
+$ vault env --path blob_secret -- env
 ...
 code=supercode
 ...
