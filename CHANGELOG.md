@@ -1,13 +1,24 @@
 CHANGELOG
 =========
 
-0.4.0 (unreleased)
+0.4.1 (2019-04-03)
+------------------
+
+- Fix 0.4.0 changelog
+- Fix package python version compatibility advertising
+- Make wheels for python 3 only
+
+0.4.0 (2019-03-20)
 ------------------
 
 - Added vault dump-config
 - Added vault bootstrap-env
 - API break : `client.get_all(paths)` becomes `client.get_all_secrets(*paths)`
 - Added vault delete-all
+- Added context manager interface for lib usage
+- Drop official support for python 2.7
+- Drop unofficial support for python 3.5 (wrongly advertised as supported, see #53)
+- Add support for python 3.7
 
 0.3.9
 -----
