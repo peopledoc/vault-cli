@@ -16,11 +16,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import json
 import logging
-from typing import Iterable, Optional, Type, Union
+import pathlib
+from typing import Iterable, Optional, Tuple, Type, Union
 
-from vault_cli import settings, types, utils
+from vault_cli import exceptions, settings, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -101,19 +101,6 @@ def get_client_from_kwargs(
         raise ValueError("Wrong backend value {}".format(backend))
 
     return client_class(**kwargs)
-
-
-class VaultAPIException(Exception):
-    def __init__(self, status_code: int, body: str, *args):
-        super(VaultAPIException, self).__init__(*args)
-        self.status_code = status_code
-        try:
-            self.error = "\n".join(json.loads(body)["errors"])
-        except Exception:
-            self.error = body
-
-    def __str__(self) -> str:
-        return 'status={} error="{}"'.format(self.status_code, self.error)
 
 
 class VaultClientBase:
