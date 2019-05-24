@@ -1,6 +1,6 @@
 import pytest
 
-from vault_cli import client
+from vault_cli import client, exceptions
 
 
 @pytest.mark.parametrize(
@@ -49,7 +49,7 @@ def test_get_client(mocker):
     ],
 )
 def test_vault_api_exception(error, expected):
-    exc_str = str(client.VaultAPIException(404, error))
+    exc_str = str(exceptions.VaultAPIException(404, error))
 
     assert exc_str == expected
 
@@ -64,7 +64,7 @@ def test_vault_api_exception(error, expected):
         ("list_secrets", "path"),
         ("get_secret", "path"),
         ("delete_secret", "path"),
-        ("set_secret", "path value"),
+        ("_set_secret", "path value"),
     ],
 )
 def test_vault_client_base_not_implemented(func, args):
@@ -346,3 +346,152 @@ def test_vault_client_base_context_manager():
 
     with client_obj as c:
         assert c is client_obj
+
+
+def test_vault_client_set_secret():
+
+    written = {}
+    tested_get = []
+    tested_list = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def _set_secret(self, path, value):
+            written[path] = value
+
+        def list_secrets(self, path):
+            tested_list.append(path)
+            return []
+
+        def get_secret(self, path):
+            tested_get.append(path)
+            raise exceptions.VaultSecretDoesNotExist(404, "nooooo")
+
+    TestVaultClient().set_secret("a/b", "c")
+
+    assert written == {"a/b": "c"}
+    assert set(tested_get) == {"a/b", "a"}
+    assert tested_list == ["a/b"]
+
+
+def test_vault_client_set_secret_overwrite():
+
+    written = {}
+    tested_get = []
+    tested_list = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def _set_secret(self, path, value):
+            written[path] = value
+
+        def list_secrets(self, path):
+            tested_list.append(path)
+            return []
+
+        def get_secret(self, path):
+            tested_get.append(path)
+            return "lol"
+
+    with pytest.raises(exceptions.VaultOverwriteSecretError):
+        TestVaultClient().set_secret("a/b", "c")
+
+    assert written == {}
+    assert set(tested_get) == {"a/b"}
+    assert tested_list == []
+
+
+def test_vault_client_set_secret_overwrite_force():
+
+    written = {}
+    tested_get = []
+    tested_list = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def _set_secret(self, path, value):
+            written[path] = value
+
+        def list_secrets(self, path):
+            tested_list.append(path)
+            return []
+
+        def get_secret(self, path):
+            tested_get.append(path)
+            try:
+                return {"a/b": "lol"}[path]
+            except KeyError:
+                raise exceptions.VaultSecretDoesNotExist(404, "nooooo")
+
+    TestVaultClient().set_secret("a/b", "c", force=True)
+
+    assert written == {"a/b": "c"}
+    assert set(tested_get) == {"a/b", "a"}
+    assert tested_list == ["a/b"]
+
+
+def test_vault_client_set_secret_when_there_are_existing_secrets_beneath_path():
+
+    written = {}
+    tested_get = []
+    tested_list = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def _set_secret(self, path, value):
+            written[path] = value
+
+        def list_secrets(self, path):
+            tested_list.append(path)
+            return ["d/"]
+
+        def get_secret(self, path):
+            tested_get.append(path)
+            raise exceptions.VaultSecretDoesNotExist(404, "nooooo")
+
+    with pytest.raises(exceptions.VaultMixSecretAndFolder):
+        TestVaultClient().set_secret("a/b", "c")
+
+    assert written == {}
+    assert tested_get == ["a/b"]
+    assert tested_list == ["a/b"]
+
+
+def test_vault_client_set_secret_when_a_parent_is_an_existing_secret():
+
+    written = {}
+    tested_get = []
+    tested_list = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def _set_secret(self, path, value):
+            written[path] = value
+
+        def list_secrets(self, path):
+            tested_list.append(path)
+            return []
+
+        def get_secret(self, path):
+            tested_get.append(path)
+            try:
+                return {"a": "lol"}[path]
+            except KeyError:
+                raise exceptions.VaultSecretDoesNotExist(404, "nooooo")
+
+    with pytest.raises(exceptions.VaultMixSecretAndFolder):
+        TestVaultClient().set_secret("a/b", "c")
+
+    assert written == {}
+    assert set(tested_get) == {"a/b", "a"}
+    assert tested_list == ["a/b"]

@@ -197,6 +197,46 @@ def test_set_yaml(cli_runner, backend):
     assert backend.db == {"a": {"b": "c"}}
 
 
+def test_set_overwrite(cli_runner, backend):
+
+    backend.db = {"a": "c"}
+
+    result = cli_runner.invoke(cli.cli, ["set", "a", "b"])
+
+    assert result.exit_code == 1
+    assert backend.db == {"a": "c"}
+
+
+def test_set_overwrite_force(cli_runner, backend):
+
+    backend.db = {"a": "c"}
+
+    result = cli_runner.invoke(cli.cli, ["set", "a", "b", "--force"])
+
+    assert result.exit_code == 0
+    assert backend.db == {"a": "b"}
+
+
+def test_set_mix_secrets_folders(cli_runner, backend):
+
+    backend.db = {"a/b": "c"}
+
+    result = cli_runner.invoke(cli.cli, ["set", "a/b/c", "d"])
+
+    assert result.exit_code == 1
+    assert backend.db == {"a/b": "c"}
+
+
+def test_set_mix_folders_secrets(cli_runner, backend):
+
+    backend.db = {"a/b/c": "d"}
+
+    result = cli_runner.invoke(cli.cli, ["set", "a/b", "c"])
+
+    assert result.exit_code == 1
+    assert backend.db == {"a/b/c": "d"}
+
+
 def test_delete(cli_runner, backend):
 
     backend.db = {"a": "foo", "b": "bar"}

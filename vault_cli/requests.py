@@ -22,11 +22,10 @@ from urllib.parse import urljoin
 
 import requests
 
-from vault_cli import sessions, types
-from vault_cli.client import VaultAPIException, VaultClientBase
+from vault_cli import client, exceptions, sessions, types
 
 
-class RequestsVaultClient(VaultClientBase):
+class RequestsVaultClient(client.VaultClientBase):
     def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
         self.session = self.create_session(verify)
 
@@ -41,7 +40,11 @@ class RequestsVaultClient(VaultClientBase):
         response: requests.Response, expected_code: int = requests.codes.ok
     ):
         if response.status_code != expected_code:
-            raise VaultAPIException(response.status_code, response.text)
+            if response.status_code == 404:
+                raise exceptions.VaultSecretDoesNotExist(
+                    response.status_code, response.text
+                )
+            raise exceptions.VaultAPIException(response.status_code, response.text)
 
     @staticmethod
     def create_session(verify: types.VerifyOrCABundle) -> requests.Session:
@@ -83,14 +86,14 @@ class RequestsVaultClient(VaultClientBase):
         response = self.session.get(url, params={"list": "true"})
         try:
             self.handle_error(response)
-        except VaultAPIException as exc:
+        except exceptions.VaultAPIException as exc:
             if exc.status_code == 404:
                 return []
             raise
         json_response = response.json()
         return json_response["data"]["keys"]
 
-    def set_secret(self, path: str, value: types.JSONValue) -> None:
+    def _set_secret(self, path: str, value: types.JSONValue) -> None:
         url = self._full_url(path)
         response = self.session.put(url, json={"value": value})
         self.handle_error(response, requests.codes.no_content)

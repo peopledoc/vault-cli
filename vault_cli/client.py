@@ -224,6 +224,38 @@ class VaultClientBase:
                 yield secret_path
                 self.delete_secret(secret_path)
 
+    def set_secret(
+        self, path: str, value: types.JSONValue, force: bool = False
+    ) -> None:
+        try:
+            self.get_secret(path=path)
+        except exceptions.VaultSecretDoesNotExist:
+            pass
+        else:
+            if not force:
+                raise exceptions.VaultOverwriteSecretError(path=path)
+
+        problematic_secrets = self.list_secrets(path=path)
+        if problematic_secrets:
+            secrets = [f"{path}/{secret}" for secret in problematic_secrets]
+            raise exceptions.VaultMixSecretAndFolder(
+                f"Cannot create a secret at {path} because it is already a "
+                f"folder containing {', '.join(secrets)}"
+            )
+
+        path = path.rstrip("/")
+        for parent in list(pathlib.PurePath(path).parents)[:-1]:
+            try:
+                self.get_secret(str(parent))
+            except exceptions.VaultSecretDoesNotExist:
+                pass
+            else:
+                raise exceptions.VaultMixSecretAndFolder(
+                    f"Cannot create a secret at {path} because {str(parent)} already exists as a secret"
+                )
+
+        self._set_secret(path=path, value=value)
+
     def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
         raise NotImplementedError
 
@@ -245,5 +277,5 @@ class VaultClientBase:
     def delete_secret(self, path: str) -> None:
         raise NotImplementedError
 
-    def set_secret(self, path: str, value: types.JSONValue) -> None:
+    def _set_secret(self, path: str, value: types.JSONValue) -> None:
         raise NotImplementedError

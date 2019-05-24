@@ -1,6 +1,6 @@
 import pytest
 
-from vault_cli import client
+from vault_cli import client, exceptions
 
 
 def get_client(backend, **additional_kwargs):
@@ -71,7 +71,7 @@ def test_get_secret_not_found(requests_mock, any_backend):
     requests_mock.get(
         "http://vault:8000/v1/bla/a", status_code=404, json={"errors": ["Not found"]}
     )
-    with pytest.raises(client.VaultAPIException):
+    with pytest.raises(exceptions.VaultAPIException):
         assert client_obj.get_secret("a")
 
 
@@ -123,12 +123,14 @@ def test_delete_secret(requests_mock, any_backend):
 def test_set_secret(requests_mock, any_backend):
     client_obj = get_client(any_backend)
     # Both post and put can be used
+    requests_mock.get("http://vault:8000/v1/bla/a", status_code=404)
+    requests_mock.get("http://vault:8000/v1/bla/a?list=True", status_code=404)
     requests_mock.put("http://vault:8000/v1/bla/a", status_code=204, json={})
     requests_mock.post("http://vault:8000/v1/bla/a", status_code=204, json={})
     client_obj.set_secret("a", "b")
 
     assert requests_mock.called
-    assert requests_mock.request_history[0].json() == {"value": "b"}
+    assert requests_mock.request_history[2].json() == {"value": "b"}
 
 
 def test_set_context_manager(any_backend):
