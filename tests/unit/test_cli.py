@@ -438,3 +438,14 @@ def test_mv_mix_secrets_folders(cli_runner, backend):
 
     assert backend.db == {"a/b": "c", "d": "e"}
     assert result.exit_code != 0
+
+
+def test_template(cli_runner, backend):
+    backend.db = {"a/b": "c"}
+
+    result = cli_runner.invoke(
+        cli.cli, ["template", "-"], input="Hello {{ vault('a/b') }}"
+    )
+
+    assert result.exit_code == 0
+    assert result.stdout == "Hello c"

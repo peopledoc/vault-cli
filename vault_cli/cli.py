@@ -380,6 +380,32 @@ def mv(client_obj: client.VaultClientBase, source: str, dest: str, force: bool) 
         raise click.ClickException(str(exc))
 
 
+@cli.command()
+@click.argument("template", type=click.File("r"), required=True)
+@click.option(
+    "-o",
+    "--output",
+    type=click.File("w"),
+    default="-",
+    help="File in which to write the rendered template. "
+    "If ommited (or -), write in standard output",
+)
+@click.pass_obj
+def template(
+    client_obj: client.VaultClientBase, template: TextIO, output: TextIO
+) -> None:
+    """
+    Render the given template and insert secrets in it.
+
+    Rendering is done with jinja2. A vault() function is exposed that
+    recieves a path and outputs the secret at this path.
+
+    If template is -, standard input will be read.
+    """
+    result = templates.render(template=template.read(), client=client_obj)
+    output.write(result)
+
+
 def main():
     # https://click.palletsprojects.com/en/7.x/python3/
     os.environ.setdefault("LC_ALL", "C.UTF-8")
