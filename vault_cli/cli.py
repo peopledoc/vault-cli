@@ -18,12 +18,12 @@ limitations under the License.
 """
 import logging
 import os
-from typing import Any, Dict, Mapping, NoReturn, Sequence
+from typing import Any, Dict, Mapping, NoReturn, Sequence, TextIO
 
 import click
 import yaml
 
-from vault_cli import client, environment, exceptions, settings, types
+from vault_cli import client, environment, exceptions, settings, templates, types
 
 logger = logging.getLogger(__name__)
 
@@ -268,7 +268,7 @@ def set_(
 @click.argument("name")
 def delete(client_obj: client.VaultClientBase, name: str) -> None:
     """
-    Deletes a single secret.
+    Delete a single secret.
     """
     client_obj.delete_secret(path=name)
     click.echo("Done")
@@ -288,7 +288,7 @@ def env(
     client_obj: client.VaultClientBase, path: Sequence[str], command: Sequence[str]
 ) -> NoReturn:
     """
-    Launches a command, loading secrets in environment.
+    Launch a command, loading secrets in environment.
 
     Strings are exported as-is, other types (including booleans, nulls, dicts, lists)
     are exported as yaml (more specifically as json).
@@ -318,7 +318,7 @@ def env(
 @click.pass_obj
 def dump_config(client_obj: client.VaultClientBase,) -> None:
     """
-    Displays settings in the format of a config file.
+    Display settings in the format of a config file.
     """
     assert client_obj.saved_settings
     click.echo(

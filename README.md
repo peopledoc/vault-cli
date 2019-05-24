@@ -50,10 +50,10 @@ Options:
   -h, --help                   Show this message and exit.
 
 Commands:
-  delete       Deletes a single secret.
+  delete       Delete a single secret.
   delete-all   Delete multiple secrets.
-  dump-config  Displays settings in the format of a config file.
-  env          Launches a command, loading secrets in environment.
+  dump-config  Display settings in the format of a config file.
+  env          Launch a command, loading secrets in environment.
   get          Return a single secret value.
   get-all      Return multiple secrets.
   list         List all the secrets at the given path.
