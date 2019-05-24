@@ -23,7 +23,7 @@ from typing import Any, Dict, Mapping, NoReturn, Sequence
 import click
 import yaml
 
-from vault_cli import client, environment, settings, types
+from vault_cli import client, environment, exceptions, settings, types
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +212,13 @@ def get(client_obj: client.VaultClientBase, text: bool, name: str):
 @click.pass_obj
 @click.option("--yaml", "format_yaml", is_flag=True)
 @click.option("--stdin/--no-stdin", default=False)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    default=False,
+    help="In case the path already holds a secret, allow overwriting it.",
+)
 @click.argument("name")
 @click.argument("value", nargs=-1)
 def set_(
@@ -220,6 +227,7 @@ def set_(
     stdin: bool,
     name: str,
     value: Sequence[str],
+    force: bool,
 ):
     """
     Set a single secret to the given value(s).
@@ -244,7 +252,14 @@ def set_(
         assert isinstance(final_value, str)
         final_value = yaml.safe_load(final_value)
 
-    client_obj.set_secret(path=name, value=final_value)
+    try:
+        client_obj.set_secret(path=name, value=final_value, force=force)
+    except exceptions.VaultOverwriteSecretError as exc:
+        raise click.ClickException(
+            f"Secret already exists at {exc.path}. Use -f to force overwriting."
+        )
+    except exceptions.VaultMixSecretAndFolder as exc:
+        raise click.ClickException(str(exc))
     click.echo("Done")
 
 
@@ -335,6 +350,34 @@ def delete_all(
         if not force and not click.confirm(text=f"Delete '{secret}'?", default=False):
             raise click.Abort()
         click.echo(f"Deleted '{secret}'")
+
+
+@cli.command()
+@click.argument("source", required=True)
+@click.argument("dest", required=True)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    default=False,
+    help="In case the path already holds a secret, allow overwriting it.",
+)
+@click.pass_obj
+def mv(client_obj: client.VaultClientBase, source: str, dest: str, force: bool) -> None:
+    """
+    Recursively move secrets from source to destination path.
+    """
+    try:
+        for old_path, new_path in client_obj.move_secrets(
+            source=source, dest=dest, force=force
+        ):
+            click.echo(f"Move '{old_path}' to '{new_path}'")
+    except exceptions.VaultOverwriteSecretError as exc:
+        raise click.ClickException(
+            f"Secret already exists at {exc.path}. Use -f to force overwriting."
+        )
+    except exceptions.VaultMixSecretAndFolder as exc:
+        raise click.ClickException(str(exc))
 
 
 def main():

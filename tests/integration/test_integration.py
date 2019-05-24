@@ -13,7 +13,14 @@ def call(cli_runner, *args):
     return call
 
 
-def test_integration_cli(cli_runner):
+@pytest.fixture
+def clean_vault(cli_runner):
+    call(cli_runner, ["delete-all", "-f"])
+    yield
+    call(cli_runner, ["delete-all", "-f"])
+
+
+def test_integration_cli(cli_runner, clean_vault):
 
     call(cli_runner, ["set", "a", "b"])
 
@@ -53,7 +60,7 @@ c:
     assert call(cli_runner, ["list"]).output == "\n"
 
 
-def test_integration_lib():
+def test_integration_lib(clean_vault):
 
     client = vault_cli.get_client()
 
@@ -114,7 +121,7 @@ def set_ACD(cli_runner):
     call(cli_runner, ["delete", "C/D"])
 
 
-def test_boostrap_env(set_ACD):
+def test_boostrap_env(clean_vault, set_ACD):
     env = subprocess.check_output("vault env -p A -p C -- env".split())
 
     assert b"A=B\n" in env

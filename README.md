@@ -57,6 +57,7 @@ Commands:
   get          Return a single secret value.
   get-all      Return multiple secrets.
   list         List all the secrets at the given path.
+  mv           Recursively move secrets from source to destination path.
   set          Set a single secret to the given value(s).
 ```
 
@@ -117,6 +118,9 @@ test:
 # Delete a secret
 $ vault delete my_other_secret
 Done
+
+# Move a secret
+$ vault mv test blob_secret/test
 
 # Launch a process with all secrets from folder blob_secret as environment variables
 $ vault env --path blob_secret -- env

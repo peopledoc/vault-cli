@@ -16,11 +16,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import json
 import logging
-from typing import Iterable, Optional, Type, Union
+import pathlib
+from typing import Iterable, Optional, Tuple, Type, Union
 
-from vault_cli import settings, types, utils
+from vault_cli import exceptions, settings, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -101,19 +101,6 @@ def get_client_from_kwargs(
         raise ValueError("Wrong backend value {}".format(backend))
 
     return client_class(**kwargs)
-
-
-class VaultAPIException(Exception):
-    def __init__(self, status_code: int, body: str, *args):
-        super(VaultAPIException, self).__init__(*args)
-        self.status_code = status_code
-        try:
-            self.error = "\n".join(json.loads(body)["errors"])
-        except Exception:
-            self.error = body
-
-    def __str__(self) -> str:
-        return 'status={} error="{}"'.format(self.status_code, self.error)
 
 
 class VaultClientBase:
@@ -237,6 +224,52 @@ class VaultClientBase:
                 yield secret_path
                 self.delete_secret(secret_path)
 
+    def move_secrets(
+        self, source: str, dest: str, force: bool = False
+    ) -> Iterable[Tuple[str, str]]:
+        source_secrets = self.get_secrets(path=source)
+
+        for old_path, secret in source_secrets.items():
+            new_path = dest + old_path[len(source) :]
+            secret = source_secrets[old_path]
+
+            yield (old_path, new_path)
+
+            self.set_secret(new_path, secret, force=force)
+            self.delete_secret(old_path)
+
+    def set_secret(
+        self, path: str, value: types.JSONValue, force: bool = False
+    ) -> None:
+        try:
+            self.get_secret(path=path)
+        except exceptions.VaultSecretDoesNotExist:
+            pass
+        else:
+            if not force:
+                raise exceptions.VaultOverwriteSecretError(path=path)
+
+        problematic_secrets = self.list_secrets(path=path)
+        if problematic_secrets:
+            secrets = [f"{path}/{secret}" for secret in problematic_secrets]
+            raise exceptions.VaultMixSecretAndFolder(
+                f"Cannot create a secret at {path} because it is already a "
+                f"folder containing {', '.join(secrets)}"
+            )
+
+        path = path.rstrip("/")
+        for parent in list(pathlib.PurePath(path).parents)[:-1]:
+            try:
+                self.get_secret(str(parent))
+            except exceptions.VaultSecretDoesNotExist:
+                pass
+            else:
+                raise exceptions.VaultMixSecretAndFolder(
+                    f"Cannot create a secret at {path} because {str(parent)} already exists as a secret"
+                )
+
+        self._set_secret(path=path, value=value)
+
     def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
         raise NotImplementedError
 
@@ -258,5 +291,5 @@ class VaultClientBase:
     def delete_secret(self, path: str) -> None:
         raise NotImplementedError
 
-    def set_secret(self, path: str, value: types.JSONValue) -> None:
+    def _set_secret(self, path: str, value: types.JSONValue) -> None:
         raise NotImplementedError
