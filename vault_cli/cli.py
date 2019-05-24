@@ -352,6 +352,34 @@ def delete_all(
         click.echo(f"Deleted '{secret}'")
 
 
+@cli.command()
+@click.argument("source", required=True)
+@click.argument("dest", required=True)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    default=False,
+    help="In case the path already holds a secret, allow overwriting it.",
+)
+@click.pass_obj
+def mv(client_obj: client.VaultClientBase, source: str, dest: str, force: bool) -> None:
+    """
+    Recursively move secrets from source to destination path.
+    """
+    try:
+        for old_path, new_path in client_obj.move_secrets(
+            source=source, dest=dest, force=force
+        ):
+            click.echo(f"Move '{old_path}' to '{new_path}'")
+    except exceptions.VaultOverwriteSecretError as exc:
+        raise click.ClickException(
+            f"Secret already exists at {exc.path}. Use -f to force overwriting."
+        )
+    except exceptions.VaultMixSecretAndFolder as exc:
+        raise click.ClickException(str(exc))
+
+
 def main():
     # https://click.palletsprojects.com/en/7.x/python3/
     os.environ.setdefault("LC_ALL", "C.UTF-8")

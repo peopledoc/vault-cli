@@ -224,6 +224,20 @@ class VaultClientBase:
                 yield secret_path
                 self.delete_secret(secret_path)
 
+    def move_secrets(
+        self, source: str, dest: str, force: bool = False
+    ) -> Iterable[Tuple[str, str]]:
+        source_secrets = self.get_secrets(path=source)
+
+        for old_path, secret in source_secrets.items():
+            new_path = dest + old_path[len(source) :]
+            secret = source_secrets[old_path]
+
+            yield (old_path, new_path)
+
+            self.set_secret(new_path, secret, force=force)
+            self.delete_secret(old_path)
+
     def set_secret(
         self, path: str, value: types.JSONValue, force: bool = False
     ) -> None:

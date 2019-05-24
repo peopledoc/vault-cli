@@ -392,3 +392,49 @@ def test_delete_all_force(cli_runner, backend):
     assert result.output.splitlines() == ["Deleted 'foo/bar'", "Deleted 'foo/baz'"]
     assert backend.db == {}
     assert result.exit_code == 0
+
+
+def test_mv(cli_runner, backend):
+    backend.db = {"a/b": "c", "d/e": "f", "d/g": "h"}
+
+    result = cli_runner.invoke(cli.cli, ["mv", "d", "a"])
+
+    assert result.output.splitlines() == ["Move 'd/e' to 'a/e'", "Move 'd/g' to 'a/g'"]
+    assert backend.db == {"a/b": "c", "a/e": "f", "a/g": "h"}
+    assert result.exit_code == 0
+
+
+def test_mv_overwrite(cli_runner, backend):
+    backend.db = {"a/b": "c", "d/b": "f"}
+
+    result = cli_runner.invoke(cli.cli, ["mv", "d", "a"])
+
+    assert backend.db == {"a/b": "c", "d/b": "f"}
+    assert result.exit_code != 0
+
+
+def test_mv_overwrite_force(cli_runner, backend):
+    backend.db = {"a/b": "c", "d/b": "f"}
+
+    result = cli_runner.invoke(cli.cli, ["mv", "d", "a", "--force"])
+
+    assert backend.db == {"a/b": "f"}
+    assert result.exit_code == 0
+
+
+def test_mv_mix_folders_secrets(cli_runner, backend):
+    backend.db = {"a/b": "c", "d": "e"}
+
+    result = cli_runner.invoke(cli.cli, ["mv", "d", "a"])
+
+    assert backend.db == {"a/b": "c", "d": "e"}
+    assert result.exit_code != 0
+
+
+def test_mv_mix_secrets_folders(cli_runner, backend):
+    backend.db = {"a/b": "c", "d": "e"}
+
+    result = cli_runner.invoke(cli.cli, ["mv", "a", "d"])
+
+    assert backend.db == {"a/b": "c", "d": "e"}
+    assert result.exit_code != 0

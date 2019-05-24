@@ -495,3 +495,32 @@ def test_vault_client_set_secret_when_a_parent_is_an_existing_secret():
     assert written == {}
     assert set(tested_get) == {"a/b", "a"}
     assert tested_list == ["a/b"]
+
+
+@pytest.mark.parametrize("force_value", [True, False])
+def test_vault_client_move_secrets(force_value):
+    written = {}
+    deleted = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def set_secret(self, path, value, force=False):
+            assert force is force_value
+            written[path] = value
+
+        def delete_secret(self, path):
+            deleted.append(path)
+
+        def get_secrets(self, path):
+            return {"foo/hello": "world", "foo/yay/haha": "baz"}
+
+    result = list(TestVaultClient().move_secrets("foo", "barbar", force=force_value))
+
+    assert result == [
+        ("foo/hello", "barbar/hello"),
+        ("foo/yay/haha", "barbar/yay/haha"),
+    ]
+    assert written == {"barbar/hello": "world", "barbar/yay/haha": "baz"}
+    assert deleted == ["foo/hello", "foo/yay/haha"]
