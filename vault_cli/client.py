@@ -80,7 +80,7 @@ def get_client_from_kwargs(
     elif callable(backend):
         client_class = backend
     else:
-        raise ValueError("Wrong backend value {}".format(backend))
+        raise exceptions.VaultBackendNotFound("Wrong backend value {}".format(backend))
 
     return client_class(**kwargs)
 
@@ -118,11 +118,15 @@ class VaultClientBase:
             self._authenticate_certificate(certificate)
         elif username:
             if not password:
-                raise ValueError("Cannot use username without password file")
+                raise exceptions.VaultAuthenticationError(
+                    "Cannot use username without password file"
+                )
             self._authenticate_userpass(username=username, password=password)
 
         else:
-            raise ValueError("No authentication method supplied")
+            raise exceptions.VaultAuthenticationError(
+                "No authentication method supplied"
+            )
 
     def __enter__(self):
         return self
@@ -225,7 +229,7 @@ class VaultClientBase:
     ) -> None:
         try:
             self.get_secret(path=path)
-        except exceptions.VaultSecretDoesNotExist:
+        except exceptions.VaultSecretNotFound:
             pass
         else:
             if not force:
@@ -243,7 +247,7 @@ class VaultClientBase:
         for parent in list(pathlib.PurePath(path).parents)[:-1]:
             try:
                 self.get_secret(str(parent))
-            except exceptions.VaultSecretDoesNotExist:
+            except exceptions.VaultSecretNotFound:
                 pass
             else:
                 raise exceptions.VaultMixSecretAndFolder(

@@ -11,5 +11,5 @@ def test_render(backend):
 
 
 def test_render_path_not_found(backend):
-    with pytest.raises(exceptions.VaultSecretDoesNotExist):
+    with pytest.raises(exceptions.VaultSecretNotFound):
         templates.render("Hello {{ vault('a/b') }}", client=backend)

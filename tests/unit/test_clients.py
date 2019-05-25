@@ -140,3 +140,33 @@ def test_set_context_manager(any_backend):
 
     # Assert connection is closed ?
     # At least we make sure our context manager doesn't crash.
+
+
+@pytest.mark.parametrize(
+    "status, exception",
+    [
+        (417, exceptions.VaultAPIException),
+        (400, exceptions.VaultInvalidRequest),
+        (401, exceptions.VaultUnauthorized),
+        (403, exceptions.VaultForbidden),
+        (404, exceptions.VaultSecretNotFound),
+        (500, exceptions.VaultInternalServerError),
+        (503, exceptions.VaultSealed),
+    ],
+)
+def test_exceptions(requests_mock, any_backend, status, exception):
+    client_obj = get_client(any_backend)
+
+    requests_mock.get("http://vault:8000/v1/bla/a", status_code=status)
+
+    with pytest.raises(exception):
+        client_obj.get_secret("a")
+
+
+def test_non_json(requests_mock, any_backend):
+    client_obj = get_client(any_backend)
+
+    requests_mock.get("http://vault:8000/v1/bla/a", text="{")
+
+    with pytest.raises(exceptions.VaultNonJsonResponse):
+        client_obj.get_secret("a")

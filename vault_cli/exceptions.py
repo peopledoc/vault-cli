@@ -1,14 +1,26 @@
-import json
+from typing import Iterable, Optional
 
 
 class VaultException(Exception):
     pass
 
 
+class VaultBackendNotFound(VaultException):
+    pass
+
+
+class VaultAuthenticationError(VaultException):
+    pass
+
+
+class VaultSettingsError(VaultException):
+    pass
+
+
 class VaultOverwriteSecretError(VaultException):
-    def __init__(self, message: str = "", *, path: str):
+    def __init__(self, path: str):
         self.path = path
-        super().__init__(message)
+        super().__init__()
 
     def __str__(self):
         return f"VaultOverwriteSecretError: Secret at {self.path} already exists"
@@ -19,17 +31,41 @@ class VaultMixSecretAndFolder(VaultException):
 
 
 class VaultAPIException(VaultException):
-    def __init__(self, status_code: int, body: str, *args):
-        super(VaultAPIException, self).__init__(*args)
-        self.status_code = status_code
-        try:
-            self.error = "\n".join(json.loads(body)["errors"])
-        except Exception:
-            self.error = body
+    message = "Unexpected vault error"
+
+    def __init__(self, errors: Optional[Iterable[str]] = None):
+        self.errors = errors
 
     def __str__(self) -> str:
-        return 'status={} error="{}"'.format(self.status_code, self.error)
+        message = self.message
+        if self.errors:
+            message += "\n" + ("\n".join(self.errors))
+        return message
 
 
-class VaultSecretDoesNotExist(VaultAPIException):
-    pass
+class VaultNonJsonResponse(VaultAPIException):
+    message = "Vault answer is not JSON"
+
+
+class VaultInvalidRequest(VaultAPIException):
+    message = "Invalid request"
+
+
+class VaultUnauthorized(VaultAPIException):
+    message = "Missing authentication"
+
+
+class VaultForbidden(VaultAPIException):
+    message = "Invalid autentication"
+
+
+class VaultSecretNotFound(VaultAPIException):
+    message = "Secret not found"
+
+
+class VaultInternalServerError(VaultAPIException):
+    message = "Vault server error"
+
+
+class VaultSealed(VaultAPIException):
+    message = "Vault sealed or down"

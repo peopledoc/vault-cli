@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 from typing import Any, Dict, Mapping, NoReturn, Sequence, TextIO
@@ -117,7 +118,7 @@ def cli(ctx: click.Context, **kwargs) -> None:
     try:
         ctx.obj = client.get_client_from_kwargs(backend=backend, **kwargs)
         ctx.obj.saved_settings = saved_settings
-    except ValueError as exc:
+    except exceptions.VaultException as exc:
         raise click.UsageError(str(exc))
 
 
@@ -127,7 +128,6 @@ def extract_special_args(
     result = {}
     for key in ["password", "certificate", "token"]:
         result[key] = config.get(key)
-
         env_var_key = "VAULT_CLI_{}".format(key.upper())
         if env_var_key in environ:
             result[key] = environ.get(env_var_key)
@@ -135,9 +135,18 @@ def extract_special_args(
     return result
 
 
+@contextlib.contextmanager
+def handle_errors():
+    try:
+        yield
+    except exceptions.VaultException as exc:
+        raise click.ClickException(str(exc))
+
+
 @cli.command("list")
 @click.argument("path", required=False, default="")
 @click.pass_obj
+@handle_errors()
 def list_(client_obj: client.VaultClientBase, path: str):
     """
     List all the secrets at the given path. Folders are listed too. If no path
@@ -150,6 +159,7 @@ def list_(client_obj: client.VaultClientBase, path: str):
 @cli.command(name="get-all")
 @click.argument("path", required=False, nargs=-1)
 @click.pass_obj
+@handle_errors()
 def get_all(client_obj: client.VaultClientBase, path: Sequence[str]):
     """
     Return multiple secrets. Return a single yaml with all the secrets located
@@ -176,6 +186,7 @@ def get_all(client_obj: client.VaultClientBase, path: Sequence[str]):
     ),
 )
 @click.argument("name")
+@handle_errors()
 def get(client_obj: client.VaultClientBase, text: bool, name: str):
     """
     Return a single secret value.
@@ -203,6 +214,7 @@ def get(client_obj: client.VaultClientBase, text: bool, name: str):
 )
 @click.argument("name")
 @click.argument("value", nargs=-1)
+@handle_errors()
 def set_(
     client_obj: client.VaultClientBase,
     format_yaml: bool,
@@ -248,6 +260,7 @@ def set_(
 @cli.command()
 @click.pass_obj
 @click.argument("name")
+@handle_errors()
 def delete(client_obj: client.VaultClientBase, name: str) -> None:
     """
     Delete a single secret.
@@ -266,6 +279,7 @@ def delete(client_obj: client.VaultClientBase, name: str) -> None:
 )
 @click.argument("command", nargs=-1)
 @click.pass_obj
+@handle_errors()
 def env(
     client_obj: client.VaultClientBase, path: Sequence[str], command: Sequence[str]
 ) -> NoReturn:
@@ -298,6 +312,7 @@ def env(
 
 @cli.command("dump-config")
 @click.pass_obj
+@handle_errors()
 def dump_config(client_obj: client.VaultClientBase,) -> None:
     """
     Display settings in the format of a config file.
@@ -320,6 +335,7 @@ def dump_config(client_obj: client.VaultClientBase,) -> None:
 )
 @click.argument("path", required=False, nargs=-1)
 @click.pass_obj
+@handle_errors()
 def delete_all(
     client_obj: client.VaultClientBase, path: Sequence[str], force: bool
 ) -> None:
@@ -345,6 +361,7 @@ def delete_all(
     help="In case the path already holds a secret, allow overwriting it.",
 )
 @click.pass_obj
+@handle_errors()
 def mv(client_obj: client.VaultClientBase, source: str, dest: str, force: bool) -> None:
     """
     Recursively move secrets from source to destination path.
@@ -373,6 +390,7 @@ def mv(client_obj: client.VaultClientBase, source: str, dest: str, force: bool) 
     "If ommited (or -), write in standard output",
 )
 @click.pass_obj
+@handle_errors()
 def template(
     client_obj: client.VaultClientBase, template: TextIO, output: TextIO
 ) -> None:
