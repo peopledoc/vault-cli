@@ -71,78 +71,178 @@ There are three ways to authenticate against the vault:
   read from stdin via `-`.
 - Token: Bypass authentication step if you already have a valid token.
 
-## Examples
-```console
-# Connect to https://vault.mydomain:8200/project and list the secrets
-$ vault --url=https://vault.mydomain:8200 --certificate=/etc/vault/certificate.key --base-path=project/ list
-['mysecret']
+## Showcase
 
-# Using the configuration file, get the value for my_secret (yaml format)
+### Connect to https://vault.mydomain:8200/project and list the secrets
+```console
+$ vault --url=https://vault.mydomain:8200 --certificate=/etc/vault/certificate.key --base-path=project/ list
+['my_secret']
+```
+
+On the following examples, we'll be cosidering that we have a complete configuration file.
+
+### Read a secret (default is yaml format)
+```console
 $ vault get my_secret
 --- qwerty
 ...
+```
 
-# Same with only the value of the secret in plain text
+### Read a secret in plain text
+```console
 $ vault get my_secret --text
 qwerty
+```
 
-# Add another secret
+### Write a secret
+```console
 $ vault set my_other_secret supersecret
 Done
+```
 
-# Add a secret object
-$ vault set --yaml blob_secret "{code: supercode}"
+### Write a secret via stdin.
+You can use this when the secret has multiple lines or starts with a "-"
+
+```console
+$ vault set third_secret --stdin
+----BEGIN SECRET KEY----
+...
+<hit ctrl+d to end stdin>
 Done
 
-# Get all values from the vault in a single command (yaml format)
+vault get --text third_secret
+----BEGIN SECRET KEY----
+...
+```
+
+### Anything following "--" will not be seen as a flag even if it starts with a "-"
+```console
+$ vault set -- -secret-name -oh-so-secret
+Done
+
+$ vault get --text -- -secret-name
+-oh-so-secret
+```
+
+### Write a secret complex object
+```console
+$ vault set --yaml blob_secret "{code: supercode}"
+Done
+```
+
+### Write a secret list
+```console
+$ vault set list_secret secret1 secret2 secret3
+Done
+
+$ vault get list_secret
+---
+- secret1
+- secret2
+- secret3
+```
+
+### Get all values from the vault in a single command (yaml format)
+```console
 $ vault get-all
 ---
-my_secret: qwerty
-my_other_secret: supersecret
+-secret-name: -oh-so-secret
 blob_secret:
   code: supercode
-test:
-  my_folder_secret: sesame
+list_secret:
+- secret1
+- secret2
+- secret3
+my_other_secret: supersecret
+my_secret: qwerty
+third_secret: '----BEGIN SECRET KEY----
 
-# Get a nested secret based on a path
+  ...'
+```
+
+### Get a nested secret based on a path
+```console
+$ vault set test/my_folder_secret yaysecret
+Done
+
 $ vault get-all test/my_folder_secret
+---
 test:
-  my_folder_secret: sesame
+  my_folder_secret: yaysecret
+```
 
-# Get all values from a folder in a single command (yaml format)
+### Get all values recursively from several folders in a single command (yaml format)
+```console
 $ vault get-all test my_secret
 ---
 my_secret: qwerty
 test:
-  my_folder_secret: sesame
+  my_folder_secret: yaysecret
+```
 
-# Delete a secret
+### Delete a secret
+```console
 $ vault delete my_other_secret
 Done
+```
 
-# Move a secret
-$ vault mv test blob_secret/test
+### Move secrets and folders
+```console
+$ vault mv my_secret test/my_secret
+Move 'my_secret' to 'test/my_secret'
 
-# Launch a process with all secrets from folder blob_secret as environment variables
+$ vault mv blob_secret test/blob_secret
+Move 'blob_secret' to 'test/blob_secret'
+
+$ vault get-all
+---
+-secret-name: -oh-so-secret
+list_secret:
+- secret1
+- secret2
+- secret3
+test:
+  blob_secret:
+    code: supercode
+  my_folder_secret: yaysecret
+  my_secret: qwerty
+third_secret: '----BEGIN SECRET KEY----
+
+  ...'
+```
+
+### Launch a process loading secrets through environment variables
+```console
 $ vault env --path blob_secret -- env
 ...
 code=supercode
 ...
+```
 
-# Render a template file with values from the vault
+### Render a template file with values from the vault
+```console
 $ vault template mytemplate.j2 > /etc/conf
+
 # mytemplate.j2:
 Hello={{ vault("my_secret") }}
+
 # /etc/conf:
 Hello=querty
+```
+(Use `-` for stdin and `-o <file or ->` to specify the file to write to, or stdout)
 
-# Recreate a configuration file based on the current settings
+### (Re)create a configuration file based on the current settings
+```console
 $ vault --url https://something --token mytoken dump-config > .vault.yaml
+```
 
-# Delete everything under blob-secret
+### Delete everything under blob-secret
+```console
 $ vault delete-all blob-secret
+```
 
-# Delete everything, no confirmation
+### Delete everything, no confirmation
+```console
 $ vault delete-all --force
 ```
 
@@ -205,7 +305,7 @@ VAULT_CLI_TOKEN and VAULT_CLI_PASSWORD.
 
 ## State
 
-The tool is currently in beta mode. It's missing docs, linting, and such.
+The tool is currently in beta mode. It's missing docs and other things.
 Be warned.
 
 ## License
