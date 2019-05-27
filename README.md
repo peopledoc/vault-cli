@@ -50,15 +50,16 @@ Options:
   -h, --help                   Show this message and exit.
 
 Commands:
-  delete       Deletes a single secret.
+  delete       Delete a single secret.
   delete-all   Delete multiple secrets.
-  dump-config  Displays settings in the format of a config file.
-  env          Launches a command, loading secrets in environment.
+  dump-config  Display settings in the format of a config file.
+  env          Launch a command, loading secrets in environment.
   get          Return a single secret value.
   get-all      Return multiple secrets.
   list         List all the secrets at the given path.
   mv           Recursively move secrets from source to destination path.
   set          Set a single secret to the given value(s).
+  template     Render the given template and insert secrets in it.
 ```
 
 ## Authentication
@@ -127,6 +128,13 @@ $ vault env --path blob_secret -- env
 ...
 code=supercode
 ...
+
+# Render a template file with values from the vault
+$ vault template mytemplate.j2 > /etc/conf
+# mytemplate.j2:
+Hello={{ vault("my_secret") }}
+# /etc/conf:
+Hello=querty
 
 # Recreate a configuration file based on the current settings
 $ vault --url https://something --token mytoken dump-config > .vault.yaml
