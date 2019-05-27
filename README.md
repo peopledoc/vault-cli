@@ -79,7 +79,7 @@ $ vault --url=https://vault.mydomain:8200 --certificate=/etc/vault/certificate.k
 ['my_secret']
 ```
 
-On the following examples, we'll be cosidering that we have a complete configuration file.
+On the following examples, we'll be considering that we have a complete configuration file.
 
 ### Read a secret (default is yaml format)
 ```console
