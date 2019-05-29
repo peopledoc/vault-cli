@@ -13,7 +13,7 @@ class FakeClient(client.VaultClientBase):
         try:
             return self.db[path]
         except KeyError:
-            raise exceptions.VaultSecretDoesNotExist(404, "nooooo")
+            raise exceptions.VaultSecretNotFound()
 
     def list_secrets(self, path):
         # Just reproducing in memory the behaviour of the real list_secrets

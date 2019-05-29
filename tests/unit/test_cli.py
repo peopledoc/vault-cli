@@ -1,9 +1,10 @@
 import logging
 
+import click
 import pytest
 import yaml
 
-from vault_cli import cli, settings
+from vault_cli import cli, exceptions, settings
 
 
 def test_bad_backend(cli_runner, backend):
@@ -401,3 +402,12 @@ def test_template(cli_runner, backend):
 
     assert result.exit_code == 0
     assert result.stdout == "Hello c"
+
+
+def test_handle_errors(cli_runner):
+    @cli.handle_errors()
+    def inner():
+        raise exceptions.VaultException("yay")
+
+    with pytest.raises(click.ClickException):
+        inner()

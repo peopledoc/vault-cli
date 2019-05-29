@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, List, Optional
 from urllib.parse import urljoin
 
 import requests
@@ -20,12 +20,41 @@ class RequestsVaultClient(client.VaultClientBase):
     def handle_error(
         response: requests.Response, expected_code: int = requests.codes.ok
     ):
+        # https://www.vaultproject.io/api/overview.html#http-status-codes
+
+        try:
+            body = response.json() if response.text else None
+        except ValueError:
+            raise exceptions.VaultNonJsonResponse(
+                errors=[
+                    f"Status was: {response.status_code}",
+                    f"Body was: {response.text}",
+                ]
+            )
+
         if response.status_code != expected_code:
-            if response.status_code == 404:
-                raise exceptions.VaultSecretDoesNotExist(
-                    response.status_code, response.text
+            errors: Optional[List[str]] = None
+            try:
+                errors = (body or {})["errors"]
+            except KeyError:
+                pass
+
+            if response.status_code == 400:
+                raise exceptions.VaultInvalidRequest(errors=errors)
+            elif response.status_code == 401:
+                raise exceptions.VaultUnauthorized(errors=errors)
+            elif response.status_code == 403:
+                raise exceptions.VaultForbidden(errors=errors)
+            elif response.status_code == 404:
+                raise exceptions.VaultSecretNotFound(errors=errors)
+            elif response.status_code == 500:
+                raise exceptions.VaultInternalServerError(errors=errors)
+            elif response.status_code == 503:
+                raise exceptions.VaultSealed(errors=errors)
+            else:
+                raise exceptions.VaultAPIException(
+                    errors=[f"Status was: {response.status_code}"] + (errors or [])
                 )
-            raise exceptions.VaultAPIException(response.status_code, response.text)
 
     @staticmethod
     def create_session(verify: types.VerifyOrCABundle) -> requests.Session:
@@ -67,10 +96,9 @@ class RequestsVaultClient(client.VaultClientBase):
         response = self.session.get(url, params={"list": "true"})
         try:
             self.handle_error(response)
-        except exceptions.VaultAPIException as exc:
-            if exc.status_code == 404:
-                return []
-            raise
+        except exceptions.VaultSecretNotFound:
+            return []
+
         json_response = response.json()
         return json_response["data"]["keys"]
 

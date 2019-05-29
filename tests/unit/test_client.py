@@ -25,7 +25,7 @@ def test_get_client_from_kwargs_custom(mocker):
 
 
 def test_get_client_from_kwargs_bad(mocker):
-    with pytest.raises(ValueError):
+    with pytest.raises(exceptions.VaultBackendNotFound):
         client.get_client_from_kwargs("nope")
 
 
@@ -42,14 +42,14 @@ def test_get_client(mocker):
 
 
 @pytest.mark.parametrize(
-    "error, expected",
+    "errors, expected",
     [
-        ("oh no", '''status=404 error="oh no"'''),
-        ("""{"errors": ["damn", "gosh"]}""", '''status=404 error="damn\ngosh"'''),
+        (None, """Unexpected vault error"""),
+        (["damn", "gosh"], """Unexpected vault error\ndamn\ngosh"""),
     ],
 )
-def test_vault_api_exception(error, expected):
-    exc_str = str(exceptions.VaultAPIException(404, error))
+def test_vault_api_exception(errors, expected):
+    exc_str = str(exceptions.VaultAPIException(errors=errors))
 
     assert exc_str == expected
 
@@ -138,7 +138,7 @@ def test_vault_client_base_username_without_password():
         def _init_session(self, **kwargs):
             pass
 
-    with pytest.raises(ValueError):
+    with pytest.raises(exceptions.VaultAuthenticationError):
         TestVaultClient(
             username="yay",
             password=None,
@@ -156,7 +156,7 @@ def test_vault_client_base_no_auth():
         def _init_session(self, **kwargs):
             pass
 
-    with pytest.raises(ValueError):
+    with pytest.raises(exceptions.VaultAuthenticationError):
         TestVaultClient(
             username=None,
             password=None,
@@ -169,7 +169,11 @@ def test_vault_client_base_no_auth():
         )
 
 
-def test_vault_client_set_ca_bundle(mocker):
+@pytest.mark.parametrize(
+    "verify, ca_bundle, expected",
+    [(True, "yay", "yay"), (True, None, True), (False, "yay", False)],
+)
+def test_vault_client_ca_bundle_verify(mocker, verify, ca_bundle, expected):
 
     session_kwargs = {}
 
@@ -177,10 +181,10 @@ def test_vault_client_set_ca_bundle(mocker):
         def _init_session(self, **kwargs):
             session_kwargs.update(kwargs)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(exceptions.VaultAuthenticationError):
         TestVaultClient(
-            verify=True,
-            ca_bundle="yay",
+            verify=verify,
+            ca_bundle=ca_bundle,
             username=None,
             password=None,
             url=None,
@@ -189,53 +193,7 @@ def test_vault_client_set_ca_bundle(mocker):
             certificate=None,
         )
 
-    assert session_kwargs["verify"] == "yay"
-
-
-def test_vault_client_set_ca_bundle_no_bundle():
-
-    session_kwargs = {}
-
-    class TestVaultClient(client.VaultClientBase):
-        def _init_session(self, **kwargs):
-            session_kwargs.update(kwargs)
-
-    with pytest.raises(ValueError):
-        TestVaultClient(
-            verify=True,
-            ca_bundle=None,
-            username=None,
-            password=None,
-            url=None,
-            token=None,
-            base_path=None,
-            certificate=None,
-        )
-
-    assert session_kwargs["verify"] is True
-
-
-def test_vault_client_set_ca_bundle_no_verify():
-
-    session_kwargs = {}
-
-    class TestVaultClient(client.VaultClientBase):
-        def _init_session(self, **kwargs):
-            session_kwargs.update(kwargs)
-
-    with pytest.raises(ValueError):
-        TestVaultClient(
-            verify=False,
-            ca_bundle="yay",
-            username=None,
-            password=None,
-            url=None,
-            token=None,
-            base_path=None,
-            certificate=None,
-        )
-
-    assert session_kwargs["verify"] is False
+    assert session_kwargs["verify"] == expected
 
 
 def test_vault_client_base_browse_recursive_secrets():
@@ -367,7 +325,7 @@ def test_vault_client_set_secret():
 
         def get_secret(self, path):
             tested_get.append(path)
-            raise exceptions.VaultSecretDoesNotExist(404, "nooooo")
+            raise exceptions.VaultSecretNotFound()
 
     TestVaultClient().set_secret("a/b", "c")
 
@@ -427,7 +385,7 @@ def test_vault_client_set_secret_overwrite_force():
             try:
                 return {"a/b": "lol"}[path]
             except KeyError:
-                raise exceptions.VaultSecretDoesNotExist(404, "nooooo")
+                raise exceptions.VaultSecretNotFound()
 
     TestVaultClient().set_secret("a/b", "c", force=True)
 
@@ -455,7 +413,7 @@ def test_vault_client_set_secret_when_there_are_existing_secrets_beneath_path():
 
         def get_secret(self, path):
             tested_get.append(path)
-            raise exceptions.VaultSecretDoesNotExist(404, "nooooo")
+            raise exceptions.VaultSecretNotFound()
 
     with pytest.raises(exceptions.VaultMixSecretAndFolder):
         TestVaultClient().set_secret("a/b", "c")
@@ -487,7 +445,7 @@ def test_vault_client_set_secret_when_a_parent_is_an_existing_secret():
             try:
                 return {"a": "lol"}[path]
             except KeyError:
-                raise exceptions.VaultSecretDoesNotExist(404, "nooooo")
+                raise exceptions.VaultSecretNotFound()
 
     with pytest.raises(exceptions.VaultMixSecretAndFolder):
         TestVaultClient().set_secret("a/b", "c")

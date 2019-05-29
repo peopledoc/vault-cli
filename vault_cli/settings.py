@@ -6,7 +6,7 @@ from typing import Dict, Optional, Union
 
 import yaml
 
-from vault_cli import types
+from vault_cli import exceptions, types
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def load_bool(value: str) -> bool:
     elif lower_value in ("false", "f", "0", "no", "n"):
         return False
 
-    raise ValueError("Value {} could not be interpreted as boolean")
+    raise exceptions.VaultSettingsError("Value {} could not be interpreted as boolean")
 
 
 def build_config_from_env(environ: Dict[str, str]) -> types.SettingsDict:
