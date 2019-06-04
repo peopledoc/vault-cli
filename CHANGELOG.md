@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+0.5.0 (2019-05-28)
+------------------
+
+- Added vault mv command (#57)
+- Improved README (#63)
+- Added vault template (#59)
+
 0.4.1 (2019-04-03)
 ------------------
 
