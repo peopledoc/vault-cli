@@ -5,7 +5,7 @@ import logging
 
 import pytest
 
-from vault_cli import settings
+from vault_cli import exceptions, settings
 
 
 def test_read_config_file_not_existing():
@@ -118,7 +118,7 @@ def test_load_bool(value, expected):
 
 
 def test_load_bool_wrong():
-    with pytest.raises(ValueError):
+    with pytest.raises(exceptions.VaultSettingsError):
         assert settings.load_bool("wrong")
 
 
