@@ -56,7 +56,7 @@ class VaultUnauthorized(VaultAPIException):
 
 
 class VaultForbidden(VaultAPIException):
-    message = "Invalid autentication"
+    message = "Invalid authentication"
 
 
 class VaultSecretNotFound(VaultAPIException):
