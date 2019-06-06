@@ -244,7 +244,7 @@ class VaultClientBase:
             if problematic_secrets:
                 secrets = [f"{path}/{secret}" for secret in problematic_secrets]
                 raise exceptions.VaultMixSecretAndFolder(
-                    f"Cannot create a secret at {path} because it is already a "
+                    f"Cannot create a secret at '{path}' because it is already a "
                     f"folder containing {', '.join(secrets)}"
                 )
         except exceptions.VaultForbidden:
@@ -264,7 +264,7 @@ class VaultClientBase:
                 )
             else:
                 raise exceptions.VaultMixSecretAndFolder(
-                    f"Cannot create a secret at {path} because '{parent}' already exists as a secret"
+                    f"Cannot create a secret at '{path}' because '{parent}' already exists as a secret"
                 )
 
         self._set_secret(path=path, value=value)
