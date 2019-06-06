@@ -482,3 +482,96 @@ def test_vault_client_move_secrets(force_value):
     ]
     assert written == {"barbar/hello": "world", "barbar/yay/haha": "baz"}
     assert deleted == ["foo/hello", "foo/yay/haha"]
+
+
+def test_vault_client_set_secret_read_not_allowed():
+
+    written = {}
+    tested_get = []
+    tested_list = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def _set_secret(self, path, value):
+            written[path] = value
+
+        def list_secrets(self, path):
+            tested_list.append(path)
+            return []
+
+        def get_secret(self, path):
+            tested_get.append(path)
+            if path == "a/b":
+                raise exceptions.VaultForbidden()
+            else:
+                raise exceptions.VaultSecretNotFound()
+
+    TestVaultClient().set_secret("a/b", "c")
+
+    assert set(tested_get) == {"a/b", "a"}
+    assert tested_list == ["a/b"]
+    assert written == {"a/b": "c"}
+
+
+def test_vault_client_set_secret_list_not_allowed():
+
+    written = {}
+    tested_get = []
+    tested_list = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def _set_secret(self, path, value):
+            written[path] = value
+
+        def list_secrets(self, path):
+            tested_list.append(path)
+            if path == "a/b":
+                raise exceptions.VaultForbidden()
+            else:
+                return []
+
+        def get_secret(self, path):
+            tested_get.append(path)
+            raise exceptions.VaultSecretNotFound()
+
+    TestVaultClient().set_secret("a/b", "c")
+
+    assert set(tested_get) == {"a/b", "a"}
+    assert written == {"a/b": "c"}
+    assert tested_list == ["a/b"]
+
+
+def test_vault_client_set_secret_read_parent_not_allowed():
+
+    written = {}
+    tested_get = []
+    tested_list = []
+
+    class TestVaultClient(client.VaultClientBase):
+        def __init__(self):
+            pass
+
+        def _set_secret(self, path, value):
+            written[path] = value
+
+        def list_secrets(self, path):
+            tested_list.append(path)
+            return []
+
+        def get_secret(self, path):
+            tested_get.append(path)
+            if path == "a":
+                raise exceptions.VaultForbidden()
+            else:
+                raise exceptions.VaultSecretNotFound()
+
+    TestVaultClient().set_secret("a/b", "c")
+
+    assert set(tested_get) == {"a/b", "a"}
+    assert written == {"a/b": "c"}
+    assert tested_list == ["a/b"]
