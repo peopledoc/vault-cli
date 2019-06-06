@@ -115,6 +115,13 @@ vault get --text third_secret
 ...
 ```
 
+Identically, piping allows you to write the content of a file into the vault:
+
+```console
+$ cat my_certificate.key | vault set third_secret --stdin
+Done
+```
+
 ### Anything following "--" will not be seen as a flag even if it starts with a "-"
 ```console
 $ vault set -- -secret-name -oh-so-secret
