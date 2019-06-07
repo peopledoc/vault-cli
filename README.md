@@ -248,6 +248,28 @@ $ vault delete-all blob-secret
 $ vault delete-all --force
 ```
 
+### Use the testing client in your tests
+
+```console
+$ pip install vault-cli[testing]
+```
+
+```python
+# conftest.py (for pytest)
+from vault_cli.testing import vault_cli
+
+__all__ = ["vault_cli"]
+```
+```python
+# test_something.py
+
+def test_bla(vault_cli):
+    vault_cli.db = {"a/b": "c"}
+
+    assert vault_cli.get_secret("a/b") == "c"
+
+```
+
 ## Configuration
 
 The first file found in the following location is read, parsed and used:
