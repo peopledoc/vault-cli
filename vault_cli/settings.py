@@ -16,7 +16,6 @@ ENV_PREFIX = "VAULT_CLI"
 CONFIG_FILES = ["./.vault.yml", "~/.vault.yml", "/etc/vault.yml"]
 
 DEFAULTS = {
-    "backend": "requests",
     "base_path": None,
     "certificate": None,
     "password": None,

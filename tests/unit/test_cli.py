@@ -7,23 +7,14 @@ import yaml
 from vault_cli import cli, exceptions, settings
 
 
-def test_bad_backend(cli_runner, backend):
-    result = cli_runner.invoke(cli.cli, ["--backend", "bad", "list"])
-
-    assert result.exit_code != 0
-    assert "Error: Wrong backend value bad" in result.output
-
-
 def test_options(cli_runner, mocker):
-    func = mocker.patch("vault_cli.client.get_client_from_kwargs")
+    client = mocker.patch("vault_cli.client.get_client_class").return_value
     mocker.patch(
         "vault_cli.settings.read_file", side_effect=lambda x: "content of {}".format(x)
     )
     result = cli_runner.invoke(
         cli.cli,
         [
-            "--backend",
-            "requests",
             "--base-path",
             "bla",
             "--ca-bundle",
@@ -44,9 +35,8 @@ def test_options(cli_runner, mocker):
     )
 
     assert result.exit_code == 0, result.output
-    _, kwargs = func.call_args
+    _, kwargs = client.call_args
     assert set(kwargs) == {
-        "backend",
         "base_path",
         "ca_bundle",
         "certificate",

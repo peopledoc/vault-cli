@@ -58,31 +58,11 @@ def get_client(**kwargs) -> "VaultClientBase":
         all the secrets under those paths. Use with extreme caution.
     """
     options = settings.get_vault_options(**kwargs)
-    backend = options.pop("backend")
-    return get_client_from_kwargs(backend=backend, **options)
+    return get_client_class()(**options)
 
 
-def get_client_from_kwargs(
-    backend: Union[str, Type["VaultClientBase"]], **kwargs
-) -> "VaultClientBase":
-    """
-    Initializes a client object from the given final kwargs.
-    """
-    client_class: Type[VaultClientBase]
-    if backend == "requests":
-        from vault_cli import requests
-
-        client_class = requests.RequestsVaultClient
-    elif backend == "hvac":
-        from vault_cli import hvac
-
-        client_class = hvac.HVACVaultClient
-    elif callable(backend):
-        client_class = backend
-    else:
-        raise exceptions.VaultBackendNotFound("Wrong backend value {}".format(backend))
-
-    return client_class(**kwargs)
+def get_client_class() -> Type["VaultClientBase"]:
+    return VaultClient
 
 
 class VaultClientBase:

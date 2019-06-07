@@ -12,10 +12,6 @@ The tool is packaged but the package is not yet available on pypi.
 
 `pip install vault-cli`
 
-If you wish to use the hvac backend, install with
-
-`pip install vault-cli[hvac]`
-
 ## Usage
 
 ```console
@@ -42,7 +38,6 @@ Options:
                                parameter. Configuration file can also contain
                                a "password" key.
   -b, --base-path TEXT         Base path for requests
-  --backend TEXT               Name of the backend to use (requests, hvac)
   -v, --verbose                Use multiple times to increase verbosity
   --config-file PATH           Config file to use. Use 'no' to disable config
                                file. Default value: first of ./.vault.yml,

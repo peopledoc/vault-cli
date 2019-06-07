@@ -77,11 +77,6 @@ def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int
 )
 @click.option("--base-path", "-b", help="Base path for requests")
 @click.option(
-    "--backend",
-    default=settings.DEFAULTS["backend"],
-    help="Name of the backend to use (requests, hvac)",
-)
-@click.option(
     "-v",
     "--verbose",
     is_eager=True,
@@ -107,19 +102,18 @@ def cli(ctx: click.Context, **kwargs) -> None:
     """
     kwargs.pop("config_file")
     verbose = kwargs.pop("verbose")
-    backend: str = kwargs.pop("backend")
 
     kwargs.update(extract_special_args(ctx.default_map, os.environ))
 
     # There might still be files to read, so let's do it now
     kwargs = settings.read_all_files(kwargs)
     saved_settings = kwargs.copy()
-    saved_settings.update({"backend": backend, "verbose": verbose})
     try:
         ctx.obj = client.get_client_from_kwargs(backend=backend, **kwargs)
         ctx.obj.saved_settings = saved_settings
     except exceptions.VaultException as exc:
         raise click.UsageError(str(exc))
+    saved_settings.update({"verbose": verbose})
 
 
 def extract_special_args(
