@@ -272,3 +272,63 @@ class VaultClientBase:
 
     def _set_secret(self, path: str, value: types.JSONValue) -> None:
         raise NotImplementedError
+
+
+@contextlib.contextmanager
+def handle_errors():
+    try:
+        yield
+    except json.decoder.JSONDecodeError as exc:
+        raise exceptions.VaultNonJsonResponse(errors=[str(exc)])
+    except hvac.exceptions.InvalidRequest as exc:
+        raise exceptions.VaultInvalidRequest(errors=exc.errors) from exc
+    except hvac.exceptions.Unauthorized as exc:
+        raise exceptions.VaultUnauthorized(errors=exc.errors) from exc
+    except hvac.exceptions.Forbidden as exc:
+        raise exceptions.VaultForbidden(errors=exc.errors) from exc
+    except hvac.exceptions.InternalServerError as exc:
+        raise exceptions.VaultInternalServerError(errors=exc.errors) from exc
+    except hvac.exceptions.VaultDown as exc:
+        raise exceptions.VaultSealed(errors=exc.errors) from exc
+    except hvac.exceptions.UnexpectedError as exc:
+        raise exceptions.VaultAPIException(errors=exc.errors) from exc
+
+
+class VaultClient(VaultClientBase):
+    @handle_errors()
+    def _init_client(self, url: str, verify: types.VerifyOrCABundle) -> None:
+        self.session = sessions.Session()
+        self.session.verify = verify
+        self.client = hvac.Client(url=url, verify=verify, session=self.session)
+
+    def _authenticate_token(self, token: str) -> None:
+        self.client.token = token
+
+    @handle_errors()
+    def _authenticate_userpass(self, username: str, password: str) -> None:
+        self.client.auth_userpass(username, password)
+
+    @handle_errors()
+    def list_secrets(self, path: str) -> Iterable[str]:
+        secrets = self.client.list(self.base_path + path)
+        if not secrets:
+            return []
+        return secrets["data"]["keys"]
+
+    @handle_errors()
+    def get_secret(self, path: str) -> types.JSONValue:
+        secret = self.client.read(self.base_path + path)
+        if not secret:
+            raise exceptions.VaultSecretNotFound()
+        return secret["data"]["value"]
+
+    @handle_errors()
+    def delete_secret(self, path: str) -> None:
+        self.client.delete(self.base_path + path)
+
+    @handle_errors()
+    def _set_secret(self, path: str, value: types.JSONValue) -> None:
+        self.client.write(self.base_path + path, value=value)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.session.__exit__(exc_type, exc_value, traceback)
