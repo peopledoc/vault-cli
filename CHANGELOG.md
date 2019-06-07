@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.5.1 (2019-06-06)
+------------------
+
+- Don't prevent write access when read or list access isn't allowed
+
 0.5.0 (2019-05-28)
 ------------------
 

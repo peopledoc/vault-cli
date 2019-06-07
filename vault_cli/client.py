@@ -231,16 +231,25 @@ class VaultClientBase:
             self.get_secret(path=path)
         except exceptions.VaultSecretNotFound:
             pass
+        except exceptions.VaultForbidden:
+            logger.warning(
+                f"Read access '{path}' forbidden: if it exists, secret will be overridden."
+            )
         else:
             if not force:
                 raise exceptions.VaultOverwriteSecretError(path=path)
 
-        problematic_secrets = self.list_secrets(path=path)
-        if problematic_secrets:
-            secrets = [f"{path}/{secret}" for secret in problematic_secrets]
-            raise exceptions.VaultMixSecretAndFolder(
-                f"Cannot create a secret at {path} because it is already a "
-                f"folder containing {', '.join(secrets)}"
+        try:
+            problematic_secrets = self.list_secrets(path=path)
+            if problematic_secrets:
+                secrets = [f"{path}/{secret}" for secret in problematic_secrets]
+                raise exceptions.VaultMixSecretAndFolder(
+                    f"Cannot create a secret at '{path}' because it is already a "
+                    f"folder containing {', '.join(secrets)}"
+                )
+        except exceptions.VaultForbidden:
+            logger.info(
+                f"List '{path}' forbidden: if it exists, secret will be overridden."
             )
 
         path = path.rstrip("/")
@@ -249,9 +258,13 @@ class VaultClientBase:
                 self.get_secret(str(parent))
             except exceptions.VaultSecretNotFound:
                 pass
+            except exceptions.VaultForbidden:
+                logger.info(
+                    f"Read access '{parent}' forbidden: cannot check if a secret exists here."
+                )
             else:
                 raise exceptions.VaultMixSecretAndFolder(
-                    f"Cannot create a secret at {path} because {str(parent)} already exists as a secret"
+                    f"Cannot create a secret at '{path}' because '{parent}' already exists as a secret"
                 )
 
         self._set_secret(path=path, value=value)
