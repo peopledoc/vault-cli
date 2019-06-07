@@ -88,7 +88,7 @@ class VaultClientBase:
         if verify and ca_bundle:
             verify_ca_bundle = ca_bundle
 
-        self._init_session(url=url, verify=verify_ca_bundle)
+        self._init_client(url=url, verify=verify_ca_bundle)
 
         self.base_path = (base_path or "").rstrip("/") + "/"
 
@@ -249,7 +249,7 @@ class VaultClientBase:
 
         self._set_secret(path=path, value=value)
 
-    def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
+    def _init_client(self, url: str, verify: types.VerifyOrCABundle) -> None:
         raise NotImplementedError
 
     def _authenticate_token(self, token: str) -> None:
