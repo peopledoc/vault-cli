@@ -338,7 +338,7 @@ def delete_all(
     """
     paths = list(path) or [""]
 
-    for secret in client_obj.delete_all_secrets(*paths):
+    for secret in client_obj.delete_all_secrets(*paths, generator=True):
         if not force and not click.confirm(text=f"Delete '{secret}'?", default=False):
             raise click.Abort()
         click.echo(f"Deleted '{secret}'")
@@ -362,7 +362,7 @@ def mv(client_obj: client.VaultClientBase, source: str, dest: str, force: bool) 
     """
     try:
         for old_path, new_path in client_obj.move_secrets(
-            source=source, dest=dest, force=force
+            source=source, dest=dest, force=force, generator=True
         ):
             click.echo(f"Move '{old_path}' to '{new_path}'")
     except exceptions.VaultOverwriteSecretError as exc:

@@ -180,7 +180,7 @@ class VaultClientBase:
         )
         return self.get_all_secrets(*args, **kwargs)
 
-    def delete_all_secrets(self, *paths: str) -> Iterable[str]:
+    def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
         """
         Recursively deletes all the secrets at the given paths.
         """
@@ -190,7 +190,13 @@ class VaultClientBase:
                 yield secret_path
                 self.delete_secret(secret_path)
 
-    def move_secrets(
+    def delete_all_secrets(self, *paths: str, generator: bool = False) -> Iterable[str]:
+        iterator = self.delete_all_secrets_iter(*paths)
+        if generator:
+            return iterator
+        return list(iterator)
+
+    def move_secrets_iter(
         self, source: str, dest: str, force: bool = False
     ) -> Iterable[Tuple[str, str]]:
         source_secrets = self.get_secrets(path=source)
@@ -203,6 +209,14 @@ class VaultClientBase:
 
             self.set_secret(new_path, secret, force=force)
             self.delete_secret(old_path)
+
+    def move_secrets(
+        self, source: str, dest: str, force: bool = False, generator: bool = False
+    ) -> Iterable[Tuple[str, str]]:
+        iterator = self.move_secrets_iter(source=source, dest=dest, force=force)
+        if generator:
+            return iterator
+        return list(iterator)
 
     def set_secret(
         self, path: str, value: types.JSONValue, force: bool = False
