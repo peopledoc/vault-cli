@@ -315,6 +315,10 @@ VAULT_CLI_TOKEN and VAULT_CLI_PASSWORD.
 The tool is currently in beta mode. It's missing docs and other things.
 Be warned.
 
+## Contributing
+
+We welcome any help :) See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
 ## License
 
 Copyright 2018-2019 PeopleDoc
