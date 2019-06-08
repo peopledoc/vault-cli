@@ -52,7 +52,7 @@ def test_vault_client_base_call_init_client():
         username=None,
         password=None,
         ca_bundle=None,
-    )
+    ).auth()
 
     assert called_with == {
         "verify": False,
@@ -94,7 +94,9 @@ def test_vault_client_base_authenticate(test_kwargs, expected):
         "login_cert_key": None,
     }
     kwargs.update(test_kwargs)
-    TestVaultClient(verify=False, url=None, base_path=None, ca_bundle=None, **kwargs)
+    TestVaultClient(
+        verify=False, url=None, base_path=None, ca_bundle=None, **kwargs
+    ).auth()
 
     assert auth_params == expected
 
@@ -134,7 +136,7 @@ def test_vault_client_base_login_cert_without_key():
             login_cert="a",
             login_cert_key=None,
             ca_bundle=None,
-        )
+        ).auth()
 
 
 def test_vault_client_base_no_auth():
@@ -153,7 +155,7 @@ def test_vault_client_base_no_auth():
             login_cert=None,
             login_cert_key=None,
             ca_bundle=None,
-        )
+        ).auth()
 
 
 @pytest.mark.parametrize(
@@ -179,7 +181,7 @@ def test_vault_client_ca_bundle_verify(mocker, verify, ca_bundle, expected):
             base_path=None,
             login_cert=None,
             login_cert_key=None,
-        )
+        ).auth()
 
     assert session_kwargs["verify"] == expected
 

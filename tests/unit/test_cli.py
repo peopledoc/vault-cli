@@ -6,6 +6,8 @@ import yaml
 
 from vault_cli import cli, exceptions, settings
 
+# To debug cli_runner.invoke, add the argument "catch_exceptions=False"
+
 
 def test_options(cli_runner, mocker):
     client = mocker.patch("vault_cli.client.get_client_class").return_value

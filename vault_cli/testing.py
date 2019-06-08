@@ -10,6 +10,21 @@ class TestVaultClient(client.VaultClientBase):
         self.forbidden_list_paths = set()
         self.forbidden_get_paths = set()
 
+        super().__init__(**kwargs)
+
+    def update_settings(self, **kwargs):
+        vars(self).update(kwargs)
+        return self
+
+    def _init_client(self, *args, **kwargs):
+        pass
+
+    def _authenticate_token(self, *args, **kwargs):
+        pass
+
+    def _authenticate_userpass(self, *args, **kwargs):
+        pass
+
     def get_secret(self, path):
         if path in self.forbidden_get_paths:
             raise exceptions.VaultForbidden()
@@ -45,6 +60,6 @@ class TestVaultClient(client.VaultClientBase):
 def vault(mocker):
     backend = TestVaultClient()
     mocker.patch(
-        "vault_cli.client.get_client_class", return_value=lambda **kwargs: backend
+        "vault_cli.client.get_client_class", return_value=backend.update_settings
     )
     yield backend

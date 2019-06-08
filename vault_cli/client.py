@@ -63,7 +63,9 @@ def get_client(**kwargs) -> "VaultClientBase":
         all the secrets under those paths. Use with extreme caution.
     """
     options = settings.get_vault_options(**kwargs)
-    return get_client_class()(**options)
+    client = get_client_class()(**options)
+    client.auth()
+    return client
 
 
 def get_client_class() -> Type["VaultClientBase"]:
@@ -76,51 +78,58 @@ class VaultClientBase:
 
     def __init__(
         self,
-        url: str,
-        verify: bool,
-        ca_bundle: str,
-        base_path: str,
-        login_cert: Optional[str],
-        login_cert_key: Optional[str],
-        token: str,
-        username: str,
-        password: str,
+        url: str = settings.DEFAULTS.url,
+        verify: bool = settings.DEFAULTS.verify,
+        ca_bundle: Optional[str] = settings.DEFAULTS.ca_bundle,
+        base_path: Optional[str] = settings.DEFAULTS.base_path,
+        login_cert: Optional[str] = settings.DEFAULTS.login_cert,
+        login_cert_key: Optional[str] = settings.DEFAULTS.login_cert_key,
+        token: Optional[str] = settings.DEFAULTS.token,
+        username: Optional[str] = settings.DEFAULTS.username,
+        password: Optional[str] = settings.DEFAULTS.password,
+        safe_write: bool = settings.DEFAULTS.safe_write,
     ):
         """
         All parameters are mandatory but may be None
         """
+        self.url = url
+        self.verify: types.VerifyOrCABundle = verify
+        self.ca_bundle = ca_bundle
+        self.base_path = base_path or ""
+        self.login_cert = login_cert
+        self.login_cert_key = login_cert_key
+        self.token = token
+        self.username = username
+        self.password = password
+        self.safe_write = safe_write
 
-        verify_ca_bundle: types.VerifyOrCABundle = verify
-        if verify and ca_bundle:
-            verify_ca_bundle = ca_bundle
+    def auth(self):
+        verify_ca_bundle = self.verify
+        if self.verify and self.ca_bundle:
+            verify_ca_bundle = self.ca_bundle
 
         # Temporary workaround for https://github.com/urllib3/urllib3/issues/497
         requests.packages.urllib3.disable_warnings()
 
-        self._init_client(
-            url=url,
-            verify=verify_ca_bundle,
-            login_cert=login_cert,
-            login_cert_key=login_cert_key,
-        )
+        self._init_client(url=self.url, verify=verify_ca_bundle)
 
-        self.base_path = (base_path or "").rstrip("/") + "/"
+        self.base_path = (self.base_path or "").rstrip("/") + "/"
 
-        if token:
-            self._authenticate_token(token)
-        elif login_cert:
-            if login_cert_key:
+        if self.token:
+            self._authenticate_token(self.token)
+        elif self.login_cert:
+            if self.login_cert_key:
                 self._authenticate_certificate()
             else:
                 raise exceptions.VaultAuthenticationError(
                     "Cannot use certificate file for login without key file"
                 )
-        elif username:
-            if not password:
+        elif self.username:
+            if not self.password:
                 raise exceptions.VaultAuthenticationError(
                     "Cannot use username without password file"
                 )
-            self._authenticate_userpass(username=username, password=password)
+            self._authenticate_userpass(username=self.username, password=self.password)
 
         else:
             raise exceptions.VaultAuthenticationError(

@@ -123,6 +123,7 @@ def cli(ctx: click.Context, **kwargs) -> None:
     saved_settings.update({"verbose": verbose})
 
     ctx.obj = client.get_client_class()(**kwargs)  # type: ignore
+    ctx.obj.auth()
     ctx.obj.saved_settings = saved_settings
 
 
