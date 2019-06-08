@@ -276,6 +276,48 @@ def test_vault_client_set_secret_when_a_parent_is_an_existing_secret(vault_cli):
     assert vault_cli.db == {"a": "c"}
 
 
+def test_vault_client_set_secret_read_not_allowed(vault_cli, caplog):
+
+    caplog.set_level("INFO")
+
+    vault_cli.db = {}
+    vault_cli.forbidden_get_paths.add("a/b")
+
+    vault_cli.set_secret("a/b", "c")
+
+    assert vault_cli.db == {"a/b": "c"}
+
+    assert len(caplog.records) == 1
+
+
+def test_vault_client_set_secret_list_not_allowed(vault_cli, caplog):
+
+    caplog.set_level("INFO")
+
+    vault_cli.db = {}
+    vault_cli.forbidden_list_paths.add("a/b")
+
+    vault_cli.set_secret("a/b", "c")
+
+    assert vault_cli.db == {"a/b": "c"}
+
+    assert len(caplog.records) == 1
+
+
+def test_vault_client_set_secret_read_parent_not_allowed(vault_cli, caplog):
+
+    caplog.set_level("INFO")
+
+    vault_cli.db = {}
+    vault_cli.forbidden_get_paths.add("a")
+
+    vault_cli.set_secret("a/b", "c")
+
+    assert vault_cli.db == {"a/b": "c"}
+
+    assert len(caplog.records) == 1
+
+
 def test_vault_client_move_secrets(vault_cli):
 
     vault_cli.db = {"a/b": "c", "a/d": "e"}
