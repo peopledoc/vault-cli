@@ -1,8 +1,12 @@
+import contextlib
+import json
 import logging
 import pathlib
-from typing import Iterable, Optional, Tuple, Type, Union
+from typing import Iterable, Optional, Tuple, Type
 
-from vault_cli import exceptions, settings, types, utils
+import hvac
+
+from vault_cli import exceptions, sessions, settings, types, utils
 
 logger = logging.getLogger(__name__)
 
