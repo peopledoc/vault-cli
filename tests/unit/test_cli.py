@@ -289,7 +289,7 @@ def test_dump_config(cli_runner, vault):
         input="some-token",
     )
 
-    expected_settings = settings.DEFAULTS.copy()
+    expected_settings = settings.DEFAULTS._as_dict()
     expected_settings.update(
         {"base_path": "mybase/", "token": "some-token", "verbose": 0}
     )

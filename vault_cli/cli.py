@@ -48,11 +48,11 @@ def handle_errors():
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @click.option(
-    "--url", "-U", help="URL of the vault instance", default=settings.DEFAULTS["url"]
+    "--url", "-U", help="URL of the vault instance", default=settings.DEFAULTS.url
 )
 @click.option(
     "--verify/--no-verify",
-    default=settings.DEFAULTS["verify"],
+    default=settings.DEFAULTS.verify,
     help="Verify HTTPS certificate",
 )
 @click.option(
