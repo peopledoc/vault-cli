@@ -111,7 +111,12 @@ class VaultClientBase:
         # Temporary workaround for https://github.com/urllib3/urllib3/issues/497
         requests.packages.urllib3.disable_warnings()
 
-        self._init_client(url=self.url, verify=verify_ca_bundle)
+        self._init_client(
+            url=self.url,
+            verify=verify_ca_bundle,
+            login_cert=self.login_cert,
+            login_cert_key=self.login_cert_key,
+        )
 
         self.base_path = (self.base_path or "").rstrip("/") + "/"
 
@@ -135,6 +140,9 @@ class VaultClientBase:
             raise exceptions.VaultAuthenticationError(
                 "No authentication method supplied"
             )
+
+    def get_force(self, force: Optional[bool]) -> bool:
+        return force if force is not None else not self.safe_write
 
     def __enter__(self):
         return self
@@ -225,8 +233,9 @@ class VaultClientBase:
         return list(iterator)
 
     def move_secrets_iter(
-        self, source: str, dest: str, force: bool = False
+        self, source: str, dest: str, force: Optional[bool] = None
     ) -> Iterable[Tuple[str, str]]:
+
         source_secrets = self.get_secrets(path=source)
 
         for old_path, secret in source_secrets.items():
@@ -247,10 +256,13 @@ class VaultClientBase:
         return list(iterator)
 
     def set_secret(
-        self, path: str, value: types.JSONValue, force: bool = False
+        self, path: str, value: types.JSONValue, force: Optional[bool] = None
     ) -> None:
+
+        force = self.get_force(force)
+
         try:
-            self.get_secret(path=path)
+            existing_value = self.get_secret(path=path)
         except exceptions.VaultSecretNotFound:
             pass
         except exceptions.VaultForbidden:

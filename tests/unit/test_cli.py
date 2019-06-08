@@ -46,6 +46,7 @@ def test_options(cli_runner, mocker):
         "login_cert",
         "login_cert_key",
         "password",
+        "safe_write",
         "token",
         "url",
         "username",
@@ -92,12 +93,13 @@ def test_get_all(cli_runner, vault):
     vault.db = {"a/baz": "bar", "a/foo": "yay"}
     result = cli_runner.invoke(cli.cli, ["get-all", "a"])
 
-    print(result.output)
     assert yaml.safe_load(result.output) == {"a": {"baz": "bar", "foo": "yay"}}
     assert result.exit_code == 0
 
 
 def test_set(cli_runner, vault):
+
+    vault_cli.db = {}
 
     result = cli_runner.invoke(cli.cli, ["set", "a", "b"])
 
@@ -146,24 +148,46 @@ def test_set_yaml(cli_runner, vault):
     assert vault.db == {"a": {"b": "c"}}
 
 
-def test_set_overwrite(cli_runner, vault):
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        # no safe-write by default
+        (["set", "a", "b"], "b"),
+        # same, but explicit
+        (["--unsafe-write", "set", "a", "b"], "b"),
+        # safe-write but with force
+        (["--safe-write", "set", "--force", "a", "b"], "b"),
+        # safe-write but the written value is equal to the current value
+        (["--safe-write", "set", "a", "c"], "c"),
+    ],
+)
+def test_set_overwrite_valid(cli_runner, vault, args, expected):
 
     vault.db = {"a": "c"}
 
-    result = cli_runner.invoke(cli.cli, ["set", "a", "b"])
+    result = cli_runner.invoke(cli.cli, args)
+
+    assert result.exit_code == 0
+    assert vault.db == {"a": expected}
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        # safe-write
+        ["--safe-write", "set", "a", "b"],
+        # no-force
+        ["set", "--no-force", "a", "b"],
+    ],
+)
+def test_set_overwrite_safe_invalid(cli_runner, vault, args):
+
+    vault.db = {"a": "c"}
+
+    result = cli_runner.invoke(cli.cli, args)
 
     assert result.exit_code == 1
     assert vault.db == {"a": "c"}
-
-
-def test_set_overwrite_force(cli_runner, vault):
-
-    vault.db = {"a": "c"}
-
-    result = cli_runner.invoke(cli.cli, ["set", "a", "b", "--force"])
-
-    assert result.exit_code == 0
-    assert vault.db == {"a": "b"}
 
 
 def test_set_mix_secrets_folders(cli_runner, vault):

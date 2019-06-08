@@ -1,7 +1,7 @@
 import contextlib
 import logging
 import os
-from typing import Any, Dict, Mapping, NoReturn, Sequence, TextIO
+from typing import Any, Dict, Mapping, NoReturn, Optional, Sequence, TextIO
 
 import click
 import yaml
@@ -87,6 +87,13 @@ def handle_errors():
     'Configuration file can also contain a "password" key.',
 )
 @click.option("--base-path", "-b", help="Base path for requests")
+@click.option(
+    "-s",
+    "--safe-write/--unsafe-write",
+    default=settings.DEFAULTS.safe_write,
+    help="When activated, you can't overwrite a secret without "
+    'passing "--force" (in commands "set" and "mv")',
+)
 @click.option(
     "-v",
     "--verbose",
@@ -203,11 +210,12 @@ def get(client_obj: client.VaultClientBase, text: bool, name: str):
 @click.option("--yaml", "format_yaml", is_flag=True)
 @click.option("--stdin/--no-stdin", default=False)
 @click.option(
-    "--force",
+    "--force/--no-force",
     "-f",
     is_flag=True,
-    default=False,
-    help="In case the path already holds a secret, allow overwriting it.",
+    default=None,
+    help="In case the path already holds a secret, allow overwriting it "
+    "(this is necessary only if --safe-write is set).",
 )
 @click.argument("name")
 @click.argument("value", nargs=-1)
@@ -218,7 +226,7 @@ def set_(
     stdin: bool,
     name: str,
     value: Sequence[str],
-    force: bool,
+    force: Optional[bool],
 ):
     """
     Set a single secret to the given value(s).
@@ -351,11 +359,12 @@ def delete_all(
 @click.argument("source", required=True)
 @click.argument("dest", required=True)
 @click.option(
-    "--force",
+    "--force/--no-force",
     "-f",
     is_flag=True,
     default=False,
-    help="In case the path already holds a secret, allow overwriting it.",
+    help="In case the path already holds a secret, allow overwriting it "
+    "(this is necessary only if --safe-write is set).",
 )
 @click.pass_obj
 @handle_errors()

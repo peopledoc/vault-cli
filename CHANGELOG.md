@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.6.0 (unreleased)
+------------------
+
+- Add --safe-write. 0.5.1's behaviour of not allowing overwriting without -f is not the default anymore.
+
 0.5.1 (2019-06-06)
 ------------------
 

@@ -271,23 +271,32 @@ def test_vault_client_set_secret(vault):
     assert vault.db == {"a/b": "c"}
 
 
-def test_vault_client_set_secret_overwrite(vault):
+@pytest.mark.parametrize(
+    "safe_write, force", [(True, False), (True, None), (False, False)]
+)
+def test_vault_client_set_secret_overwrite_invalid(vault, safe_write, force):
 
     vault.db = {"a/b": "d"}
+    vault.safe_write = safe_write
 
     with pytest.raises(exceptions.VaultOverwriteSecretError):
-        vault.set_secret("a/b", "c")
+        vault.set_secret("a/b", "c", force=force)
 
     assert vault.db == {"a/b": "d"}
 
 
-def test_vault_client_set_secret_overwrite_force(vault):
+@pytest.mark.parametrize(
+    "safe_write, force, value",
+    [(True, True, "c"), (False, None, "c"), (True, None, "d")],
+)
+def test_vault_client_set_secret_overwrite_valid(vault, safe_write, force, value):
 
     vault.db = {"a/b": "d"}
+    vault.safe_write = safe_write
 
-    vault.set_secret("a/b", "c", force=True)
+    vault.set_secret("a/b", value, force=force)
 
-    assert vault.db == {"a/b": "c"}
+    assert vault.db == {"a/b": value}
 
 
 def test_vault_client_set_secret_when_there_are_existing_secrets_beneath_path(vault):
