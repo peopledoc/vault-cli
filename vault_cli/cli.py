@@ -37,6 +37,14 @@ def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int
     return value
 
 
+@contextlib.contextmanager
+def handle_errors():
+    try:
+        yield
+    except exceptions.VaultException as exc:
+        raise click.ClickException(str(exc))
+
+
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @click.option(
@@ -92,6 +100,7 @@ def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int
     "Default value: first of " + ", ".join(settings.CONFIG_FILES),
     type=click.Path(),
 )
+@handle_errors()
 def cli(ctx: click.Context, **kwargs) -> None:
     """
     Interact with a Vault. See subcommands for details.
@@ -108,12 +117,10 @@ def cli(ctx: click.Context, **kwargs) -> None:
     # There might still be files to read, so let's do it now
     kwargs = settings.read_all_files(kwargs)
     saved_settings = kwargs.copy()
-    try:
-        ctx.obj = client.get_client_from_kwargs(backend=backend, **kwargs)
-        ctx.obj.saved_settings = saved_settings
-    except exceptions.VaultException as exc:
-        raise click.UsageError(str(exc))
     saved_settings.update({"verbose": verbose})
+
+    ctx.obj = client.get_client_class()(**kwargs)  # type: ignore
+    ctx.obj.saved_settings = saved_settings
 
 
 def extract_special_args(
@@ -127,14 +134,6 @@ def extract_special_args(
             result[key] = environ.get(env_var_key)
 
     return result
-
-
-@contextlib.contextmanager
-def handle_errors():
-    try:
-        yield
-    except exceptions.VaultException as exc:
-        raise click.ClickException(str(exc))
 
 
 @cli.command("list")
