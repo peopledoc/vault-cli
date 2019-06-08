@@ -258,7 +258,7 @@ class VaultClientBase:
                 f"Read access '{path}' forbidden: if it exists, secret will be overridden."
             )
         else:
-            if not force:
+            if not force and existing_value != value:
                 raise exceptions.VaultOverwriteSecretError(path=path)
 
         try:
