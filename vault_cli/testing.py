@@ -22,7 +22,7 @@ class TestVaultClient(client.VaultClientBase):
         if path in self.forbidden_list_paths:
             raise exceptions.VaultForbidden()
         # Just reproducing in memory the behaviour of the real list_secrets
-        # This is complicated enough to have its unit test, below (test_fake_client)
+        # This is complicated enough to have its unit test (in test_testing.py)
         paths = [key for key in self.db if key.startswith(path)]
         result = []
         for element in paths:

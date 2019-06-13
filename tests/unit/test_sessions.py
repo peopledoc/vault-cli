@@ -56,7 +56,7 @@ def test_session(
 
     vault_cli_session.get("https://bla")
 
-    # If this tests fails here, it means the Session work around doesn't
+    # If this tests fails here, it means the Session workaround doesn't
     # work anymore
     assert requests_mock.last_request.verify == expected
 
