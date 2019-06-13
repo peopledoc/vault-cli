@@ -1,0 +1,6 @@
+---
+base_path: secretkvv1/
+ca_bundle: dev_docker_config/certs/server-chain.crt
+url: https://localhost:8443
+username: userpass-login
+password: userpass-pass

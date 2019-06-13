@@ -24,25 +24,26 @@ Usage: vault [OPTIONS] COMMAND [ARGS]...
   VAULT_CLI_TOKEN).
 
 Options:
-  -U, --url TEXT               URL of the vault instance
-  --verify / --no-verify       Verify HTTPS certificate
-  --ca-bundle PATH             Location of the bundle containing the server
-                               certificate to check against.
-  -c, --certificate-file PATH  Certificate to connect to vault. Configuration
-                               file can also contain a "certificate" key.
-  -T, --token-file PATH        File which contains the token to connect to
-                               Vault. Configuration file can also contain a
-                               "token" key.
-  -u, --username TEXT          Username used for userpass authentication
-  -w, --password-file PATH     Can read from stdin if "-" is used as
-                               parameter. Configuration file can also contain
-                               a "password" key.
-  -b, --base-path TEXT         Base path for requests
-  -v, --verbose                Use multiple times to increase verbosity
-  --config-file PATH           Config file to use. Use 'no' to disable config
-                               file. Default value: first of ./.vault.yml,
-                               ~/.vault.yml, /etc/vault.yml
-  -h, --help                   Show this message and exit.
+  -U, --url TEXT            URL of the vault instance
+  --verify / --no-verify    Verify HTTPS certificate
+  --ca-bundle PATH          Location of the bundle containing the server
+                            certificate to check against.
+  --login-cert PATH           Path to a public client certificate to use for
+                            connecting to vault.
+  --login-cert-key PATH          Path to a private client certificate to use for
+                            connecting to vault.
+  -T, --token-file PATH     File which contains the token to connect to Vault.
+                            Configuration file can also contain a "token" key.
+  -u, --username TEXT       Username used for userpass authentication
+  -w, --password-file PATH  Can read from stdin if "-" is used as parameter.
+                            Configuration file can also contain a "password"
+                            key.
+  -b, --base-path TEXT      Base path for requests
+  -v, --verbose             Use multiple times to increase verbosity
+  --config-file PATH        Config file to use. Use 'no' to disable config
+                            file. Default value: first of ./.vault.yml,
+                            ~/.vault.yml, /etc/vault.yml
+  -h, --help                Show this message and exit.
 
 Commands:
   delete       Delete a single secret.
@@ -62,8 +63,7 @@ Commands:
 There are three ways to authenticate against the vault:
 - Username and password file: provide a username and a file to read the
   password from. The file may be `-` for stdin.
-- Certificate: provide the path to a certificate file. The file may also be
-  read from stdin via `-`.
+- Client certificate: provide the path to a certificate file.
 - Token: Bypass authentication step if you already have a valid token.
 
 ## Showcase

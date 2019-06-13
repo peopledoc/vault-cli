@@ -12,6 +12,10 @@ def test_read_config_file_not_existing():
     assert settings.read_config_file("/non-existant-file") is None
 
 
+def test_read_config_file_empty():
+    assert settings.read_config_file("/dev/null") == {}
+
+
 def test_read_config_file_other_error():
     assert settings.read_config_file("/") is None
 
@@ -30,24 +34,18 @@ def test_dash_to_underscores():
 
 
 def test_read_all_files_no_file():
-    d = {"token": "yay", "certificate": "yo", "password": "aaa"}
+    d = {"token": "yay", "password": "aaa"}
     assert settings.read_all_files(d) == d
 
 
 def test_read_all_files(tmpdir):
     token_path = str(tmpdir.join("token"))
     open(token_path, "wb").write(b"yay")
-    certificate_path = str(tmpdir.join("certificate"))
-    open(certificate_path, "wb").write(b"yo")
     password_path = str(tmpdir.join("password"))
     open(password_path, "wb").write(b"aaa")
 
-    d = {
-        "token_file": token_path,
-        "certificate_file": certificate_path,
-        "password_file": password_path,
-    }
-    expected = {"token": "yay", "certificate": "yo", "password": "aaa"}
+    d = {"token_file": token_path, "password_file": password_path}
+    expected = {"token": "yay", "password": "aaa"}
     assert settings.read_all_files(d) == expected
 
 

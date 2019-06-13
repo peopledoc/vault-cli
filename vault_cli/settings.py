@@ -17,7 +17,8 @@ CONFIG_FILES = ["./.vault.yml", "~/.vault.yml", "/etc/vault.yml"]
 
 DEFAULTS = {
     "base_path": None,
-    "certificate": None,
+    "login_cert": None,
+    "login_cert_key": None,
     "password": None,
     "token": None,
     "url": "http://localhost:8200",
@@ -30,7 +31,7 @@ DEFAULTS = {
 def read_config_file(file_path: str) -> Optional[types.SettingsDict]:
     try:
         with open(os.path.expanduser(file_path), "r") as f:
-            config = yaml.safe_load(f)
+            config = yaml.safe_load(f) or {}
             logger.info(
                 f"Reading yaml config file at {file_path}, "
                 f"contains keys: {', '.join(config)}"
@@ -94,7 +95,6 @@ def build_config_from_env(environ: Dict[str, str]) -> types.SettingsDict:
 def read_all_files(config: types.SettingsDict) -> types.SettingsDict:
     config = config.copy()
 
-    replace_path_with_content(config=config, setting_name="certificate")
     replace_path_with_content(config=config, setting_name="password")
     replace_path_with_content(config=config, setting_name="token")
 

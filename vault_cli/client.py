@@ -5,6 +5,7 @@ import pathlib
 from typing import Iterable, Optional, Tuple, Type
 
 import hvac
+import requests.packages.urllib3
 
 from vault_cli import exceptions, sessions, settings, types, utils
 
@@ -79,7 +80,8 @@ class VaultClientBase:
         verify: bool,
         ca_bundle: str,
         base_path: str,
-        certificate: str,
+        login_cert: Optional[str],
+        login_cert_key: Optional[str],
         token: str,
         username: str,
         password: str,
@@ -92,14 +94,27 @@ class VaultClientBase:
         if verify and ca_bundle:
             verify_ca_bundle = ca_bundle
 
-        self._init_client(url=url, verify=verify_ca_bundle)
+        # Temporary workaround for https://github.com/urllib3/urllib3/issues/497
+        requests.packages.urllib3.disable_warnings()
+
+        self._init_client(
+            url=url,
+            verify=verify_ca_bundle,
+            login_cert=login_cert,
+            login_cert_key=login_cert_key,
+        )
 
         self.base_path = (base_path or "").rstrip("/") + "/"
 
         if token:
             self._authenticate_token(token)
-        elif certificate:
-            self._authenticate_certificate(certificate)
+        elif login_cert:
+            if login_cert_key:
+                self._authenticate_certificate()
+            else:
+                raise exceptions.VaultAuthenticationError(
+                    "Cannot use certificate file for login without key file"
+                )
         elif username:
             if not password:
                 raise exceptions.VaultAuthenticationError(
@@ -267,13 +282,19 @@ class VaultClientBase:
 
         self._set_secret(path=path, value=value)
 
-    def _init_client(self, url: str, verify: types.VerifyOrCABundle) -> None:
+    def _init_client(
+        self,
+        url: str,
+        verify: types.VerifyOrCABundle,
+        login_cert: Optional[str],
+        login_cert_key: Optional[str],
+    ) -> None:
         raise NotImplementedError
 
     def _authenticate_token(self, token: str) -> None:
         raise NotImplementedError
 
-    def _authenticate_certificate(self, certificate: str) -> None:
+    def _authenticate_certificate(self) -> None:
         raise NotImplementedError
 
     def _authenticate_userpass(self, username: str, password: str) -> None:
@@ -314,10 +335,23 @@ def handle_errors():
 
 class VaultClient(VaultClientBase):
     @handle_errors()
-    def _init_client(self, url: str, verify: types.VerifyOrCABundle) -> None:
+    def _init_client(
+        self,
+        url: str,
+        verify: types.VerifyOrCABundle,
+        login_cert: Optional[str],
+        login_cert_key: Optional[str],
+    ) -> None:
         self.session = sessions.Session()
         self.session.verify = verify
-        self.client = hvac.Client(url=url, verify=verify, session=self.session)
+
+        cert = None
+        if login_cert and login_cert_key:
+            cert = (login_cert, login_cert_key)
+
+        self.client = hvac.Client(
+            url=url, verify=verify, session=self.session, cert=cert
+        )
 
     def _authenticate_token(self, token: str) -> None:
         self.client.token = token
@@ -325,6 +359,10 @@ class VaultClient(VaultClientBase):
     @handle_errors()
     def _authenticate_userpass(self, username: str, password: str) -> None:
         self.client.auth_userpass(username, password)
+
+    @handle_errors()
+    def _authenticate_certificate(self) -> None:
+        self.client.auth_tls()
 
     @handle_errors()
     def list_secrets(self, path: str) -> Iterable[str]:

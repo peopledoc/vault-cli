@@ -1,0 +1,6 @@
+---
+url: https://localhost:8443
+base_path: secretkvv1/
+ca_bundle: dev_docker_config/certs/server-chain.crt
+login_cert: dev_docker_config/certs/client.crt
+login_cert_key: dev_docker_config/certs/client.key
