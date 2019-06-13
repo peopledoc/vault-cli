@@ -47,13 +47,19 @@ def test_vault_client_base_call_init_client():
         url="yay",
         token="go",
         base_path=None,
-        certificate=None,
+        login_cert="a",
+        login_cert_key="b",
         username=None,
         password=None,
         ca_bundle=None,
     )
 
-    assert called_with == {"verify": False, "url": "yay"}
+    assert called_with == {
+        "verify": False,
+        "url": "yay",
+        "login_cert": "a",
+        "login_cert_key": "b",
+    }
 
 
 @pytest.mark.parametrize(
@@ -61,7 +67,7 @@ def test_vault_client_base_call_init_client():
     [
         ({"token": "yay"}, ["token", "yay"]),
         ({"username": "a", "password": "b"}, ["userpass", "a", "b"]),
-        ({"certificate": "cert"}, ["certificate", "cert"]),
+        ({"login_cert": "a", "login_cert_key": "b"}, ["certificate"]),
     ],
 )
 def test_vault_client_base_authenticate(test_kwargs, expected):
@@ -74,13 +80,19 @@ def test_vault_client_base_authenticate(test_kwargs, expected):
         def _authenticate_token(self, token):
             auth_params.extend(["token", token])
 
-        def _authenticate_certificate(self, certificate):
-            auth_params.extend(["certificate", certificate])
+        def _authenticate_certificate(self):
+            auth_params.extend(["certificate"])
 
         def _authenticate_userpass(self, username, password):
             auth_params.extend(["userpass", username, password])
 
-    kwargs = {"token": None, "username": None, "password": None, "certificate": None}
+    kwargs = {
+        "token": None,
+        "username": None,
+        "password": None,
+        "login_cert": None,
+        "login_cert_key": None,
+    }
     kwargs.update(test_kwargs)
     TestVaultClient(verify=False, url=None, base_path=None, ca_bundle=None, **kwargs)
 
@@ -100,7 +112,27 @@ def test_vault_client_base_username_without_password():
             url="yay",
             token=None,
             base_path=None,
-            certificate=None,
+            login_cert=None,
+            login_cert_key=None,
+            ca_bundle=None,
+        )
+
+
+def test_vault_client_base_login_cert_without_key():
+    class TestVaultClient(client.VaultClientBase):
+        def _init_client(self, **kwargs):
+            pass
+
+    with pytest.raises(exceptions.VaultAuthenticationError):
+        TestVaultClient(
+            username=None,
+            password=None,
+            verify=False,
+            url="yay",
+            token=None,
+            base_path=None,
+            login_cert="a",
+            login_cert_key=None,
             ca_bundle=None,
         )
 
@@ -118,7 +150,8 @@ def test_vault_client_base_no_auth():
             url="yay",
             token=None,
             base_path=None,
-            certificate=None,
+            login_cert=None,
+            login_cert_key=None,
             ca_bundle=None,
         )
 
@@ -144,7 +177,8 @@ def test_vault_client_ca_bundle_verify(mocker, verify, ca_bundle, expected):
             url=None,
             token=None,
             base_path=None,
-            certificate=None,
+            login_cert=None,
+            login_cert_key=None,
         )
 
     assert session_kwargs["verify"] == expected

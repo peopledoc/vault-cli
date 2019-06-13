@@ -62,11 +62,14 @@ def handle_errors():
     "to check against.",
 )
 @click.option(
-    "--certificate-file",
-    "-c",
+    "--login-cert",
     type=click.Path(),
-    help="Certificate to connect to vault. "
-    'Configuration file can also contain a "certificate" key.',
+    help="Path to a public client certificate to use for connecting to vault.",
+)
+@click.option(
+    "--login-cert-key",
+    type=click.Path(),
+    help="Path to a private client certificate to use for connecting to vault.",
 )
 @click.option(
     "--token-file",
@@ -127,7 +130,7 @@ def extract_special_args(
     config: Mapping[str, Any], environ: Mapping[str, str]
 ) -> Dict[str, Any]:
     result = {}
-    for key in ["password", "certificate", "token"]:
+    for key in ["password", "token"]:
         result[key] = config.get(key)
         env_var_key = "VAULT_CLI_{}".format(key.upper())
         if env_var_key in environ:

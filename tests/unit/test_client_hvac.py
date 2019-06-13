@@ -18,7 +18,8 @@ def get_client(**additional_kwargs):
         "url": "http://vault:8000",
         "verify": True,
         "base_path": "bla",
-        "certificate": None,
+        "login_cert": None,
+        "login_cert_key": None,
         "token": "tok",
         "username": None,
         "password": None,
@@ -29,8 +30,13 @@ def get_client(**additional_kwargs):
 
 
 @pytest.fixture
-def mock_hvac(mocker):
-    yield mocker.patch("hvac.Client").return_value
+def mock_hvac_class(mocker):
+    yield mocker.patch("hvac.Client")
+
+
+@pytest.fixture
+def mock_hvac(mock_hvac_class):
+    yield mock_hvac_class.return_value
 
 
 def test_token(mock_hvac):
@@ -44,6 +50,14 @@ def test_userpass(mock_hvac):
     get_client(token=None, username="myuser", password="pass")
 
     mock_hvac.auth_userpass.assert_called_with("myuser", "pass")
+
+
+def test_certificate(mock_hvac_class, mock_hvac):
+
+    get_client(token=None, login_cert="a", login_cert_key="b")
+
+    assert mock_hvac_class.call_args[1]["cert"] == ("a", "b")
+    mock_hvac.auth_tls.assert_called_with()
 
 
 def test_get_secret(mock_hvac):

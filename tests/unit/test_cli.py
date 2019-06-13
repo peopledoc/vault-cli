@@ -19,8 +19,10 @@ def test_options(cli_runner, mocker):
             "bla",
             "--ca-bundle",
             "yay",
-            "--certificate-file",
-            "a",
+            "--login-cert",
+            "puc",
+            "--login-cert-key",
+            "prc",
             "--password-file",
             "b",
             "--token-file",
@@ -39,7 +41,8 @@ def test_options(cli_runner, mocker):
     assert set(kwargs) == {
         "base_path",
         "ca_bundle",
-        "certificate",
+        "login_cert",
+        "login_cert_key",
         "password",
         "token",
         "url",
@@ -48,7 +51,8 @@ def test_options(cli_runner, mocker):
     }
     assert kwargs["base_path"] == "bla"
     assert kwargs["ca_bundle"] == "yay"
-    assert kwargs["certificate"] == "content of a"
+    assert kwargs["login_cert"] == "puc"
+    assert kwargs["login_cert_key"] == "prc"
     assert kwargs["password"] == "content of b"
     assert kwargs["token"] == "content of c"
     assert kwargs["url"] == "https://foo"
@@ -245,27 +249,18 @@ def test_load_config(mocker, value, expected):
         # Relevant keys is copied from first dict
         ({"password": "e"}, {}, {"password": "e"}),
         ({"token": "f"}, {}, {"token": "f"}),
-        ({"certificate": "g"}, {}, {"certificate": "g"}),
         # Relevant keys is copied from second dict
         ({}, {"VAULT_CLI_PASSWORD": "h"}, {"password": "h"}),
         ({}, {"VAULT_CLI_TOKEN": "i"}, {"token": "i"}),
-        ({}, {"VAULT_CLI_CERTIFICATE": "j"}, {"certificate": "j"}),
         # Second dict has priority
         ({"password": "l"}, {"VAULT_CLI_PASSWORD": "m"}, {"password": "m"}),
         ({"token": "n"}, {"VAULT_CLI_TOKEN": "o"}, {"token": "o"}),
-        ({"certificate": "p"}, {"VAULT_CLI_CERTIFICATE": "q"}, {"certificate": "q"}),
-        # Both dict are used
-        (
-            {"password": "r"},
-            {"VAULT_CLI_CERTIFICATE": "s"},
-            {"password": "r", "certificate": "s"},
-        ),
     ],
 )
 def test_extract_special_args(config, environ, expected):
     result = cli.extract_special_args(config, environ)
 
-    assert set(result) == {"password", "token", "certificate"}
+    assert set(result) == {"password", "token"}
     # remove None
     result = {key: value for key, value in result.items() if value is not None}
 
@@ -283,7 +278,12 @@ def test_set_verbosity(mocker):
 def test_dump_config(cli_runner, vault):
     result = cli_runner.invoke(
         cli.cli,
-        ["--base-path", "mybase/", "--token-file", "-", "dump-config"],
+        [
+            "--config-file=/dev/null",
+            "--base-path=mybase/",
+            "--token-file=-",
+            "dump-config",
+        ],
         input="some-token",
     )
 
