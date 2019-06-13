@@ -256,17 +256,17 @@ $ pip install vault-cli[testing]
 
 ```python
 # conftest.py (for pytest)
-from vault_cli.testing import vault_cli
+from vault_cli.testing import vault
 
-__all__ = ["vault_cli"]
+__all__ = ["vault"]
 ```
 ```python
 # test_something.py
 
-def test_bla(vault_cli):
-    vault_cli.db = {"a/b": "c"}
+def test_bla(vault):
+    vault.db = {"a/b": "c"}
 
-    assert vault_cli.get_secret("a/b") == "c"
+    assert vault.get_secret("a/b") == "c"
 
 ```
 

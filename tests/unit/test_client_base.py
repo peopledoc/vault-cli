@@ -150,28 +150,28 @@ def test_vault_client_ca_bundle_verify(mocker, verify, ca_bundle, expected):
     assert session_kwargs["verify"] == expected
 
 
-def test_vault_client_base_browse_recursive_secrets(vault_cli):
-    vault_cli.db = {"a": "secret-a", "b/c": "secret-bc"}
+def test_vault_client_base_browse_recursive_secrets(vault):
+    vault.db = {"a": "secret-a", "b/c": "secret-bc"}
 
-    result = list(vault_cli._browse_recursive_secrets(""))
+    result = list(vault._browse_recursive_secrets(""))
 
     assert result == ["a", "b/c"]
 
 
-def test_vault_client_base_browse_recursive_secrets_single_secret(vault_cli):
+def test_vault_client_base_browse_recursive_secrets_single_secret(vault):
 
-    vault_cli.db = {"a": "secret-a"}
+    vault.db = {"a": "secret-a"}
 
-    result = list(vault_cli._browse_recursive_secrets("a"))
+    result = list(vault._browse_recursive_secrets("a"))
 
     assert result == ["a"]
 
 
 @pytest.mark.parametrize("method_name", ["get_all", "get_all_secrets"])
-def test_vault_client_base_get_all_secrets(method_name, vault_cli):
-    vault_cli.db = {"a/c": "secret-ac", "b": "secret-b"}
+def test_vault_client_base_get_all_secrets(method_name, vault):
+    vault.db = {"a/c": "secret-ac", "b": "secret-b"}
 
-    get_all_secrets = getattr(vault_cli, method_name)
+    get_all_secrets = getattr(vault, method_name)
 
     result = get_all_secrets("a", "")
 
@@ -185,182 +185,180 @@ def test_vault_client_base_get_all_secrets(method_name, vault_cli):
 @pytest.mark.parametrize(
     "input, expected", [("a", {"a/c": "secret-ac"}), ("b", {"b": "secret-b"})]
 )
-def test_vault_client_base_get_secrets(vault_cli, input, expected):
-    vault_cli.db = {"a/c": "secret-ac", "b": "secret-b"}
+def test_vault_client_base_get_secrets(vault, input, expected):
+    vault.db = {"a/c": "secret-ac", "b": "secret-b"}
 
-    result = vault_cli.get_secrets(input)
+    result = vault.get_secrets(input)
 
     assert result == expected
 
 
-def test_vault_client_base_delete_all_secrets_generator(vault_cli):
-    vault_cli.db = {"a/c": "secret-ac", "b": "secret-b"}
+def test_vault_client_base_delete_all_secrets_generator(vault):
+    vault.db = {"a/c": "secret-ac", "b": "secret-b"}
 
-    result = vault_cli.delete_all_secrets("a", "b", generator=True)
+    result = vault.delete_all_secrets("a", "b", generator=True)
 
     assert next(result) == "a/c"
 
-    assert vault_cli.db == {"a/c": "secret-ac", "b": "secret-b"}
+    assert vault.db == {"a/c": "secret-ac", "b": "secret-b"}
 
     assert next(result) == "b"
 
-    assert vault_cli.db == {"b": "secret-b"}
+    assert vault.db == {"b": "secret-b"}
 
     with pytest.raises(StopIteration):
         next(result)
 
-    assert vault_cli.db == {}
+    assert vault.db == {}
 
 
-def test_vault_client_base_delete_all_secrets_no_generator(vault_cli):
-    vault_cli.db = {"a/c": "secret-ac", "b": "secret-b"}
+def test_vault_client_base_delete_all_secrets_no_generator(vault):
+    vault.db = {"a/c": "secret-ac", "b": "secret-b"}
 
-    result = vault_cli.delete_all_secrets("a", "b")
+    result = vault.delete_all_secrets("a", "b")
 
     assert result == ["a/c", "b"]
 
-    assert vault_cli.db == {}
+    assert vault.db == {}
 
 
-def test_vault_client_base_context_manager(vault_cli):
+def test_vault_client_base_context_manager(vault):
 
-    with vault_cli as c:
-        assert c is vault_cli
-
-
-def test_vault_client_set_secret(vault_cli):
-
-    vault_cli.set_secret("a/b", "c")
-
-    assert vault_cli.db == {"a/b": "c"}
+    with vault as c:
+        assert c is vault
 
 
-def test_vault_client_set_secret_overwrite(vault_cli):
+def test_vault_client_set_secret(vault):
 
-    vault_cli.db = {"a/b": "d"}
+    vault.set_secret("a/b", "c")
+
+    assert vault.db == {"a/b": "c"}
+
+
+def test_vault_client_set_secret_overwrite(vault):
+
+    vault.db = {"a/b": "d"}
 
     with pytest.raises(exceptions.VaultOverwriteSecretError):
-        vault_cli.set_secret("a/b", "c")
+        vault.set_secret("a/b", "c")
 
-    assert vault_cli.db == {"a/b": "d"}
-
-
-def test_vault_client_set_secret_overwrite_force(vault_cli):
-
-    vault_cli.db = {"a/b": "d"}
-
-    vault_cli.set_secret("a/b", "c", force=True)
-
-    assert vault_cli.db == {"a/b": "c"}
+    assert vault.db == {"a/b": "d"}
 
 
-def test_vault_client_set_secret_when_there_are_existing_secrets_beneath_path(
-    vault_cli
-):
+def test_vault_client_set_secret_overwrite_force(vault):
 
-    vault_cli.db = {"a/b/c": "d"}
+    vault.db = {"a/b": "d"}
+
+    vault.set_secret("a/b", "c", force=True)
+
+    assert vault.db == {"a/b": "c"}
+
+
+def test_vault_client_set_secret_when_there_are_existing_secrets_beneath_path(vault):
+
+    vault.db = {"a/b/c": "d"}
 
     with pytest.raises(exceptions.VaultMixSecretAndFolder):
-        vault_cli.set_secret("a/b", "e")
+        vault.set_secret("a/b", "e")
 
-    assert vault_cli.db == {"a/b/c": "d"}
+    assert vault.db == {"a/b/c": "d"}
 
 
-def test_vault_client_set_secret_when_a_parent_is_an_existing_secret(vault_cli):
+def test_vault_client_set_secret_when_a_parent_is_an_existing_secret(vault):
 
-    vault_cli.db = {"a": "c"}
+    vault.db = {"a": "c"}
 
     with pytest.raises(exceptions.VaultMixSecretAndFolder):
-        vault_cli.set_secret("a/b", "d")
+        vault.set_secret("a/b", "d")
 
-    assert vault_cli.db == {"a": "c"}
+    assert vault.db == {"a": "c"}
 
 
-def test_vault_client_set_secret_read_not_allowed(vault_cli, caplog):
+def test_vault_client_set_secret_read_not_allowed(vault, caplog):
 
     caplog.set_level("INFO")
 
-    vault_cli.db = {}
-    vault_cli.forbidden_get_paths.add("a/b")
+    vault.db = {}
+    vault.forbidden_get_paths.add("a/b")
 
-    vault_cli.set_secret("a/b", "c")
+    vault.set_secret("a/b", "c")
 
-    assert vault_cli.db == {"a/b": "c"}
+    assert vault.db == {"a/b": "c"}
 
     assert len(caplog.records) == 1
 
 
-def test_vault_client_set_secret_list_not_allowed(vault_cli, caplog):
+def test_vault_client_set_secret_list_not_allowed(vault, caplog):
 
     caplog.set_level("INFO")
 
-    vault_cli.db = {}
-    vault_cli.forbidden_list_paths.add("a/b")
+    vault.db = {}
+    vault.forbidden_list_paths.add("a/b")
 
-    vault_cli.set_secret("a/b", "c")
+    vault.set_secret("a/b", "c")
 
-    assert vault_cli.db == {"a/b": "c"}
+    assert vault.db == {"a/b": "c"}
 
     assert len(caplog.records) == 1
 
 
-def test_vault_client_set_secret_read_parent_not_allowed(vault_cli, caplog):
+def test_vault_client_set_secret_read_parent_not_allowed(vault, caplog):
 
     caplog.set_level("INFO")
 
-    vault_cli.db = {}
-    vault_cli.forbidden_get_paths.add("a")
+    vault.db = {}
+    vault.forbidden_get_paths.add("a")
 
-    vault_cli.set_secret("a/b", "c")
+    vault.set_secret("a/b", "c")
 
-    assert vault_cli.db == {"a/b": "c"}
+    assert vault.db == {"a/b": "c"}
 
     assert len(caplog.records) == 1
 
 
-def test_vault_client_move_secrets(vault_cli):
+def test_vault_client_move_secrets(vault):
 
-    vault_cli.db = {"a/b": "c", "a/d": "e"}
+    vault.db = {"a/b": "c", "a/d": "e"}
 
-    vault_cli.move_secrets("a", "d")
+    vault.move_secrets("a", "d")
 
-    assert vault_cli.db == {"d/b": "c", "d/d": "e"}
+    assert vault.db == {"d/b": "c", "d/d": "e"}
 
 
-def test_vault_client_move_secrets_generator(vault_cli):
+def test_vault_client_move_secrets_generator(vault):
 
-    vault_cli.db = {"a/b": "c", "a/d": "e"}
+    vault.db = {"a/b": "c", "a/d": "e"}
 
-    result = vault_cli.move_secrets("a", "f", generator=True)
+    result = vault.move_secrets("a", "f", generator=True)
 
     assert next(result) == ("a/b", "f/b")
 
-    assert vault_cli.db == {"a/b": "c", "a/d": "e"}
+    assert vault.db == {"a/b": "c", "a/d": "e"}
 
     assert next(result) == ("a/d", "f/d")
 
-    assert vault_cli.db == {"f/b": "c", "a/d": "e"}
+    assert vault.db == {"f/b": "c", "a/d": "e"}
 
     with pytest.raises(StopIteration):
         next(result)
 
-    assert vault_cli.db == {"f/b": "c", "f/d": "e"}
+    assert vault.db == {"f/b": "c", "f/d": "e"}
 
 
-def test_vault_client_move_secrets_overwrite(vault_cli):
+def test_vault_client_move_secrets_overwrite(vault):
 
-    vault_cli.db = {"a": "c", "b": "d"}
+    vault.db = {"a": "c", "b": "d"}
 
     with pytest.raises(exceptions.VaultOverwriteSecretError):
-        vault_cli.move_secrets("a", "b")
+        vault.move_secrets("a", "b")
 
-    assert vault_cli.db == {"a": "c", "b": "d"}
+    assert vault.db == {"a": "c", "b": "d"}
 
 
-def test_vault_client_move_secrets_overwrite_force(vault_cli):
+def test_vault_client_move_secrets_overwrite_force(vault):
 
-    vault_cli.db = {"a": "c", "b": "d"}
+    vault.db = {"a": "c", "b": "d"}
 
-    vault_cli.move_secrets("a", "b", force=True)
+    vault.move_secrets("a", "b", force=True)
 
-    assert vault_cli.db == {"b": "c"}
+    assert vault.db == {"b": "c"}

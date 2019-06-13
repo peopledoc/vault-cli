@@ -42,7 +42,7 @@ class TestVaultClient(client.VaultClientBase):
 
 
 @pytest.fixture
-def vault_cli(mocker):
+def vault(mocker):
     backend = TestVaultClient()
     mocker.patch(
         "vault_cli.client.get_client_class", return_value=lambda **kwargs: backend

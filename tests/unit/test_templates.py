@@ -3,13 +3,13 @@ import pytest
 from vault_cli import exceptions, templates
 
 
-def test_render(vault_cli):
+def test_render(vault):
 
-    vault_cli.db = {"a/b": "c"}
+    vault.db = {"a/b": "c"}
 
-    assert templates.render("Hello {{ vault('a/b') }}", client=vault_cli) == "Hello c"
+    assert templates.render("Hello {{ vault('a/b') }}", client=vault) == "Hello c"
 
 
-def test_render_path_not_found(vault_cli):
+def test_render_path_not_found(vault):
     with pytest.raises(exceptions.VaultSecretNotFound):
-        templates.render("Hello {{ vault('a/b') }}", client=vault_cli)
+        templates.render("Hello {{ vault('a/b') }}", client=vault)
