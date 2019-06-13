@@ -37,6 +37,14 @@ def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int
     return value
 
 
+@contextlib.contextmanager
+def handle_errors():
+    try:
+        yield
+    except exceptions.VaultException as exc:
+        raise click.ClickException(str(exc))
+
+
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @click.option(
@@ -77,11 +85,6 @@ def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int
 )
 @click.option("--base-path", "-b", help="Base path for requests")
 @click.option(
-    "--backend",
-    default=settings.DEFAULTS["backend"],
-    help="Name of the backend to use (requests, hvac)",
-)
-@click.option(
     "-v",
     "--verbose",
     is_eager=True,
@@ -97,6 +100,7 @@ def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int
     "Default value: first of " + ", ".join(settings.CONFIG_FILES),
     type=click.Path(),
 )
+@handle_errors()
 def cli(ctx: click.Context, **kwargs) -> None:
     """
     Interact with a Vault. See subcommands for details.
@@ -107,19 +111,16 @@ def cli(ctx: click.Context, **kwargs) -> None:
     """
     kwargs.pop("config_file")
     verbose = kwargs.pop("verbose")
-    backend: str = kwargs.pop("backend")
 
     kwargs.update(extract_special_args(ctx.default_map, os.environ))
 
     # There might still be files to read, so let's do it now
     kwargs = settings.read_all_files(kwargs)
     saved_settings = kwargs.copy()
-    saved_settings.update({"backend": backend, "verbose": verbose})
-    try:
-        ctx.obj = client.get_client_from_kwargs(backend=backend, **kwargs)
-        ctx.obj.saved_settings = saved_settings
-    except exceptions.VaultException as exc:
-        raise click.UsageError(str(exc))
+    saved_settings.update({"verbose": verbose})
+
+    ctx.obj = client.get_client_class()(**kwargs)  # type: ignore
+    ctx.obj.saved_settings = saved_settings
 
 
 def extract_special_args(
@@ -133,14 +134,6 @@ def extract_special_args(
             result[key] = environ.get(env_var_key)
 
     return result
-
-
-@contextlib.contextmanager
-def handle_errors():
-    try:
-        yield
-    except exceptions.VaultException as exc:
-        raise click.ClickException(str(exc))
 
 
 @cli.command("list")
@@ -344,7 +337,7 @@ def delete_all(
     """
     paths = list(path) or [""]
 
-    for secret in client_obj.delete_all_secrets(*paths):
+    for secret in client_obj.delete_all_secrets(*paths, generator=True):
         if not force and not click.confirm(text=f"Delete '{secret}'?", default=False):
             raise click.Abort()
         click.echo(f"Deleted '{secret}'")
@@ -368,7 +361,7 @@ def mv(client_obj: client.VaultClientBase, source: str, dest: str, force: bool) 
     """
     try:
         for old_path, new_path in client_obj.move_secrets(
-            source=source, dest=dest, force=force
+            source=source, dest=dest, force=force, generator=True
         ):
             click.echo(f"Move '{old_path}' to '{new_path}'")
     except exceptions.VaultOverwriteSecretError as exc:

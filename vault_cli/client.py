@@ -1,8 +1,12 @@
+import contextlib
+import json
 import logging
 import pathlib
-from typing import Iterable, Optional, Tuple, Type, Union
+from typing import Iterable, Optional, Tuple, Type
 
-from vault_cli import exceptions, settings, types, utils
+import hvac
+
+from vault_cli import exceptions, sessions, settings, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -58,31 +62,11 @@ def get_client(**kwargs) -> "VaultClientBase":
         all the secrets under those paths. Use with extreme caution.
     """
     options = settings.get_vault_options(**kwargs)
-    backend = options.pop("backend")
-    return get_client_from_kwargs(backend=backend, **options)
+    return get_client_class()(**options)
 
 
-def get_client_from_kwargs(
-    backend: Union[str, Type["VaultClientBase"]], **kwargs
-) -> "VaultClientBase":
-    """
-    Initializes a client object from the given final kwargs.
-    """
-    client_class: Type[VaultClientBase]
-    if backend == "requests":
-        from vault_cli import requests
-
-        client_class = requests.RequestsVaultClient
-    elif backend == "hvac":
-        from vault_cli import hvac
-
-        client_class = hvac.HVACVaultClient
-    elif callable(backend):
-        client_class = backend
-    else:
-        raise exceptions.VaultBackendNotFound("Wrong backend value {}".format(backend))
-
-    return client_class(**kwargs)
+def get_client_class() -> Type["VaultClientBase"]:
+    return VaultClient
 
 
 class VaultClientBase:
@@ -108,7 +92,7 @@ class VaultClientBase:
         if verify and ca_bundle:
             verify_ca_bundle = ca_bundle
 
-        self._init_session(url=url, verify=verify_ca_bundle)
+        self._init_client(url=url, verify=verify_ca_bundle)
 
         self.base_path = (base_path or "").rstrip("/") + "/"
 
@@ -200,7 +184,7 @@ class VaultClientBase:
         )
         return self.get_all_secrets(*args, **kwargs)
 
-    def delete_all_secrets(self, *paths: str) -> Iterable[str]:
+    def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
         """
         Recursively deletes all the secrets at the given paths.
         """
@@ -210,7 +194,13 @@ class VaultClientBase:
                 yield secret_path
                 self.delete_secret(secret_path)
 
-    def move_secrets(
+    def delete_all_secrets(self, *paths: str, generator: bool = False) -> Iterable[str]:
+        iterator = self.delete_all_secrets_iter(*paths)
+        if generator:
+            return iterator
+        return list(iterator)
+
+    def move_secrets_iter(
         self, source: str, dest: str, force: bool = False
     ) -> Iterable[Tuple[str, str]]:
         source_secrets = self.get_secrets(path=source)
@@ -223,6 +213,14 @@ class VaultClientBase:
 
             self.set_secret(new_path, secret, force=force)
             self.delete_secret(old_path)
+
+    def move_secrets(
+        self, source: str, dest: str, force: bool = False, generator: bool = False
+    ) -> Iterable[Tuple[str, str]]:
+        iterator = self.move_secrets_iter(source=source, dest=dest, force=force)
+        if generator:
+            return iterator
+        return list(iterator)
 
     def set_secret(
         self, path: str, value: types.JSONValue, force: bool = False
@@ -269,7 +267,7 @@ class VaultClientBase:
 
         self._set_secret(path=path, value=value)
 
-    def _init_session(self, url: str, verify: types.VerifyOrCABundle) -> None:
+    def _init_client(self, url: str, verify: types.VerifyOrCABundle) -> None:
         raise NotImplementedError
 
     def _authenticate_token(self, token: str) -> None:
@@ -292,3 +290,63 @@ class VaultClientBase:
 
     def _set_secret(self, path: str, value: types.JSONValue) -> None:
         raise NotImplementedError
+
+
+@contextlib.contextmanager
+def handle_errors():
+    try:
+        yield
+    except json.decoder.JSONDecodeError as exc:
+        raise exceptions.VaultNonJsonResponse(errors=[str(exc)])
+    except hvac.exceptions.InvalidRequest as exc:
+        raise exceptions.VaultInvalidRequest(errors=exc.errors) from exc
+    except hvac.exceptions.Unauthorized as exc:
+        raise exceptions.VaultUnauthorized(errors=exc.errors) from exc
+    except hvac.exceptions.Forbidden as exc:
+        raise exceptions.VaultForbidden(errors=exc.errors) from exc
+    except hvac.exceptions.InternalServerError as exc:
+        raise exceptions.VaultInternalServerError(errors=exc.errors) from exc
+    except hvac.exceptions.VaultDown as exc:
+        raise exceptions.VaultSealed(errors=exc.errors) from exc
+    except hvac.exceptions.UnexpectedError as exc:
+        raise exceptions.VaultAPIException(errors=exc.errors) from exc
+
+
+class VaultClient(VaultClientBase):
+    @handle_errors()
+    def _init_client(self, url: str, verify: types.VerifyOrCABundle) -> None:
+        self.session = sessions.Session()
+        self.session.verify = verify
+        self.client = hvac.Client(url=url, verify=verify, session=self.session)
+
+    def _authenticate_token(self, token: str) -> None:
+        self.client.token = token
+
+    @handle_errors()
+    def _authenticate_userpass(self, username: str, password: str) -> None:
+        self.client.auth_userpass(username, password)
+
+    @handle_errors()
+    def list_secrets(self, path: str) -> Iterable[str]:
+        secrets = self.client.list(self.base_path + path)
+        if not secrets:
+            return []
+        return secrets["data"]["keys"]
+
+    @handle_errors()
+    def get_secret(self, path: str) -> types.JSONValue:
+        secret = self.client.read(self.base_path + path)
+        if not secret:
+            raise exceptions.VaultSecretNotFound()
+        return secret["data"]["value"]
+
+    @handle_errors()
+    def delete_secret(self, path: str) -> None:
+        self.client.delete(self.base_path + path)
+
+    @handle_errors()
+    def _set_secret(self, path: str, value: types.JSONValue) -> None:
+        self.client.write(self.base_path + path, value=value)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.session.__exit__(exc_type, exc_value, traceback)
