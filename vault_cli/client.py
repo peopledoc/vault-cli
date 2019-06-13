@@ -5,6 +5,7 @@ import pathlib
 from typing import Iterable, Optional, Tuple, Type
 
 import hvac
+import requests.packages.urllib3
 
 from vault_cli import exceptions, sessions, settings, types, utils
 
@@ -93,6 +94,8 @@ class VaultClientBase:
         if verify and ca_bundle:
             verify_ca_bundle = ca_bundle
 
+        # Temporary workaround for https://github.com/urllib3/urllib3/issues/497
+        requests.packages.urllib3.disable_warnings()
 
         self._init_client(
             url=url,
