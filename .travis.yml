@@ -26,7 +26,7 @@ matrix:
 
 
 before_install:
-  - "if [ $COVERAGE_FLAG = integration ]; then ./dev-env; fi"
+  - "if [ $COVERAGE_FLAG = integration ]; then ./dev-env; ./dev-env auth token; fi"
 
 install:
   - pip install tox codecov
