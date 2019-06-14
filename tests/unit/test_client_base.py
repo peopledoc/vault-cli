@@ -39,20 +39,10 @@ def test_vault_client_base_call_init_client():
         def _init_client(self, **kwargs):
             called_with.update(kwargs)
 
-        def _authenticate_token(self, *args, **kwargs):
+        def _authenticate_certificate(self, *args, **kwargs):
             pass
 
-    TestVaultClient(
-        verify=False,
-        url="yay",
-        token="go",
-        base_path=None,
-        login_cert="a",
-        login_cert_key="b",
-        username=None,
-        password=None,
-        ca_bundle=None,
-    ).auth()
+    TestVaultClient(verify=False, url="yay", login_cert="a", login_cert_key="b").auth()
 
     assert called_with == {
         "verify": False,
@@ -86,76 +76,30 @@ def test_vault_client_base_authenticate(test_kwargs, expected):
         def _authenticate_userpass(self, username, password):
             auth_params.extend(["userpass", username, password])
 
-    kwargs = {
-        "token": None,
-        "username": None,
-        "password": None,
-        "login_cert": None,
-        "login_cert_key": None,
-    }
-    kwargs.update(test_kwargs)
-    TestVaultClient(
-        verify=False, url=None, base_path=None, ca_bundle=None, **kwargs
-    ).auth()
+    TestVaultClient(**test_kwargs).auth()
 
     assert auth_params == expected
 
 
-def test_vault_client_base_username_without_password():
-    class TestVaultClient(client.VaultClientBase):
-        def _init_client(self, **kwargs):
-            pass
+def test_vault_client_base_username_without_password(vault):
+
+    vault.username = "yay"
 
     with pytest.raises(exceptions.VaultAuthenticationError):
-        TestVaultClient(
-            username="yay",
-            password=None,
-            verify=False,
-            url="yay",
-            token=None,
-            base_path=None,
-            login_cert=None,
-            login_cert_key=None,
-            ca_bundle=None,
-        )
+        vault.auth()
 
 
-def test_vault_client_base_login_cert_without_key():
-    class TestVaultClient(client.VaultClientBase):
-        def _init_client(self, **kwargs):
-            pass
+def test_vault_client_base_login_cert_without_key(vault):
+    vault.login_cert = "yay"
 
     with pytest.raises(exceptions.VaultAuthenticationError):
-        TestVaultClient(
-            username=None,
-            password=None,
-            verify=False,
-            url="yay",
-            token=None,
-            base_path=None,
-            login_cert="a",
-            login_cert_key=None,
-            ca_bundle=None,
-        ).auth()
+        vault.auth()
 
 
-def test_vault_client_base_no_auth():
-    class TestVaultClient(client.VaultClientBase):
-        def _init_client(self, **kwargs):
-            pass
+def test_vault_client_base_no_auth(vault):
 
     with pytest.raises(exceptions.VaultAuthenticationError):
-        TestVaultClient(
-            username=None,
-            password=None,
-            verify=False,
-            url="yay",
-            token=None,
-            base_path=None,
-            login_cert=None,
-            login_cert_key=None,
-            ca_bundle=None,
-        ).auth()
+        vault.auth()
 
 
 @pytest.mark.parametrize(

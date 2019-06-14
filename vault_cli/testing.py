@@ -9,12 +9,9 @@ class TestVaultClient(client.VaultClientBase):
         self.db = {}
         self.forbidden_list_paths = set()
         self.forbidden_get_paths = set()
+        self.freeze_settings = False
 
         super().__init__(**kwargs)
-
-    def update_settings(self, **kwargs):
-        vars(self).update(kwargs)
-        return self
 
     def _init_client(self, *args, **kwargs):
         pass
@@ -59,7 +56,5 @@ class TestVaultClient(client.VaultClientBase):
 @pytest.fixture
 def vault(mocker):
     backend = TestVaultClient()
-    mocker.patch(
-        "vault_cli.client.get_client_class", return_value=backend.update_settings
-    )
+    mocker.patch("vault_cli.client.get_client_class", return_value=lambda **k: backend)
     yield backend
