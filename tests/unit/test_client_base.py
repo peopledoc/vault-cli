@@ -39,20 +39,10 @@ def test_vault_client_base_call_init_client():
         def _init_client(self, **kwargs):
             called_with.update(kwargs)
 
-        def _authenticate_token(self, *args, **kwargs):
+        def _authenticate_certificate(self, *args, **kwargs):
             pass
 
-    TestVaultClient(
-        verify=False,
-        url="yay",
-        token="go",
-        base_path=None,
-        login_cert="a",
-        login_cert_key="b",
-        username=None,
-        password=None,
-        ca_bundle=None,
-    )
+    TestVaultClient(verify=False, url="yay", login_cert="a", login_cert_key="b").auth()
 
     assert called_with == {
         "verify": False,
@@ -86,74 +76,30 @@ def test_vault_client_base_authenticate(test_kwargs, expected):
         def _authenticate_userpass(self, username, password):
             auth_params.extend(["userpass", username, password])
 
-    kwargs = {
-        "token": None,
-        "username": None,
-        "password": None,
-        "login_cert": None,
-        "login_cert_key": None,
-    }
-    kwargs.update(test_kwargs)
-    TestVaultClient(verify=False, url=None, base_path=None, ca_bundle=None, **kwargs)
+    TestVaultClient(**test_kwargs).auth()
 
     assert auth_params == expected
 
 
-def test_vault_client_base_username_without_password():
-    class TestVaultClient(client.VaultClientBase):
-        def _init_client(self, **kwargs):
-            pass
+def test_vault_client_base_username_without_password(vault):
+
+    vault.username = "yay"
 
     with pytest.raises(exceptions.VaultAuthenticationError):
-        TestVaultClient(
-            username="yay",
-            password=None,
-            verify=False,
-            url="yay",
-            token=None,
-            base_path=None,
-            login_cert=None,
-            login_cert_key=None,
-            ca_bundle=None,
-        )
+        vault.auth()
 
 
-def test_vault_client_base_login_cert_without_key():
-    class TestVaultClient(client.VaultClientBase):
-        def _init_client(self, **kwargs):
-            pass
+def test_vault_client_base_login_cert_without_key(vault):
+    vault.login_cert = "yay"
 
     with pytest.raises(exceptions.VaultAuthenticationError):
-        TestVaultClient(
-            username=None,
-            password=None,
-            verify=False,
-            url="yay",
-            token=None,
-            base_path=None,
-            login_cert="a",
-            login_cert_key=None,
-            ca_bundle=None,
-        )
+        vault.auth()
 
 
-def test_vault_client_base_no_auth():
-    class TestVaultClient(client.VaultClientBase):
-        def _init_client(self, **kwargs):
-            pass
+def test_vault_client_base_no_auth(vault):
 
     with pytest.raises(exceptions.VaultAuthenticationError):
-        TestVaultClient(
-            username=None,
-            password=None,
-            verify=False,
-            url="yay",
-            token=None,
-            base_path=None,
-            login_cert=None,
-            login_cert_key=None,
-            ca_bundle=None,
-        )
+        vault.auth()
 
 
 @pytest.mark.parametrize(
@@ -179,7 +125,7 @@ def test_vault_client_ca_bundle_verify(mocker, verify, ca_bundle, expected):
             base_path=None,
             login_cert=None,
             login_cert_key=None,
-        )
+        ).auth()
 
     assert session_kwargs["verify"] == expected
 
@@ -269,23 +215,32 @@ def test_vault_client_set_secret(vault):
     assert vault.db == {"a/b": "c"}
 
 
-def test_vault_client_set_secret_overwrite(vault):
+@pytest.mark.parametrize(
+    "safe_write, force", [(True, False), (True, None), (False, False)]
+)
+def test_vault_client_set_secret_overwrite_invalid(vault, safe_write, force):
 
     vault.db = {"a/b": "d"}
+    vault.safe_write = safe_write
 
     with pytest.raises(exceptions.VaultOverwriteSecretError):
-        vault.set_secret("a/b", "c")
+        vault.set_secret("a/b", "c", force=force)
 
     assert vault.db == {"a/b": "d"}
 
 
-def test_vault_client_set_secret_overwrite_force(vault):
+@pytest.mark.parametrize(
+    "safe_write, force, value",
+    [(True, True, "c"), (False, None, "c"), (True, None, "d")],
+)
+def test_vault_client_set_secret_overwrite_valid(vault, safe_write, force, value):
 
     vault.db = {"a/b": "d"}
+    vault.safe_write = safe_write
 
-    vault.set_secret("a/b", "c", force=True)
+    vault.set_secret("a/b", value, force=force)
 
-    assert vault.db == {"a/b": "c"}
+    assert vault.db == {"a/b": value}
 
 
 def test_vault_client_set_secret_when_there_are_existing_secrets_beneath_path(vault):

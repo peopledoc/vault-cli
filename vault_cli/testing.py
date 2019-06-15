@@ -9,6 +9,18 @@ class TestVaultClient(client.VaultClientBase):
         self.db = {}
         self.forbidden_list_paths = set()
         self.forbidden_get_paths = set()
+        self.freeze_settings = False
+
+        super().__init__(**kwargs)
+
+    def _init_client(self, *args, **kwargs):
+        pass
+
+    def _authenticate_token(self, *args, **kwargs):
+        pass
+
+    def _authenticate_userpass(self, *args, **kwargs):
+        pass
 
     def get_secret(self, path):
         if path in self.forbidden_get_paths:
@@ -44,7 +56,5 @@ class TestVaultClient(client.VaultClientBase):
 @pytest.fixture
 def vault(mocker):
     backend = TestVaultClient()
-    mocker.patch(
-        "vault_cli.client.get_client_class", return_value=lambda **kwargs: backend
-    )
+    mocker.patch("vault_cli.client.get_client_class", return_value=lambda **k: backend)
     yield backend

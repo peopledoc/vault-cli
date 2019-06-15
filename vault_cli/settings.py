@@ -15,17 +15,22 @@ ENV_PREFIX = "VAULT_CLI"
 # Ordered by increasing priority
 CONFIG_FILES = ["./.vault.yml", "~/.vault.yml", "/etc/vault.yml"]
 
-DEFAULTS = {
-    "base_path": None,
-    "login_cert": None,
-    "login_cert_key": None,
-    "password": None,
-    "token": None,
-    "url": "http://localhost:8200",
-    "username": None,
-    "verify": True,
-    "ca_bundle": None,
-}
+
+class DEFAULTS:
+    base_path = None
+    login_cert = None
+    login_cert_key = None
+    password = None
+    token = None
+    url = "http://localhost:8200"
+    username = None
+    verify = True
+    ca_bundle = None
+    safe_write = False
+
+    @staticmethod
+    def _as_dict():
+        return {k: v for k, v in vars(DEFAULTS).items() if k[0] != "_"}
 
 
 def read_config_file(file_path: str) -> Optional[types.SettingsDict]:
@@ -72,6 +77,8 @@ def build_config_from_env(environ: Dict[str, str]) -> types.SettingsDict:
 
     value: Union[str, bool]
 
+    defaults_dict = DEFAULTS._as_dict()
+
     for key, str_value in environ.items():
 
         if not key.startswith(ENV_PREFIX + "_"):
@@ -79,10 +86,10 @@ def build_config_from_env(environ: Dict[str, str]) -> types.SettingsDict:
 
         key = key[skip_len:].lower()
 
-        if key not in DEFAULTS:
+        if key not in defaults_dict:
             continue
 
-        if isinstance(DEFAULTS[key], bool):
+        if isinstance(defaults_dict[key], bool):
             value = load_bool(str_value)
         else:
             value = str_value
@@ -128,7 +135,7 @@ def read_file(path: str) -> Optional[str]:
 
 @lru_cache()
 def build_config_from_files(*config_files: str):
-    values = DEFAULTS.copy()
+    values = DEFAULTS._as_dict()
 
     for potential_file in config_files:
         file_config = read_config_file(potential_file)

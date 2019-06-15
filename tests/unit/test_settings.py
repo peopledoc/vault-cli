@@ -75,7 +75,7 @@ def test_build_config_from_files_no_files(mocker):
 
     result = settings.build_config_from_files("a")
 
-    assert result == settings.DEFAULTS
+    assert result == settings.DEFAULTS._as_dict()
 
 
 def test_get_vault_options(mocker):

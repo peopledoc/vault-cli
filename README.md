@@ -24,26 +24,30 @@ Usage: vault [OPTIONS] COMMAND [ARGS]...
   VAULT_CLI_TOKEN).
 
 Options:
-  -U, --url TEXT            URL of the vault instance
-  --verify / --no-verify    Verify HTTPS certificate
-  --ca-bundle PATH          Location of the bundle containing the server
-                            certificate to check against.
-  --login-cert PATH           Path to a public client certificate to use for
-                            connecting to vault.
-  --login-cert-key PATH          Path to a private client certificate to use for
-                            connecting to vault.
-  -T, --token-file PATH     File which contains the token to connect to Vault.
-                            Configuration file can also contain a "token" key.
-  -u, --username TEXT       Username used for userpass authentication
-  -w, --password-file PATH  Can read from stdin if "-" is used as parameter.
-                            Configuration file can also contain a "password"
-                            key.
-  -b, --base-path TEXT      Base path for requests
-  -v, --verbose             Use multiple times to increase verbosity
-  --config-file PATH        Config file to use. Use 'no' to disable config
-                            file. Default value: first of ./.vault.yml,
-                            ~/.vault.yml, /etc/vault.yml
-  -h, --help                Show this message and exit.
+  -U, --url TEXT                  URL of the vault instance
+  --verify / --no-verify          Verify HTTPS certificate
+  --ca-bundle PATH                Location of the bundle containing the server
+                                  certificate to check against.
+  -c, --certificate-file PATH     Certificate to connect to vault.
+                                  Configuration file can also contain a
+                                  "certificate" key.
+  -T, --token-file PATH           File which contains the token to connect to
+                                  Vault. Configuration file can also contain a
+                                  "token" key.
+  -u, --username TEXT             Username used for userpass authentication
+  -w, --password-file PATH        Can read from stdin if "-" is used as
+                                  parameter. Configuration file can also
+                                  contain a "password" key.
+  -b, --base-path TEXT            Base path for requests
+  -s, --safe-write / --unsafe-write
+                                  When activated, you can't overwrite a secret
+                                  without passing "--force" (in commands "set"
+                                  and "mv")
+  -v, --verbose                   Use multiple times to increase verbosity
+  --config-file PATH              Config file to use. Use 'no' to disable
+                                  config file. Default value: first of
+                                  ./.vault.yml, ~/.vault.yml, /etc/vault.yml
+  -h, --help                      Show this message and exit.
 
 Commands:
   delete       Delete a single secret.
@@ -143,6 +147,18 @@ $ vault get list_secret
 - secret2
 - secret3
 ```
+
+### Protect yourself from overwriting a secret by mistake
+
+```console
+vault set a b
+Done
+$ vault --safe-write set a c
+Error: Secret already exists at a. Use -f to force overwriting.
+$ vault --safe-write set -f a c
+Done
+```
+(`safe-write` can be set in your configuration file, see below for details)
 
 ### Get all values from the vault in a single command (yaml format)
 ```console
