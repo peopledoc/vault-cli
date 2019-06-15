@@ -7,13 +7,12 @@ CHANGELOG
 - Add --safe-write. 0.5.1's behaviour of not allowing overwriting without -f is not the default anymore (breaking change) (#73)
 - Add certificate auth (#61)
 - Remove "requests" backend and the backend argument (breaking change) (#71)
-- Allow to write secret when if 'read' and/or 'list' accesses are not allowed (#70)
 - Add testing module and pytest fixture to help external tests (#71)
 
 0.5.1 (2019-06-06)
 ------------------
 
-- Don't prevent write access when read or list access isn't allowed
+- Write a secret without 'read' and/or 'list' permission (#70)
 
 0.5.0 (2019-05-28)
 ------------------
