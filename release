@@ -1,0 +1,54 @@
+#!/bin/bash -eu
+
+# Check that you're on a clean checkout
+if ! git diff-index --quiet HEAD -- ;
+then
+    echo "Repository not clean"
+    git status
+    exit 1
+fi
+
+echo "Latest version was $(git describe --abbrev=0)"
+
+current_version=$(grep "version = " setup.cfg | cut '-d ' -f3)
+echo "Current prepared version is ${current_version%.dev0}"
+
+read -p "Version to release: " VERSION
+
+# Check that you're on the latest master, create a release branch
+git fetch origin
+git checkout -b release-${VERSION} origin/master
+
+echo "Here are all the commits that happened since the last tag."
+git --no-pager log --oneline "$(git describe --abbrev=0).."
+
+echo
+echo "Here are all the PRs merged since the last tag"
+git --no-pager log --merges --oneline "$(git describe --abbrev=0).."
+
+echo
+echo "Please prepare the changelog."
+read -p "Press [enter] to continue"
+
+# Craft release commit
+git add CHANGELOG.md
+sed -i "s/version = .\\+$/version = ${VERSION}/" setup.cfg
+git add setup.cfg
+git commit -m "Release ${VERSION}"
+
+# Python release
+rm -rf dist/ build/
+python setup.py sdist bdist_wheel
+twine upload dist/*
+
+# Tag
+git tag -s -m "Tag ${VERSION}" ${VERSION}
+git push origin ${VERSION}
+
+read -p "Version to release: " NEXT_VERSION
+# Prepare next version
+sed -i "s/version = .\\+$/version = ${NEXT_VERSION}.dev0/" setup.cfg
+git add setup.cfg
+git commit -m "Preparing next release ${NEXT_VERSION}"
+
+git push

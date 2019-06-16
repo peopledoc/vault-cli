@@ -3,7 +3,7 @@
 ## Get in touch
 
 If you want to help, or just to get in touch, say something in a
-ticket ! We'll be in touch
+ticket ! We'll be in touch.
 
 ## Coding in vault-cli
 
@@ -24,3 +24,9 @@ launch `tox`. Otherwise, don't bother, the CI will do it for you.
 - Share your work as soon as possible. Don't take the risk of engaging
 in a lot of work before we can be sure you're going in a direction that
 is aligned with the project.
+
+
+## Releasing
+
+Use `./release`. If you're not sure about that, read the script, it's
+all laid out.
