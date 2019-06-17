@@ -58,7 +58,7 @@ Commands:
   get           Return a single secret value.
   get-all       Return multiple secrets.
   list          List all the secrets at the given path.
-  lookup-token  Returns informations regarding the current token
+  lookup-token  Return information regarding the current token
   mv            Recursively move secrets from source to destination path.
   set           Set a single secret to the given value(s).
   template      Render the given template and insert secrets in it.
