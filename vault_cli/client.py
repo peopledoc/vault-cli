@@ -333,6 +333,9 @@ class VaultClientBase:
     def _set_secret(self, path: str, value: types.JSONValue) -> None:
         raise NotImplementedError
 
+    def lookup_token(self) -> types.JSONDict:
+        raise NotImplementedError
+
 
 @contextlib.contextmanager
 def handle_errors():
@@ -406,6 +409,10 @@ class VaultClient(VaultClientBase):
     @handle_errors()
     def _set_secret(self, path: str, value: types.JSONValue) -> None:
         self.client.write(self.base_path + path, value=value)
+
+    @handle_errors()
+    def lookup_token(self) -> types.JSONDict:
+        return self.client.lookup_token()
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.session.__exit__(exc_type, exc_value, traceback)

@@ -28,9 +28,10 @@ Options:
   --verify / --no-verify          Verify HTTPS certificate
   --ca-bundle PATH                Location of the bundle containing the server
                                   certificate to check against.
-  -c, --certificate-file PATH     Certificate to connect to vault.
-                                  Configuration file can also contain a
-                                  "certificate" key.
+  --login-cert PATH               Path to a public client certificate to use
+                                  for connecting to vault.
+  --login-cert-key PATH           Path to a private client certificate to use
+                                  for connecting to vault.
   -T, --token-file PATH           File which contains the token to connect to
                                   Vault. Configuration file can also contain a
                                   "token" key.
@@ -50,16 +51,17 @@ Options:
   -h, --help                      Show this message and exit.
 
 Commands:
-  delete       Delete a single secret.
-  delete-all   Delete multiple secrets.
-  dump-config  Display settings in the format of a config file.
-  env          Launch a command, loading secrets in environment.
-  get          Return a single secret value.
-  get-all      Return multiple secrets.
-  list         List all the secrets at the given path.
-  mv           Recursively move secrets from source to destination path.
-  set          Set a single secret to the given value(s).
-  template     Render the given template and insert secrets in it.
+  delete        Delete a single secret.
+  delete-all    Delete multiple secrets.
+  dump-config   Display settings in the format of a config file.
+  env           Launch a command, loading secrets in environment.
+  get           Return a single secret value.
+  get-all       Return multiple secrets.
+  list          List all the secrets at the given path.
+  lookup-token  Return information regarding the current token
+  mv            Recursively move secrets from source to destination path.
+  set           Set a single secret to the given value(s).
+  template      Render the given template and insert secrets in it.
 ```
 
 ## Authentication
@@ -262,6 +264,11 @@ $ vault delete-all blob-secret
 ### Delete everything, no confirmation
 ```console
 $ vault delete-all --force
+```
+
+### Get information on your current token
+```
+$ vault lookup-token
 ```
 
 ### Use the testing client in your tests

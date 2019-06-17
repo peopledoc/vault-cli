@@ -59,6 +59,8 @@ c:
 
     assert call(cli_runner, ["list"]).output == "\n"
 
+    assert call(cli_runner, ["lookup-token"]).output.startswith("---\nauth:")
+
 
 def test_integration_lib(clean_vault):
 
@@ -91,6 +93,8 @@ def test_integration_lib(clean_vault):
     assert client.list_secrets("") == ["c/"]
 
     assert list(client.delete_all_secrets("")) == ["c/d"]
+
+    assert client.lookup_token()["data"]
 
 
 @pytest.fixture

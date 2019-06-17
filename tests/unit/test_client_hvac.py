@@ -115,6 +115,13 @@ def test_set_secret(mock_hvac):
     mock_hvac.write.assert_called_with("bla/a", value="b")
 
 
+def test_lookup_token(mock_hvac):
+
+    get_client().lookup_token()
+
+    mock_hvac.lookup_token.assert_called_with()
+
+
 def test_set_context_manager(mocker):
     client_obj = get_client()
 

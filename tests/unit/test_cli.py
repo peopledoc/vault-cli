@@ -427,6 +427,17 @@ def test_template(cli_runner, vault_with_token):
     assert result.stdout == "Hello c"
 
 
+def test_lookup_token(cli_runner, vault_with_token):
+    vault_with_token.db = {"a/b": "c"}
+
+    result = cli_runner.invoke(cli.cli, ["lookup-token"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert yaml.safe_load(result.stdout)["data"]["expire_time"].startswith(
+        "2100-01-01T00:00:00"
+    )
+
+
 def test_handle_errors(cli_runner):
     @cli.handle_errors()
     def inner():
