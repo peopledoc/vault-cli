@@ -412,6 +412,21 @@ def template(
     output.write(result)
 
 
+@cli.command()
+@click.pass_obj
+@handle_errors()
+def lookup_token(client_obj: client.VaultClientBase) -> None:
+    """
+    Returns informations regarding the current token
+    """
+    click.echo(
+        yaml.safe_dump(
+            client_obj.lookup_token(), default_flow_style=False, explicit_start=True
+        ),
+        nl=False,
+    )
+
+
 def main():
     # https://click.palletsprojects.com/en/7.x/python3/
     os.environ.setdefault("LC_ALL", "C.UTF-8")

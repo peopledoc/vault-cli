@@ -50,16 +50,17 @@ Options:
   -h, --help                      Show this message and exit.
 
 Commands:
-  delete       Delete a single secret.
-  delete-all   Delete multiple secrets.
-  dump-config  Display settings in the format of a config file.
-  env          Launch a command, loading secrets in environment.
-  get          Return a single secret value.
-  get-all      Return multiple secrets.
-  list         List all the secrets at the given path.
-  mv           Recursively move secrets from source to destination path.
-  set          Set a single secret to the given value(s).
-  template     Render the given template and insert secrets in it.
+  delete        Delete a single secret.
+  delete-all    Delete multiple secrets.
+  dump-config   Display settings in the format of a config file.
+  env           Launch a command, loading secrets in environment.
+  get           Return a single secret value.
+  get-all       Return multiple secrets.
+  list          List all the secrets at the given path.
+  lookup-token  Returns informations regarding the current token
+  mv            Recursively move secrets from source to destination path.
+  set           Set a single secret to the given value(s).
+  template      Render the given template and insert secrets in it.
 ```
 
 ## Authentication
@@ -262,6 +263,11 @@ $ vault delete-all blob-secret
 ### Delete everything, no confirmation
 ```console
 $ vault delete-all --force
+```
+
+### Get information on your current token
+```
+$ vault lookup-token
 ```
 
 ### Use the testing client in your tests
