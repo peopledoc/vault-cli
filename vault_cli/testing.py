@@ -52,6 +52,9 @@ class TestVaultClient(client.VaultClientBase):
     def delete_secret(self, path):
         self.db.pop(path, None)
 
+    def lookup_token(self):
+        return {"data": {"expire_time": "2100-01-01T00:00:00"}}
+
 
 @pytest.fixture
 def vault(mocker):
