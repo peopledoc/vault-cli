@@ -12,6 +12,8 @@ The tool is packaged but the package is not yet available on pypi.
 
 `pip install vault-cli`
 
+Vault-cli only works with python 3.6 and over.
+
 ## Usage
 
 ```console
@@ -349,6 +351,12 @@ $ VAULT_CLI_URL=https://myvault.com vault list
 The name is always the uppercase underscored name of the equivalent command
 line option. Token and password can also be passed as environment variables as
 VAULT_CLI_TOKEN and VAULT_CLI_PASSWORD.
+
+## Troubleshooting
+
+### `SyntaxError: invalid syntax`
+
+You're most probably using Python 3.5 or below (including Python 2)
 
 ## State
 
