@@ -447,7 +447,7 @@ def template(
 @handle_errors()
 def lookup_token(client_obj: client.VaultClientBase) -> None:
     """
-    Returns informations regarding the current token
+    Return information regarding the current token
     """
     click.echo(
         yaml.safe_dump(
