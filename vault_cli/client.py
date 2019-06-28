@@ -321,19 +321,22 @@ class VaultClientBase:
     def _authenticate_userpass(self, username: str, password: str) -> None:
         raise NotImplementedError
 
-    def list_secrets(self, path: str) -> Iterable[str]:
+    def _list_secrets(self, path: str) -> Iterable[str]:
         raise NotImplementedError
 
-    def get_secret(self, path: str) -> types.JSONValue:
+    def _get_secret(self, path: str) -> types.JSONValue:
         raise NotImplementedError
 
-    def delete_secret(self, path: str) -> None:
+    def _delete_secret(self, path: str) -> None:
         raise NotImplementedError
 
     def _set_secret(self, path: str, value: types.JSONValue) -> None:
         raise NotImplementedError
 
     def lookup_token(self) -> types.JSONDict:
+        return self._lookup_token()
+
+    def _lookup_token(self) -> types.JSONDict:
         raise NotImplementedError
 
 
@@ -389,21 +392,21 @@ class VaultClient(VaultClientBase):
         self.client.auth_tls()
 
     @handle_errors()
-    def list_secrets(self, path: str) -> Iterable[str]:
+    def _list_secrets(self, path: str) -> Iterable[str]:
         secrets = self.client.list(self.base_path + path)
         if not secrets:
             return []
         return secrets["data"]["keys"]
 
     @handle_errors()
-    def get_secret(self, path: str) -> types.JSONValue:
+    def _get_secret(self, path: str) -> types.JSONValue:
         secret = self.client.read(self.base_path + path)
         if not secret:
             raise exceptions.VaultSecretNotFound()
         return secret["data"]["value"]
 
     @handle_errors()
-    def delete_secret(self, path: str) -> None:
+    def _delete_secret(self, path: str) -> None:
         self.client.delete(self.base_path + path)
 
     @handle_errors()
@@ -411,7 +414,7 @@ class VaultClient(VaultClientBase):
         self.client.write(self.base_path + path, value=value)
 
     @handle_errors()
-    def lookup_token(self) -> types.JSONDict:
+    def _lookup_token(self) -> types.JSONDict:
         return self.client.lookup_token()
 
     def __exit__(self, exc_type, exc_value, traceback):

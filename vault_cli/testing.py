@@ -22,7 +22,7 @@ class TestVaultClient(client.VaultClientBase):
     def _authenticate_userpass(self, *args, **kwargs):
         pass
 
-    def get_secret(self, path):
+    def _get_secret(self, path):
         if path in self.forbidden_get_paths:
             raise exceptions.VaultForbidden()
         try:
@@ -30,7 +30,7 @@ class TestVaultClient(client.VaultClientBase):
         except KeyError:
             raise exceptions.VaultSecretNotFound()
 
-    def list_secrets(self, path):
+    def _list_secrets(self, path):
         if path in self.forbidden_list_paths:
             raise exceptions.VaultForbidden()
         # Just reproducing in memory the behaviour of the real list_secrets
@@ -49,10 +49,10 @@ class TestVaultClient(client.VaultClientBase):
     def _set_secret(self, path, value):
         self.db[path] = value
 
-    def delete_secret(self, path):
+    def _delete_secret(self, path):
         self.db.pop(path, None)
 
-    def lookup_token(self):
+    def _lookup_token(self):
         return {"data": {"expire_time": "2100-01-01T00:00:00"}}
 
 
