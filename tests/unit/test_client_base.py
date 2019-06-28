@@ -374,7 +374,7 @@ def test_vault_client_move_secrets_overwrite_force(vault):
 def test_resolve_path_end_recursion(vault, vault_contents, max_recursion, expected):
     vault.db = vault_contents
 
-    assert vault.resolve_path("a", max_recursion=max_recursion) == expected
+    assert vault._resolve_path("a", max_recursion=max_recursion) == expected
 
 
 @pytest.mark.parametrize(
@@ -382,20 +382,6 @@ def test_resolve_path_end_recursion(vault, vault_contents, max_recursion, expect
 )
 def test_find_link_path(vault, input, expected):
     assert vault._find_link_path(input) == expected
-
-
-@pytest.mark.parametrize(
-    "secret, source, dest, expected",
-    [
-        ("secret", "a", "b", "secret"),
-        (["secret"], "a", "b", ["secret"]),
-        ("!follow-path!a/b", "i", "j", "!follow-path!a/b"),
-        ("!follow-path!a/b", "a", "c", "!follow-path!c/b"),
-        ("!follow-path!a/b", "a/b", "c", "!follow-path!c"),
-    ],
-)
-def test_update_link(vault, secret, source, dest, expected):
-    assert vault._update_link(secret, source, dest) == expected
 
 
 @pytest.mark.parametrize("follow, expected", [(True, "b"), (False, "!follow-path!a")])
@@ -429,14 +415,6 @@ def test_mv_does_not_follow(vault):
     vault.move_secrets("a", "c")
 
     assert vault.db == {"c/b": "!follow-path!e", "e": "d"}
-
-
-def test_mv_updates_link(vault):
-    vault.db = {"a/b": "!follow-path!a/c", "a/c": "d"}
-
-    vault.move_secrets("a", "e")
-
-    assert vault.db == {"e/b": "!follow-path!e/c", "e/c": "d"}
 
 
 def test_set_does_not_follow(vault):

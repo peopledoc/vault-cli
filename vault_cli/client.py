@@ -3,7 +3,7 @@ import json
 import logging
 import pathlib
 import re
-from typing import Iterable, Optional, Tuple, Type, cast
+from typing import Iterable, Optional, Tuple, Type
 
 import hvac
 import requests.packages.urllib3
@@ -226,7 +226,7 @@ class VaultClientBase:
 
     def get_secret(self, path: str, follow: bool = True) -> types.JSONValue:
         if follow and self.follow:
-            path = self.resolve_path(path)
+            path = self._resolve_path(path)
 
         return self._get_secret(path=path)
 
@@ -249,28 +249,6 @@ class VaultClientBase:
             return iterator
         return list(iterator)
 
-    def _find_link_path(self, secret: types.JSONValue) -> Optional[str]:
-        if not isinstance(secret, str):
-            return None
-
-        match = self.redirection_pattern.match(secret)
-        if not match:
-            return None
-
-        return match.group("path")
-
-    def _update_link(self, secret: types.JSONValue, source: str, dest: str):
-
-        if not self._find_link_path(secret):
-            return secret
-
-        secret = cast(str, secret)
-
-        return secret.replace(
-            self.redirection_template.format(path=source),
-            self.redirection_template.format(path=dest),
-        )
-
     def move_secrets_iter(
         self, source: str, dest: str, force: Optional[bool] = None
     ) -> Iterable[Tuple[str, str]]:
@@ -280,7 +258,6 @@ class VaultClientBase:
         for old_path, secret in source_secrets.items():
             new_path = dest + old_path[len(source) :]
             secret = source_secrets[old_path]
-            secret = self._update_link(secret=secret, source=source, dest=dest)
 
             yield (old_path, new_path)
 
@@ -302,7 +279,19 @@ class VaultClientBase:
     redirection_pattern = re.compile(r"""^!follow-path!(?P<path>.+)$""")
     redirection_template = "!follow-path!{path}"
 
-    def resolve_path(self, path: str, max_recursion: int = MAX_FOLLOW_RECURSION) -> str:
+    def _find_link_path(self, secret: types.JSONValue) -> Optional[str]:
+        if not isinstance(secret, str):
+            return None
+
+        match = self.redirection_pattern.match(secret)
+        if not match:
+            return None
+
+        return match.group("path")
+
+    def _resolve_path(
+        self, path: str, max_recursion: int = MAX_FOLLOW_RECURSION
+    ) -> str:
         if max_recursion <= 0:
             return path
 
@@ -315,7 +304,7 @@ class VaultClientBase:
         if not new_path:
             return path
 
-        return self.resolve_path(new_path, max_recursion=max_recursion - 1)
+        return self._resolve_path(new_path, max_recursion=max_recursion - 1)
 
     def set_link(self, path: str, target: str, force: Optional[bool] = None) -> None:
         self.set_secret(
