@@ -44,8 +44,9 @@ Options:
   -b, --base-path TEXT            Base path for requests
   -s, --safe-write / --unsafe-write
                                   When activated, you can't overwrite a secret
-                                  without passing "--force" (in commands "set"
-                                  and "mv")
+                                  without passing "--force" (in commands
+                                  "set", "mv", "ln", etc)
+  --follow / --no-follow          Follow links (created with "ln")
   -v, --verbose                   Use multiple times to increase verbosity
   --config-file PATH              Config file to use. Use 'no' to disable
                                   config file. Default value: first of
@@ -60,6 +61,7 @@ Commands:
   get           Return a single secret value.
   get-all       Return multiple secrets.
   list          List all the secrets at the given path.
+  ln            Create a link to alias a path to another path.
   lookup-token  Return information regarding the current token
   mv            Recursively move secrets from source to destination path.
   set           Set a single secret to the given value(s).
@@ -267,6 +269,15 @@ $ vault delete-all blob-secret
 ```console
 $ vault delete-all --force
 ```
+
+### Create a link
+```console
+$ vault set a b
+$ vault ln c a
+$ vault get --text c
+b
+```
+Links are not used with set, delete, mv.
 
 ### Get information on your current token
 ```

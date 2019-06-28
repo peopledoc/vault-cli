@@ -352,6 +352,136 @@ def test_vault_client_move_secrets_overwrite_force(vault):
     assert vault.db == {"b": "c"}
 
 
+@pytest.mark.parametrize(
+    "vault_contents, max_recursion, expected",
+    [
+        # End of recursion
+        ({"a": "!follow-path!b", "b": "c"}, 0, "a"),
+        # Secet not found
+        ({}, 5, "a"),
+        # Secret not a string
+        ({"a": ["yay"]}, 5, "a"),
+        # Secret not matching redirection pattern
+        ({"a": "b"}, 5, "a"),
+        # Secret matching pattern
+        ({"a": "!follow-path!b", "b": "c"}, 5, "b"),
+        # Recursion
+        ({"a": "!follow-path!b", "b": "!follow-path!c", "c": "d"}, 5, "c"),
+        # Recursion ending on not found
+        ({"a": "!follow-path!b", "b": "!follow-path!c"}, 5, "c"),
+    ],
+)
+def test_resolve_path_end_recursion(vault, vault_contents, max_recursion, expected):
+    vault.db = vault_contents
+
+    assert vault.resolve_path("a", max_recursion=max_recursion) == expected
+
+
+@pytest.mark.parametrize(
+    "input, expected", [("a", None), (["a"], None), ("!follow-path!/a/b", "/a/b")]
+)
+def test_find_link_path(vault, input, expected):
+    assert vault._find_link_path(input) == expected
+
+
+@pytest.mark.parametrize(
+    "secret, source, dest, expected",
+    [
+        ("secret", "a", "b", "secret"),
+        (["secret"], "a", "b", ["secret"]),
+        ("!follow-path!a/b", "i", "j", "!follow-path!a/b"),
+        ("!follow-path!a/b", "a", "c", "!follow-path!c/b"),
+        ("!follow-path!a/b", "a/b", "c", "!follow-path!c"),
+    ],
+)
+def test_update_link(vault, secret, source, dest, expected):
+    assert vault._update_link(secret, source, dest) == expected
+
+
+@pytest.mark.parametrize("follow, expected", [(True, "b"), (False, "!follow-path!a")])
+def test_get_follow(vault, follow, expected):
+    vault.db = {"a": "b", "c": "!follow-path!a"}
+
+    assert vault.get_secret("c", follow=follow) == expected
+
+
+def test_list_does_not_follow(vault):
+    vault.db = {"a": "!follow-path!b", "b/e": "c", "b/f": "d"}
+
+    vault.follow = True
+
+    assert vault.list_secrets("a") == []
+
+
+def test_delete_does_not_follow(vault):
+    vault.db = {"a": "!follow-path!b", "b": "c"}
+
+    vault.follow = True
+
+    vault.delete_secret("a")
+
+    assert vault.db == {"b": "c"}
+
+
+def test_mv_does_not_follow(vault):
+    vault.db = {"a/b": "!follow-path!e", "e": "d"}
+
+    vault.move_secrets("a", "c")
+
+    assert vault.db == {"c/b": "!follow-path!e", "e": "d"}
+
+
+def test_mv_updates_link(vault):
+    vault.db = {"a/b": "!follow-path!a/c", "a/c": "d"}
+
+    vault.move_secrets("a", "e")
+
+    assert vault.db == {"e/b": "!follow-path!e/c", "e/c": "d"}
+
+
+def test_set_does_not_follow(vault):
+    vault.db = {"a/b": "!follow-path!a/c", "a/c": "d"}
+
+    vault.follow = True
+
+    vault.set_secret("a/b", "e")
+
+    assert vault.db == {"a/b": "e", "a/c": "d"}
+
+
+def test_lookup_token(vault):
+    assert vault.lookup_token() == {"data": {"expire_time": "2100-01-01T00:00:00"}}
+
+
+def test_set_link(vault):
+    vault.db = {"a/c": "d"}
+
+    vault.set_link("a/b", "a/c")
+
+    assert vault.db == {"a/b": "!follow-path!a/c", "a/c": "d"}
+
+
+def test_set_link_safe(vault):
+    vault.db = {"a/c": "d"}
+
+    vault.safe_write = True
+
+    with pytest.raises(exceptions.VaultOverwriteSecretError):
+        vault.set_link("a/c", "e")
+
+    assert vault.db == {"a/c": "d"}
+
+
+def test_set_link_force(vault):
+    vault.db = {"a/c": "d"}
+
+    vault.safe_write = True
+
+    vault.set_link("a/c", "e", force=True)
+
+    assert vault.db == {"a/c": "!follow-path!e"}
+
+
 def test_get_secrets_error(vault):
     vault.db = {"a": "b", "c": "d"}
     vault.forbidden_get_paths = {"c"}

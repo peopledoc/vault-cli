@@ -21,6 +21,7 @@ def test_options(cli_runner, mocker):
             "bla",
             "--ca-bundle",
             "yay",
+            "--no-follow",
             "--login-cert",
             "puc",
             "--login-cert-key",
@@ -43,6 +44,7 @@ def test_options(cli_runner, mocker):
     assert set(kwargs) == {
         "base_path",
         "ca_bundle",
+        "follow",
         "login_cert",
         "login_cert_key",
         "password",
@@ -61,6 +63,7 @@ def test_options(cli_runner, mocker):
     assert kwargs["url"] == "https://foo"
     assert kwargs["username"] == "user"
     assert kwargs["verify"] is True
+    assert kwargs["follow"] is False
 
 
 @pytest.fixture
@@ -447,3 +450,10 @@ def test_handle_errors(cli_runner):
 
     with pytest.raises(click.ClickException):
         inner()
+
+
+def test_vault_ln(cli_runner, vault_with_token):
+    result = cli_runner.invoke(cli.cli, ["ln", "a", "b"])
+
+    assert result.exit_code == 0
+    assert vault_with_token.db == {"a": "!follow-path!b"}

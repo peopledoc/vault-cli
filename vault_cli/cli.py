@@ -393,6 +393,29 @@ def mv(
 
 
 @cli.command()
+@click.argument("path", required=True)
+@click.argument("target", required=True)
+@click.option(
+    "--force/--no-force",
+    "-f",
+    is_flag=True,
+    default=None,
+    help="In case the path already holds a secret, allow overwriting it "
+    "(this is necessary only if --safe-write is set).",
+)
+@click.pass_obj
+@handle_errors()
+def ln(
+    client_obj: client.VaultClientBase, path: str, target: str, force: Optional[bool]
+) -> None:
+    """
+    Create a link to alias a path to another path. Cannot link to a folder.
+    """
+    client_obj.set_link(path=path, target=target, force=force)
+    click.echo("Done")
+
+
+@cli.command()
 @click.argument("template", type=click.File("r"), required=True)
 @click.option(
     "-o",

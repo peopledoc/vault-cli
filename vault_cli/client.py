@@ -2,7 +2,8 @@ import contextlib
 import json
 import logging
 import pathlib
-from typing import Iterable, Optional, Tuple, Type
+import re
+from typing import Iterable, Optional, Tuple, Type, cast
 
 import hvac
 import requests.packages.urllib3
@@ -10,6 +11,8 @@ import requests.packages.urllib3
 from vault_cli import exceptions, sessions, settings, types, utils
 
 logger = logging.getLogger(__name__)
+
+MAX_FOLLOW_RECURSION = 5
 
 
 def get_client(**kwargs) -> "VaultClientBase":
@@ -88,6 +91,7 @@ class VaultClientBase:
         username: Optional[str] = settings.DEFAULTS.username,
         password: Optional[str] = settings.DEFAULTS.password,
         safe_write: bool = settings.DEFAULTS.safe_write,
+        follow: bool = settings.DEFAULTS.follow,
     ):
         """
         All parameters are mandatory but may be None
@@ -102,6 +106,7 @@ class VaultClientBase:
         self.username = username
         self.password = password
         self.safe_write = safe_write
+        self.follow = follow
 
     def auth(self):
         verify_ca_bundle = self.verify
@@ -154,7 +159,9 @@ class VaultClientBase:
         """
         pass
 
-    def _browse_recursive_secrets(self, path: str) -> Iterable[str]:
+    def _browse_recursive_secrets(
+        self, path: str, follow: bool = True
+    ) -> Iterable[str]:
         """
         Given a secret or folder path, return the path of all secrets
         under it (or the path itself)
@@ -181,10 +188,10 @@ class VaultClientBase:
                 yield key_url
                 continue
 
-            for sub_path in self._browse_recursive_secrets(key_url):
+            for sub_path in self._browse_recursive_secrets(key_url, follow=follow):
                 yield sub_path
 
-    def get_all_secrets(self, *paths: str) -> types.JSONDict:
+    def get_all_secrets(self, *paths: str, follow: bool = True) -> types.JSONDict:
         """
         Takes several paths, return the nested dict of all secrets below
         those paths
@@ -193,7 +200,7 @@ class VaultClientBase:
         result: types.JSONDict = {}
 
         for path in paths:
-            path_dict = self.get_secrets(path)
+            path_dict = self.get_secrets(path, follow=follow)
 
             result.update(utils.path_to_nested(path_dict))
 
@@ -212,13 +219,26 @@ class VaultClientBase:
             except exceptions.VaultAPIException:
                 result[subpath] = "<error while retrieving secret>"
 
+        return result
+
+    def list_secrets(self, path: str) -> Iterable[str]:
+        return self._list_secrets(path=path)
+
+    def get_secret(self, path: str, follow: bool = True) -> types.JSONValue:
+        if follow and self.follow:
+            path = self.resolve_path(path)
+
+        return self._get_secret(path=path)
+
+    def delete_secret(self, path: str) -> None:
+        return self._delete_secret(path=path)
 
     def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
         """
         Recursively deletes all the secrets at the given paths.
         """
         for path in paths:
-            secrets_paths = self._browse_recursive_secrets(path=path)
+            secrets_paths = self._browse_recursive_secrets(path=path, follow=False)
             for secret_path in secrets_paths:
                 yield secret_path
                 self.delete_secret(secret_path)
@@ -229,15 +249,38 @@ class VaultClientBase:
             return iterator
         return list(iterator)
 
+    def _find_link_path(self, secret: types.JSONValue) -> Optional[str]:
+        if not isinstance(secret, str):
+            return None
+
+        match = self.redirection_pattern.match(secret)
+        if not match:
+            return None
+
+        return match.group("path")
+
+    def _update_link(self, secret: types.JSONValue, source: str, dest: str):
+
+        if not self._find_link_path(secret):
+            return secret
+
+        secret = cast(str, secret)
+
+        return secret.replace(
+            self.redirection_template.format(path=source),
+            self.redirection_template.format(path=dest),
+        )
+
     def move_secrets_iter(
         self, source: str, dest: str, force: Optional[bool] = None
     ) -> Iterable[Tuple[str, str]]:
 
-        source_secrets = self.get_secrets(path=source)
+        source_secrets = self.get_secrets(path=source, follow=False)
 
         for old_path, secret in source_secrets.items():
             new_path = dest + old_path[len(source) :]
             secret = source_secrets[old_path]
+            secret = self._update_link(secret=secret, source=source, dest=dest)
 
             yield (old_path, new_path)
 
@@ -245,21 +288,47 @@ class VaultClientBase:
             self.delete_secret(old_path)
 
     def move_secrets(
-        self, source: str, dest: str, force: bool = False, generator: bool = False
+        self,
+        source: str,
+        dest: str,
+        force: Optional[bool] = None,
+        generator: bool = False,
     ) -> Iterable[Tuple[str, str]]:
         iterator = self.move_secrets_iter(source=source, dest=dest, force=force)
         if generator:
             return iterator
         return list(iterator)
 
+    redirection_pattern = re.compile(r"""^!follow-path!(?P<path>.+)$""")
+    redirection_template = "!follow-path!{path}"
+
+    def resolve_path(self, path: str, max_recursion: int = MAX_FOLLOW_RECURSION) -> str:
+        if max_recursion <= 0:
+            return path
+
+        try:
+            secret = self.get_secret(path, follow=False)
+        except exceptions.VaultException:
+            return path
+
+        new_path = self._find_link_path(secret)
+        if not new_path:
+            return path
+
+        return self.resolve_path(new_path, max_recursion=max_recursion - 1)
+
+    def set_link(self, path: str, target: str, force: Optional[bool] = None) -> None:
+        self.set_secret(
+            path, self.redirection_template.format(path=target), force=force
+        )
+
     def set_secret(
         self, path: str, value: types.JSONValue, force: Optional[bool] = None
     ) -> None:
-
         force = self.get_force(force)
 
         try:
-            existing_value = self.get_secret(path=path)
+            existing_value = self.get_secret(path=path, follow=False)
         except exceptions.VaultSecretNotFound:
             pass
         except exceptions.VaultForbidden:
@@ -286,7 +355,7 @@ class VaultClientBase:
         path = path.rstrip("/")
         for parent in list(pathlib.PurePath(path).parents)[:-1]:
             try:
-                self.get_secret(str(parent))
+                self.get_secret(str(parent), follow=False)
             except exceptions.VaultSecretNotFound:
                 pass
             except exceptions.VaultForbidden:

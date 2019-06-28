@@ -55,6 +55,10 @@ c:
 
     assert call(cli_runner, ["list"]).output == "c/\n"
 
+    call(cli_runner, ["ln", "f", "c/d"])
+
+    assert call(cli_runner, ["get", "f", "--text"]).output == "e\n"
+
     call(cli_runner, ["delete-all", "--force"])
 
     assert call(cli_runner, ["list"]).output == "\n"
@@ -92,7 +96,11 @@ def test_integration_lib(clean_vault):
 
     assert client.list_secrets("") == ["c/"]
 
-    assert list(client.delete_all_secrets("")) == ["c/d"]
+    client.set_link("f", "c/d")
+
+    assert client.get_secret("f", "e")
+
+    assert list(client.delete_all_secrets("")) == ["c/d", "f"]
 
     assert client.lookup_token()["data"]
 

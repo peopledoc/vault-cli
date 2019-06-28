@@ -27,6 +27,7 @@ class DEFAULTS:
     verify = True
     ca_bundle = None
     safe_write = False
+    follow = True
 
     @staticmethod
     def _as_dict():
