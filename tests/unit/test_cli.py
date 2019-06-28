@@ -380,8 +380,10 @@ def test_mv(cli_runner, vault_with_token):
     assert result.exit_code == 0
 
 
-def test_mv_overwrite(cli_runner, vault_with_token):
+def test_mv_overwrite_safe(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": "c", "d/b": "f"}
+
+    vault_with_token.safe_write = True
 
     result = cli_runner.invoke(cli.cli, ["mv", "d", "a"])
 
