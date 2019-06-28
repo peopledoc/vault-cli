@@ -350,3 +350,10 @@ def test_vault_client_move_secrets_overwrite_force(vault):
     vault.move_secrets("a", "b", force=True)
 
     assert vault.db == {"b": "c"}
+
+
+def test_get_secrets_error(vault):
+    vault.db = {"a": "b", "c": "d"}
+    vault.forbidden_get_paths = {"c"}
+
+    assert vault.get_secrets("") == {"a": "b", "c": "<error while retrieving secret>"}
