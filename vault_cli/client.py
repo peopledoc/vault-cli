@@ -199,13 +199,18 @@ class VaultClientBase:
 
         return result
 
-    def get_secrets(self, path: str) -> types.JSONDict:
+    def get_secrets(self, path: str, follow: bool = True) -> types.JSONDict:
         """
         Takes a single path an return a path dict with all the secrets
         below this path, recursively
         """
-        secrets_paths = self._browse_recursive_secrets(path=path)
-        return {subpath: self.get_secret(path=subpath) for subpath in secrets_paths}
+        secrets_paths = self._browse_recursive_secrets(path=path, follow=follow)
+        result: types.JSONDict = {}
+        for subpath in secrets_paths:
+            try:
+                result[subpath] = self.get_secret(path=subpath, follow=follow)
+            except exceptions.VaultAPIException:
+                result[subpath] = "<error while retrieving secret>"
 
 
     def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
