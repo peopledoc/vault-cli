@@ -207,14 +207,6 @@ class VaultClientBase:
         secrets_paths = self._browse_recursive_secrets(path=path)
         return {subpath: self.get_secret(path=subpath) for subpath in secrets_paths}
 
-    def get_all(self, *args, **kwargs):
-        """
-        Synonym to get_all_secrets. Can be removed on 0.6.0.
-        """
-        logger.warning(
-            "Using deprecated 'get_all' method. Use 'get_all_secrets' instead."
-        )
-        return self.get_all_secrets(*args, **kwargs)
 
     def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
         """

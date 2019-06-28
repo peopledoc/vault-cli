@@ -5,6 +5,7 @@ CHANGELOG
 ------------------
 
 - Add `vault lookup-token` (#77)
+- Remove `client.get_all()` (after deprecation period)
 
 0.6.0 (2019-15-06)
 ------------------
