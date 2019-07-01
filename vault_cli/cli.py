@@ -92,7 +92,7 @@ def handle_errors():
     "--safe-write/--unsafe-write",
     default=settings.DEFAULTS.safe_write,
     help="When activated, you can't overwrite a secret without "
-    'passing "--force" (in commands "set" and "mv")',
+    'passing "--force" (in commands "set", "mv", "ln", etc)',
 )
 @click.option(
     "-v",
@@ -362,13 +362,15 @@ def delete_all(
     "--force/--no-force",
     "-f",
     is_flag=True,
-    default=False,
+    default=None,
     help="In case the path already holds a secret, allow overwriting it "
     "(this is necessary only if --safe-write is set).",
 )
 @click.pass_obj
 @handle_errors()
-def mv(client_obj: client.VaultClientBase, source: str, dest: str, force: bool) -> None:
+def mv(
+    client_obj: client.VaultClientBase, source: str, dest: str, force: Optional[bool]
+) -> None:
     """
     Recursively move secrets from source to destination path.
     """

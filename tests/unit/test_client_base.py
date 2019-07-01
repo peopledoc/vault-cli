@@ -331,9 +331,11 @@ def test_vault_client_move_secrets_generator(vault):
     assert vault.db == {"f/b": "c", "f/d": "e"}
 
 
-def test_vault_client_move_secrets_overwrite(vault):
+def test_vault_client_move_secrets_overwrite_safe(vault):
 
     vault.db = {"a": "c", "b": "d"}
+
+    vault.safe_write = True
 
     with pytest.raises(exceptions.VaultOverwriteSecretError):
         vault.move_secrets("a", "b")
