@@ -5,6 +5,7 @@ import pathlib
 from typing import Iterable, Optional, Tuple, Type
 
 import hvac
+import jinja2
 import requests.packages.urllib3
 
 from vault_cli import exceptions, sessions, settings, types, utils
@@ -88,6 +89,7 @@ class VaultClientBase:
         username: Optional[str] = settings.DEFAULTS.username,
         password: Optional[str] = settings.DEFAULTS.password,
         safe_write: bool = settings.DEFAULTS.safe_write,
+        render: bool = settings.DEFAULTS.render,
     ):
         """
         All parameters are mandatory but may be None
@@ -102,6 +104,7 @@ class VaultClientBase:
         self.username = username
         self.password = password
         self.safe_write = safe_write
+        self.render = render
 
     def auth(self):
         verify_ca_bundle = self.verify
@@ -154,7 +157,9 @@ class VaultClientBase:
         """
         pass
 
-    def _browse_recursive_secrets(self, path: str) -> Iterable[str]:
+    def _browse_recursive_secrets(
+        self, path: str, render: bool = True
+    ) -> Iterable[str]:
         """
         Given a secret or folder path, return the path of all secrets
         under it (or the path itself)
@@ -181,10 +186,10 @@ class VaultClientBase:
                 yield key_url
                 continue
 
-            for sub_path in self._browse_recursive_secrets(key_url):
+            for sub_path in self._browse_recursive_secrets(key_url, render=render):
                 yield sub_path
 
-    def get_all_secrets(self, *paths: str) -> types.JSONDict:
+    def get_all_secrets(self, *paths: str, render: bool = True) -> types.JSONDict:
         """
         Takes several paths, return the nested dict of all secrets below
         those paths
@@ -193,32 +198,45 @@ class VaultClientBase:
         result: types.JSONDict = {}
 
         for path in paths:
-            path_dict = self.get_secrets(path)
+            path_dict = self.get_secrets(path, render=render)
 
             result.update(utils.path_to_nested(path_dict))
 
         return result
 
-    def get_secrets(self, path: str, follow: bool = True) -> types.JSONDict:
+    def get_secrets(self, path: str, render: bool = True) -> types.JSONDict:
         """
         Takes a single path an return a path dict with all the secrets
         below this path, recursively
         """
-        secrets_paths = self._browse_recursive_secrets(path=path, follow=follow)
+        secrets_paths = self._browse_recursive_secrets(path=path, render=render)
         result: types.JSONDict = {}
         for subpath in secrets_paths:
             try:
-                result[subpath] = self.get_secret(path=subpath, follow=follow)
+                result[subpath] = self.get_secret(path=subpath, render=render)
             except exceptions.VaultAPIException:
                 result[subpath] = "<error while retrieving secret>"
 
+        return result
+
+    def list_secrets(self, path: str) -> Iterable[str]:
+        return self._list_secrets(path=path)
+
+    def get_secret(self, path: str, render: bool = True) -> types.JSONValue:
+        secret = self._get_secret(path=path)
+        if render and self.render:
+            secret = self._render_template_value(secret)
+        return secret
+
+    def delete_secret(self, path: str) -> None:
+        return self._delete_secret(path=path)
 
     def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
         """
         Recursively deletes all the secrets at the given paths.
         """
         for path in paths:
-            secrets_paths = self._browse_recursive_secrets(path=path)
+            secrets_paths = self._browse_recursive_secrets(path=path, render=False)
             for secret_path in secrets_paths:
                 yield secret_path
                 self.delete_secret(secret_path)
@@ -233,7 +251,7 @@ class VaultClientBase:
         self, source: str, dest: str, force: Optional[bool] = None
     ) -> Iterable[Tuple[str, str]]:
 
-        source_secrets = self.get_secrets(path=source)
+        source_secrets = self.get_secrets(path=source, render=False)
 
         for old_path, secret in source_secrets.items():
             new_path = dest + old_path[len(source) :]
@@ -245,21 +263,44 @@ class VaultClientBase:
             self.delete_secret(old_path)
 
     def move_secrets(
-        self, source: str, dest: str, force: bool = False, generator: bool = False
+        self,
+        source: str,
+        dest: str,
+        force: Optional[bool] = None,
+        generator: bool = False,
     ) -> Iterable[Tuple[str, str]]:
         iterator = self.move_secrets_iter(source=source, dest=dest, force=force)
         if generator:
             return iterator
         return list(iterator)
 
+    template_prefix = "!template!"
+
+    def _render_template_value(self, secret: types.JSONValue) -> types.JSONValue:
+        if not isinstance(secret, str):
+            return secret
+
+        if not secret.startswith(self.template_prefix):
+            return secret
+
+        return self.render_template(secret[len(self.template_prefix) :], render=False)
+
+    def render_template(self, template: str, render: bool = True) -> str:
+        def vault(path):
+            try:
+                return self.get_secret(path, render=render)
+            except exceptions.VaultException:
+                raise exceptions.VaultRenderTemplateError(f"'{path}' not found")
+
+        return jinja2.Template(template).render(vault=vault)
+
     def set_secret(
         self, path: str, value: types.JSONValue, force: Optional[bool] = None
     ) -> None:
-
         force = self.get_force(force)
 
         try:
-            existing_value = self.get_secret(path=path)
+            existing_value = self.get_secret(path=path, render=False)
         except exceptions.VaultSecretNotFound:
             pass
         except exceptions.VaultForbidden:
@@ -286,7 +327,7 @@ class VaultClientBase:
         path = path.rstrip("/")
         for parent in list(pathlib.PurePath(path).parents)[:-1]:
             try:
-                self.get_secret(str(parent))
+                self.get_secret(str(parent), render=False)
             except exceptions.VaultSecretNotFound:
                 pass
             except exceptions.VaultForbidden:
