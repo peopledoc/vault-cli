@@ -16,7 +16,7 @@ Vault-cli only works with python 3.6 and over.
 
 ## Usage
 
-```console
+```
 Usage: vault [OPTIONS] COMMAND [ARGS]...
 
   Interact with a Vault. See subcommands for details.
@@ -44,8 +44,9 @@ Options:
   -b, --base-path TEXT            Base path for requests
   -s, --safe-write / --unsafe-write
                                   When activated, you can't overwrite a secret
-                                  without passing "--force" (in commands "set"
-                                  and "mv")
+                                  without passing "--force" (in commands
+                                  "set", "mv", etc)
+  --render / --no-render          Render templated values
   -v, --verbose                   Use multiple times to increase verbosity
   --config-file PATH              Config file to use. Use 'no' to disable
                                   config file. Default value: first of
@@ -267,6 +268,17 @@ $ vault delete-all blob-secret
 ```console
 $ vault delete-all --force
 ```
+
+### Create a templated value
+```console
+$ vault set password foo
+$ vault set dsn '!template!proto://username:{{ vault("password") }}@host/'
+$ vault get --text dsn
+proto://username:foo@host/
+$ vault --no-render get --text dsn
+!template!proto://username:{{ vault("password") }}@host/
+```
+The `vault` function does not render variables recursively.
 
 ### Get information on your current token
 ```

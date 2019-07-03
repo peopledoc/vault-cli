@@ -30,6 +30,13 @@ class VaultMixSecretAndFolder(VaultException):
     pass
 
 
+class VaultRenderTemplateError(VaultException):
+    def __str__(self):
+        return (
+            f"VaultRenderTemplateError: Error while rendering template: {self.args[0]}"
+        )
+
+
 class VaultAPIException(VaultException):
     message = "Unexpected vault error"
 

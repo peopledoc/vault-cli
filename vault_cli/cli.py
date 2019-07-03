@@ -6,7 +6,7 @@ from typing import Any, Dict, Mapping, NoReturn, Optional, Sequence, TextIO
 import click
 import yaml
 
-from vault_cli import client, environment, exceptions, settings, templates, types
+from vault_cli import client, environment, exceptions, settings, types
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,12 @@ def handle_errors():
     "--safe-write/--unsafe-write",
     default=settings.DEFAULTS.safe_write,
     help="When activated, you can't overwrite a secret without "
-    'passing "--force" (in commands "set" and "mv")',
+    'passing "--force" (in commands "set", "mv", etc)',
+)
+@click.option(
+    "--render/--no-render",
+    default=settings.DEFAULTS.render,
+    help="Render templated values",
 )
 @click.option(
     "-v",
@@ -362,13 +367,15 @@ def delete_all(
     "--force/--no-force",
     "-f",
     is_flag=True,
-    default=False,
+    default=None,
     help="In case the path already holds a secret, allow overwriting it "
     "(this is necessary only if --safe-write is set).",
 )
 @click.pass_obj
 @handle_errors()
-def mv(client_obj: client.VaultClientBase, source: str, dest: str, force: bool) -> None:
+def mv(
+    client_obj: client.VaultClientBase, source: str, dest: str, force: Optional[bool]
+) -> None:
     """
     Recursively move secrets from source to destination path.
     """
@@ -408,7 +415,7 @@ def template(
 
     If template is -, standard input will be read.
     """
-    result = templates.render(template=template.read(), client=client_obj)
+    result = client_obj.render_template(template.read())
     output.write(result)
 
 
@@ -417,7 +424,7 @@ def template(
 @handle_errors()
 def lookup_token(client_obj: client.VaultClientBase) -> None:
     """
-    Returns informations regarding the current token
+    Return information regarding the current token
     """
     click.echo(
         yaml.safe_dump(

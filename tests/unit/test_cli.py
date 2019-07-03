@@ -21,6 +21,7 @@ def test_options(cli_runner, mocker):
             "bla",
             "--ca-bundle",
             "yay",
+            "--no-render",
             "--login-cert",
             "puc",
             "--login-cert-key",
@@ -43,6 +44,7 @@ def test_options(cli_runner, mocker):
     assert set(kwargs) == {
         "base_path",
         "ca_bundle",
+        "render",
         "login_cert",
         "login_cert_key",
         "password",
@@ -61,6 +63,7 @@ def test_options(cli_runner, mocker):
     assert kwargs["url"] == "https://foo"
     assert kwargs["username"] == "user"
     assert kwargs["verify"] is True
+    assert kwargs["render"] is False
 
 
 @pytest.fixture
@@ -380,8 +383,10 @@ def test_mv(cli_runner, vault_with_token):
     assert result.exit_code == 0
 
 
-def test_mv_overwrite(cli_runner, vault_with_token):
+def test_mv_overwrite_safe(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": "c", "d/b": "f"}
+
+    vault_with_token.safe_write = True
 
     result = cli_runner.invoke(cli.cli, ["mv", "d", "a"])
 

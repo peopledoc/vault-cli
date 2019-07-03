@@ -19,19 +19,6 @@ def test_get_client_class():
     assert client.get_client_class() is client.VaultClient
 
 
-@pytest.mark.parametrize(
-    "errors, expected",
-    [
-        (None, """Unexpected vault error"""),
-        (["damn", "gosh"], """Unexpected vault error\ndamn\ngosh"""),
-    ],
-)
-def test_vault_api_exception(errors, expected):
-    exc_str = str(exceptions.VaultAPIException(errors=errors))
-
-    assert exc_str == expected
-
-
 def test_vault_client_base_call_init_client():
     called_with = {}
 
@@ -147,17 +134,14 @@ def test_vault_client_base_browse_recursive_secrets_single_secret(vault):
     assert result == ["a"]
 
 
-@pytest.mark.parametrize("method_name", ["get_all", "get_all_secrets"])
-def test_vault_client_base_get_all_secrets(method_name, vault):
+def test_vault_client_base_get_all_secrets(vault):
     vault.db = {"a/c": "secret-ac", "b": "secret-b"}
 
-    get_all_secrets = getattr(vault, method_name)
-
-    result = get_all_secrets("a", "")
+    result = vault.get_all_secrets("a", "")
 
     assert result == {"a": {"c": "secret-ac"}, "b": "secret-b"}
 
-    result = get_all_secrets("a")
+    result = vault.get_all_secrets("a")
 
     assert result == {"a": {"c": "secret-ac"}}
 
@@ -334,9 +318,11 @@ def test_vault_client_move_secrets_generator(vault):
     assert vault.db == {"f/b": "c", "f/d": "e"}
 
 
-def test_vault_client_move_secrets_overwrite(vault):
+def test_vault_client_move_secrets_overwrite_safe(vault):
 
     vault.db = {"a": "c", "b": "d"}
+
+    vault.safe_write = True
 
     with pytest.raises(exceptions.VaultOverwriteSecretError):
         vault.move_secrets("a", "b")
@@ -351,3 +337,70 @@ def test_vault_client_move_secrets_overwrite_force(vault):
     vault.move_secrets("a", "b", force=True)
 
     assert vault.db == {"b": "c"}
+
+
+def test_vault_client_base_render_template(vault):
+
+    vault.db = {"a/b": "c"}
+
+    assert vault.render_template("Hello {{ vault('a/b') }}") == "Hello c"
+
+
+def test_vault_client_base_render_template_path_not_found(vault):
+    with pytest.raises(exceptions.VaultRenderTemplateError):
+        vault.render_template("Hello {{ vault('a/b') }}")
+
+
+@pytest.mark.parametrize(
+    "vault_contents, expected",
+    [
+        # Secret is not a template
+        ({"a": "b"}, "b"),
+        # Secret not a string
+        ({"a": ["yay"]}, ["yay"]),
+        # Secret is a template without variable expansion
+        ({"a": "!template!b", "b": "c"}, "b"),
+        # Secret is a template
+        ({"a": "!template!{{ vault('b') }}", "b": "c"}, "c"),
+        # No recursion
+        (
+            {
+                "a": "!template!{{ vault('b') }}",
+                "b": "!template!{{ vault('c') }}",
+                "c": "d",
+            },
+            "!template!{{ vault('c') }}",
+        ),
+    ],
+)
+def test_vault_client_base_get_secret(vault, vault_contents, expected):
+    vault.db = vault_contents
+
+    assert vault.get_secret("a") == expected
+
+
+def test_vault_client_base_get_secret_with_dict(vault):
+    vault.db = {
+        "credentials": {"username": "foo", "password": "bar"},
+        "dsn": "!template!proto://{{ vault('credentials')['username'] }}:{{ vault('credentials').password }}@host",
+    }
+
+    assert vault.get_secret("dsn") == "proto://foo:bar@host"
+
+
+def test_vault_client_base_get_secret_not_found(vault):
+    vault.db = {}
+
+    with pytest.raises(exceptions.VaultSecretNotFound):
+        vault.get_secret("not-exiting")
+
+
+def test_vault_client_base_lookup_token(vault):
+    assert vault.lookup_token() == {"data": {"expire_time": "2100-01-01T00:00:00"}}
+
+
+def test_vault_client_base_get_secrets_error(vault):
+    vault.db = {"a": "b", "c": "d"}
+    vault.forbidden_get_paths = {"c"}
+
+    assert vault.get_secrets("") == {"a": "b", "c": "<error while retrieving secret>"}
