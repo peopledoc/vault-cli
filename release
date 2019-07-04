@@ -38,14 +38,16 @@ git commit -m "Release ${VERSION}"
 
 # Python release
 rm -rf dist/ build/
-python setup.py sdist bdist_wheel
+python3 setup.py sdist bdist_wheel
 twine upload dist/*
 
 # Tag
 git tag -s -m "Tag ${VERSION}" ${VERSION}
 git push origin ${VERSION}
 
-read -p "Version to release: " NEXT_VERSION
+echo "Released ${VERSION}"
+
+read -p "Next version to prepare: " NEXT_VERSION
 # Prepare next version
 sed -i "s/version = .\\+$/version = ${NEXT_VERSION}.dev0/" setup.cfg
 git add setup.cfg
