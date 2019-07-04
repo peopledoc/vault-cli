@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-0.7.0 (unreleased)
+0.7.0 (2019-07-04)
 ------------------
 
 - Add `vault lookup-token` (#77)
@@ -13,7 +13,7 @@ CHANGELOG
   the `base_path` to the path parameter
 - Add `vault --version` (#84)
 
-0.6.0 (2019-15-06)
+0.6.0 (2019-06-15)
 ------------------
 
 - Add --safe-write. 0.5.1's behaviour of not allowing overwriting without -f is not the default anymore (breaking change) (#73)
