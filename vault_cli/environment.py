@@ -1,13 +1,18 @@
 import json
 import os
 import pathlib
-from typing import Dict, NoReturn, Sequence
+from typing import Dict, NoReturn, Optional, Sequence
 
 from vault_cli import types
 
 
-def make_env_key(path: str, key: str) -> str:
-    relative = pathlib.Path(key).relative_to(pathlib.Path(path).parent)
+def make_env_key(path: str, prefix: Optional[str], key: str) -> str:
+    if prefix:
+        relative = pathlib.Path(prefix) / pathlib.Path(key).relative_to(
+            pathlib.Path(path)
+        )
+    else:
+        relative = pathlib.Path(key).relative_to(pathlib.Path(path).parent)
     return str(relative).upper().replace("/", "_")
 
 

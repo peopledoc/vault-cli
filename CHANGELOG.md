@@ -7,6 +7,8 @@ CHANGELOG
 - Add `vault lookup-token` (#77)
 - Remove `client.get_all()` (after deprecation period)
 - Add template values and `--render` features in client and cli (#65)
+- Add possibility to customize environment variables names in `vault env` using
+  `--path path/to/keys=myprefix`
 
 0.6.0 (2019-15-06)
 ------------------

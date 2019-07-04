@@ -238,9 +238,16 @@ third_secret: '----BEGIN SECRET KEY----
 ```console
 $ vault env --path blob_secret -- env
 ...
-code=supercode
+BLOB_SECRET={"code": "supercode"}
+...
+$ vault set foo/bar/service/instance/dsn value
+$ vault env --path blob_secret=blob --path foo/bar/service/instance=my -- env
+...
+BLOB={"code": "supercode"}
+MY_DSN=value
 ...
 ```
+
 
 ### Render a template file with values from the vault
 ```console
