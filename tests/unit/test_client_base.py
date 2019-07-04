@@ -102,17 +102,7 @@ def test_vault_client_ca_bundle_verify(mocker, verify, ca_bundle, expected):
             session_kwargs.update(kwargs)
 
     with pytest.raises(exceptions.VaultAuthenticationError):
-        TestVaultClient(
-            verify=verify,
-            ca_bundle=ca_bundle,
-            username=None,
-            password=None,
-            url=None,
-            token=None,
-            base_path=None,
-            login_cert=None,
-            login_cert_key=None,
-        ).auth()
+        TestVaultClient(verify=verify, ca_bundle=ca_bundle).auth()
 
     assert session_kwargs["verify"] == expected
 
@@ -404,3 +394,38 @@ def test_vault_client_base_get_secrets_error(vault):
     vault.forbidden_get_paths = {"c"}
 
     assert vault.get_secrets("") == {"a": "b", "c": "<error while retrieving secret>"}
+
+
+@pytest.mark.parametrize(
+    "method, params, expected",
+    [
+        ("get_secret", ["foo"], {"path": "base/foo"}),
+        ("get_secret", ["/foo"], {"path": "/foo"}),
+        ("delete_secret", ["foo"], {"path": "base/foo"}),
+        ("delete_secret", ["/foo"], {"path": "/foo"}),
+        ("list_secrets", ["foo"], {"path": "base/foo"}),
+        ("list_secrets", ["/foo"], {"path": "/foo"}),
+        ("set_secret", ["foo", "value"], {"path": "base/foo", "value": "value"}),
+        ("set_secret", ["/foo", "value"], {"path": "/foo", "value": "value"}),
+    ],
+)
+def test_vault_client_base_absolute_path(vault, mocker, method, params, expected):
+    mocked = mocker.patch(f"vault_cli.testing.TestVaultClient._{method}")
+    vault.base_path = "base/"
+
+    getattr(vault, method)(*params)
+    mocked.assert_called_with(**expected)
+
+
+@pytest.mark.parametrize("path, expected", [("foo", "base/foo"), ("/foo", "/foo")])
+def test_vault_client_base_build_full_path(vault, path, expected):
+    vault.base_path = "base/"
+    assert vault._build_full_path(path) == expected
+
+
+@pytest.mark.parametrize(
+    "path, expected", [("foo", "foo/"), ("foo/", "foo/"), ("foo//", "foo/")]
+)
+def test_vault_client_base_base_path(vault, path, expected):
+    vault.base_path = path
+    assert vault.base_path == expected
