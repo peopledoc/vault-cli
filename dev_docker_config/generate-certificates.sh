@@ -26,7 +26,7 @@ generate_certificate(){
     -keyout "certs/${1}.key" \
     -config <(echo " \
         [ req ]
-        default_bits = 1024
+        default_bits = 2048
         encrypt_key = no
         default_md = sha256
         utf8only = yes
