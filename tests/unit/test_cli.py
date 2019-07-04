@@ -243,6 +243,22 @@ def test_env(cli_runner, vault_with_token, mocker):
     assert kwargs["environ"]["FOO_BAZ"] == "yo"
 
 
+def test_env_prefix(cli_runner, vault_with_token, mocker):
+    exec_command = mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.db = {"foo/bar": "yay", "foo/baz": "yo"}
+    cli_runner.invoke(
+        cli.cli,
+        ["env", "--path", "foo=prefix", "--", "echo", "yay"],
+        catch_exceptions=False,
+    )
+
+    _, kwargs = exec_command.call_args
+    assert kwargs["command"] == ("echo", "yay")
+    assert kwargs["environ"]["PREFIX_BAR"] == "yay"
+    assert kwargs["environ"]["PREFIX_BAZ"] == "yo"
+
+
 def test_main(mocker):
     mock_cli = mocker.patch("vault_cli.cli.cli")
     environ = mocker.patch("os.environ", {})

@@ -285,7 +285,7 @@ def delete(client_obj: client.VaultClientBase, name: str) -> None:
     "--path",
     multiple=True,
     required=True,
-    help="Folder or single item. Pass several times to load multiple values",
+    help="Folder or single item. Pass several times to load multiple values. You can use --path mypath=prefix if you want to change the generated names of the environment variables",
 )
 @click.argument("command", nargs=-1)
 @click.pass_obj
@@ -298,17 +298,33 @@ def env(
 
     Strings are exported as-is, other types (including booleans, nulls, dicts, lists)
     are exported as yaml (more specifically as json).
+
+    VARIABLE NAMES
+
+    If the path is not a folder the prefix value is used as the name of the
+    variable.
+    e.g.: for a/b/key, `--path a/b/c=foo` gives `FOO=...`
+
+    If the path is a folder, then the variable names will be generated as:
+    PREFIX + _ + relative path
+    e.g.: for a/b/key, `--path a/b=my` gives `MY_KEY=...`
+
+    The standard behavior when no prefix is set will use the relative path to
+    the parent of the given path as variable name
+    e.g.: for a/b/key, --path a/b gives `B_KEY=...`
+    e.g.: for a/b/key, --path a/b/key gives `KEY=...`
     """
     paths = list(path) or [""]
 
     env_secrets = {}
 
     for path in paths:
+        path, _, prefix = path.partition("=")
         secrets = client_obj.get_secrets(path)
         env_secrets.update(
             {
                 environment.make_env_key(
-                    path=path, key=key
+                    path=path, prefix=prefix, key=key
                 ): environment.make_env_value(value)
                 for key, value in secrets.items()
             }
