@@ -102,17 +102,7 @@ def test_vault_client_ca_bundle_verify(mocker, verify, ca_bundle, expected):
             session_kwargs.update(kwargs)
 
     with pytest.raises(exceptions.VaultAuthenticationError):
-        TestVaultClient(
-            verify=verify,
-            ca_bundle=ca_bundle,
-            username=None,
-            password=None,
-            url=None,
-            token=None,
-            base_path=None,
-            login_cert=None,
-            login_cert_key=None,
-        ).auth()
+        TestVaultClient(verify=verify, ca_bundle=ca_bundle).auth()
 
     assert session_kwargs["verify"] == expected
 
@@ -425,3 +415,9 @@ def test_vault_client_base_absolute_path(vault, mocker, method, params, expected
 
     getattr(vault, method)(*params)
     mocked.assert_called_with(**expected)
+
+
+@pytest.mark.parametrize("path, expected", [("foo", "base/foo"), ("/foo", "/foo")])
+def test_vault_client_base_build_full_path(vault, path, expected):
+    vault.base_path = "base/"
+    assert vault._build_full_path(path) == expected
