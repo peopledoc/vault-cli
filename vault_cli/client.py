@@ -97,7 +97,7 @@ class VaultClientBase:
         self.url = url
         self.verify: types.VerifyOrCABundle = verify
         self.ca_bundle = ca_bundle
-        self.base_path = base_path or ""
+        self.base_path = base_path
         self.login_cert = login_cert
         self.login_cert_key = login_cert_key
         self.token = token
@@ -105,6 +105,15 @@ class VaultClientBase:
         self.password = password
         self.safe_write = safe_write
         self.render = render
+
+    @property
+    def base_path(self):
+        return self._base_path
+
+    @base_path.setter
+    def base_path(self, path: str):
+        # ensure the base_path ends with a single '/'
+        self._base_path = (path.rstrip("/") + "/") if path else ""
 
     def auth(self):
         verify_ca_bundle = self.verify
@@ -120,9 +129,6 @@ class VaultClientBase:
             login_cert=self.login_cert,
             login_cert_key=self.login_cert_key,
         )
-
-        if self.base_path:
-            self.base_path = (self.base_path or "").rstrip("/") + "/"
 
         if self.token:
             self._authenticate_token(self.token)

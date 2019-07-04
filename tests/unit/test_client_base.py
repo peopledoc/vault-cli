@@ -421,3 +421,11 @@ def test_vault_client_base_absolute_path(vault, mocker, method, params, expected
 def test_vault_client_base_build_full_path(vault, path, expected):
     vault.base_path = "base/"
     assert vault._build_full_path(path) == expected
+
+
+@pytest.mark.parametrize(
+    "path, expected", [("foo", "foo/"), ("foo/", "foo/"), ("foo//", "foo/")]
+)
+def test_vault_client_base_base_path(vault, path, expected):
+    vault.base_path = path
+    assert vault.base_path == expected
