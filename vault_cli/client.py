@@ -121,7 +121,8 @@ class VaultClientBase:
             login_cert_key=self.login_cert_key,
         )
 
-        self.base_path = (self.base_path or "").rstrip("/") + "/"
+        if self.base_path:
+            self.base_path = (self.base_path or "").rstrip("/") + "/"
 
         if self.token:
             self._authenticate_token(self.token)
@@ -156,6 +157,14 @@ class VaultClientBase:
         for when exiting the client used as context manager.
         """
         pass
+
+    def _build_full_path(self, path: str) -> str:
+        if path.startswith("/"):
+            # absolute path
+            return path
+        else:
+            # path relative to base_path
+            return self.base_path + path
 
     def _browse_recursive_secrets(
         self, path: str, render: bool = True
@@ -220,16 +229,16 @@ class VaultClientBase:
         return result
 
     def list_secrets(self, path: str) -> Iterable[str]:
-        return self._list_secrets(path=path)
+        return self._list_secrets(path=self._build_full_path(path))
 
     def get_secret(self, path: str, render: bool = True) -> types.JSONValue:
-        secret = self._get_secret(path=path)
+        secret = self._get_secret(path=self._build_full_path(path))
         if render and self.render:
             secret = self._render_template_value(secret)
         return secret
 
     def delete_secret(self, path: str) -> None:
-        return self._delete_secret(path=path)
+        return self._delete_secret(path=self._build_full_path(path))
 
     def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
         """
@@ -339,7 +348,7 @@ class VaultClientBase:
                     f"Cannot create a secret at '{path}' because '{parent}' already exists as a secret"
                 )
 
-        self._set_secret(path=path, value=value)
+        self._set_secret(path=self._build_full_path(path), value=value)
 
     def _init_client(
         self,
@@ -431,25 +440,25 @@ class VaultClient(VaultClientBase):
 
     @handle_errors()
     def _list_secrets(self, path: str) -> Iterable[str]:
-        secrets = self.client.list(self.base_path + path)
+        secrets = self.client.list(path)
         if not secrets:
             return []
         return secrets["data"]["keys"]
 
     @handle_errors()
     def _get_secret(self, path: str) -> types.JSONValue:
-        secret = self.client.read(self.base_path + path)
+        secret = self.client.read(path)
         if not secret:
             raise exceptions.VaultSecretNotFound()
         return secret["data"]["value"]
 
     @handle_errors()
     def _delete_secret(self, path: str) -> None:
-        self.client.delete(self.base_path + path)
+        self.client.delete(path)
 
     @handle_errors()
     def _set_secret(self, path: str, value: types.JSONValue) -> None:
-        self.client.write(self.base_path + path, value=value)
+        self.client.write(path, value=value)
 
     @handle_errors()
     def _lookup_token(self) -> types.JSONDict:

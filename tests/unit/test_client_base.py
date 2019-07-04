@@ -404,3 +404,24 @@ def test_vault_client_base_get_secrets_error(vault):
     vault.forbidden_get_paths = {"c"}
 
     assert vault.get_secrets("") == {"a": "b", "c": "<error while retrieving secret>"}
+
+
+@pytest.mark.parametrize(
+    "method, params, expected",
+    [
+        ("get_secret", ["foo"], {"path": "base/foo"}),
+        ("get_secret", ["/foo"], {"path": "/foo"}),
+        ("delete_secret", ["foo"], {"path": "base/foo"}),
+        ("delete_secret", ["/foo"], {"path": "/foo"}),
+        ("list_secrets", ["foo"], {"path": "base/foo"}),
+        ("list_secrets", ["/foo"], {"path": "/foo"}),
+        ("set_secret", ["foo", "value"], {"path": "base/foo", "value": "value"}),
+        ("set_secret", ["/foo", "value"], {"path": "/foo", "value": "value"}),
+    ],
+)
+def test_vault_client_base_absolute_path(vault, mocker, method, params, expected):
+    mocked = mocker.patch(f"vault_cli.testing.TestVaultClient._{method}")
+    vault.base_path = "base/"
+
+    getattr(vault, method)(*params)
+    mocked.assert_called_with(**expected)

@@ -64,7 +64,7 @@ def test_get_secret(mock_hvac):
 
     mock_hvac.read.return_value = {"data": {"value": "b"}}
 
-    assert get_client().get_secret("a") == "b"
+    assert get_client()._get_secret("bla/a") == "b"
 
     mock_hvac.read.assert_called_with("bla/a")
 
@@ -74,7 +74,7 @@ def test_get_secret_not_found(mock_hvac):
     mock_hvac.read.return_value = None
 
     with pytest.raises(exceptions.VaultAPIException):
-        assert get_client().get_secret("a")
+        assert get_client()._get_secret("bla/a")
 
     mock_hvac.read.assert_called_with("bla/a")
 
@@ -88,7 +88,7 @@ def test_get_secret_no_verify():
 def test_list_secrets(mock_hvac):
     mock_hvac.list.return_value = {"data": {"keys": ["b"]}}
 
-    assert get_client().list_secrets("a") == ["b"]
+    assert get_client()._list_secrets("bla/a") == ["b"]
 
     mock_hvac.list.assert_called_with("bla/a")
 
@@ -96,28 +96,28 @@ def test_list_secrets(mock_hvac):
 def test_list_secrets_empty(mock_hvac):
     mock_hvac.list.return_value = None
 
-    assert get_client().list_secrets("a") == []
+    assert get_client()._list_secrets("bla/a") == []
 
     mock_hvac.list.assert_called_with("bla/a")
 
 
 def test_delete_secret(mock_hvac):
 
-    get_client().delete_secret("a")
+    get_client()._delete_secret("bla/a")
 
     mock_hvac.delete.assert_called_with("bla/a")
 
 
 def test_set_secret(mock_hvac):
 
-    get_client()._set_secret("a", "b")
+    get_client()._set_secret("bla/a", "b")
 
     mock_hvac.write.assert_called_with("bla/a", value="b")
 
 
 def test_lookup_token(mock_hvac):
 
-    get_client().lookup_token()
+    get_client()._lookup_token()
 
     mock_hvac.lookup_token.assert_called_with()
 

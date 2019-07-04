@@ -75,7 +75,6 @@ def vault_with_token(vault):
 
 def test_list(cli_runner, vault_with_token):
     vault_with_token.db = {"foo": "yay", "baz": "ho"}
-    print(vault_with_token.token)
     result = cli_runner.invoke(cli.cli, ["list"])
 
     assert result.output == "baz\nfoo\n"

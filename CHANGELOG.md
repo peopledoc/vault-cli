@@ -9,6 +9,8 @@ CHANGELOG
 - Add template values and `--render` features in client and cli (#65)
 - Add possibility to customize environment variables names in `vault env` using
   `--path path/to/keys=myprefix`
+- Support absolute path (starting with /): in this case we don't prepend
+  the `base_path` to the path parameter
 
 0.6.0 (2019-15-06)
 ------------------

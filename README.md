@@ -104,6 +104,19 @@ $ vault set my_other_secret supersecret
 Done
 ```
 
+### Read/write a secret outside the base path
+```console
+$ export VAULT_CLI_BASE_PATH=myapp/
+$ vault set /global_secret sharedsecret
+Done
+$ vault get --text /global_secret
+sharedsecret
+$ vault get --text global_secret
+Error: Secret not found
+$ unset VAULT_CLI_BASE_PATH
+```
+
+
 ### Write a secret via stdin.
 You can use this when the secret has multiple lines or starts with a "-"
 
