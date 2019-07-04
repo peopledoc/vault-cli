@@ -4,6 +4,7 @@ import click
 import pytest
 import yaml
 
+import vault_cli
 from vault_cli import cli, exceptions, settings
 
 # To debug cli_runner.invoke, add the argument "catch_exceptions=False"
@@ -232,9 +233,7 @@ def test_env(cli_runner, vault_with_token, mocker):
     exec_command = mocker.patch("vault_cli.environment.exec_command")
 
     vault_with_token.db = {"foo/bar": "yay", "foo/baz": "yo"}
-    cli_runner.invoke(
-        cli.cli, ["env", "--path", "foo", "--", "echo", "yay"], catch_exceptions=False
-    )
+    cli_runner.invoke(cli.cli, ["env", "--path", "foo", "--", "echo", "yay"])
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
@@ -246,11 +245,7 @@ def test_env_prefix(cli_runner, vault_with_token, mocker):
     exec_command = mocker.patch("vault_cli.environment.exec_command")
 
     vault_with_token.db = {"foo/bar": "yay", "foo/baz": "yo"}
-    cli_runner.invoke(
-        cli.cli,
-        ["env", "--path", "foo=prefix", "--", "echo", "yay"],
-        catch_exceptions=False,
-    )
+    cli_runner.invoke(cli.cli, ["env", "--path", "foo=prefix", "--", "echo", "yay"])
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
@@ -450,7 +445,7 @@ def test_template(cli_runner, vault_with_token):
 def test_lookup_token(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": "c"}
 
-    result = cli_runner.invoke(cli.cli, ["lookup-token"], catch_exceptions=False)
+    result = cli_runner.invoke(cli.cli, ["lookup-token"])
 
     assert result.exit_code == 0
     assert yaml.safe_load(result.stdout)["data"]["expire_time"].startswith(
@@ -465,3 +460,11 @@ def test_handle_errors(cli_runner):
 
     with pytest.raises(click.ClickException):
         inner()
+
+
+def test_version(cli_runner):
+    result = cli_runner.invoke(cli.cli, ["--version"])
+
+    assert result.exit_code == 0
+    assert result.stdout.startswith("vault-cli " + vault_cli.__version__)
+    assert result.stdout.endswith("License: Apache Software License\n")

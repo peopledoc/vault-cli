@@ -11,6 +11,7 @@ CHANGELOG
   `--path path/to/keys=myprefix`
 - Support absolute path (starting with /): in this case we don't prepend
   the `base_path` to the path parameter
+- Add `vault --version` (#84)
 
 0.6.0 (2019-15-06)
 ------------------

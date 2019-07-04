@@ -6,6 +6,7 @@ from typing import Any, Dict, Mapping, NoReturn, Optional, Sequence, TextIO
 import click
 import yaml
 
+import vault_cli
 from vault_cli import client, environment, exceptions, settings, types
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,14 @@ def handle_errors():
         yield
     except exceptions.VaultException as exc:
         raise click.ClickException(str(exc))
+
+
+def print_version(ctx, __, value):
+    if not value or ctx.resilient_parsing:
+        return
+    click.echo(f"vault-cli {vault_cli.__version__}")
+    click.echo(f"License: {vault_cli.__license__}")
+    ctx.exit()
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -114,6 +123,14 @@ def handle_errors():
     help="Config file to use. Use 'no' to disable config file. "
     "Default value: first of " + ", ".join(settings.CONFIG_FILES),
     type=click.Path(),
+)
+@click.option(
+    "-V",
+    "--version",
+    is_flag=True,
+    callback=print_version,
+    expose_value=False,
+    is_eager=True,
 )
 @handle_errors()
 def cli(ctx: click.Context, **kwargs) -> None:
