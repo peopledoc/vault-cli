@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-0.8.0 (unreleased)
+0.8.0 (2019-07-05)
 ------------------
 
 - vault get defaults to text for string secrets, yaml for complex types (#87)
