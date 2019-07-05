@@ -82,20 +82,34 @@ def test_list(cli_runner, vault_with_token):
     assert result.exit_code == 0
 
 
-def test_get_text(cli_runner, vault_with_token):
+@pytest.mark.parametrize("extra_args", [["--text"], []])
+def test_get_text(cli_runner, vault_with_token, extra_args):
 
     vault_with_token.db = {"a": "bar"}
-    result = cli_runner.invoke(cli.cli, ["get", "a", "--text"])
+    result = cli_runner.invoke(cli.cli, ["get", "a"] + extra_args)
 
     assert result.output == "bar\n"
     assert result.exit_code == 0
 
 
-def test_get_yaml(cli_runner, vault_with_token):
-    vault_with_token.db = {"a": "bar"}
+@pytest.mark.parametrize(
+    "input, output",
+    [([1, 2], "---\n- 1\n- 2\n"), ({"a": "b"}, "---\na: b\n"), (None, "null\n")],
+)
+def test_get_text_special_cases(cli_runner, vault_with_token, input, output):
+
+    vault_with_token.db = {"a": input}
     result = cli_runner.invoke(cli.cli, ["get", "a"])
 
-    assert yaml.safe_load(result.output) == "bar"
+    assert result.output == output
+    assert result.exit_code == 0
+
+
+def test_get_yaml(cli_runner, vault_with_token):
+    vault_with_token.db = {"a": "bar"}
+    result = cli_runner.invoke(cli.cli, ["get", "a", "--yaml"])
+
+    assert result.output == "--- bar\n...\n"
     assert result.exit_code == 0
 
 
