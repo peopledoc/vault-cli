@@ -26,6 +26,10 @@ def test_integration_cli(cli_runner, clean_vault):
 
     assert call(cli_runner, ["get", "a", "--text"]).output == "b\n"
 
+    assert call(cli_runner, ["get", "a"]).output == "b\n"
+
+    assert call(cli_runner, ["get", "a", "--yaml"]).output == "--- b\n...\n"
+
     # Both testing it and using it to clean the vault
     call(cli_runner, ["delete-all", "--force"])
 
@@ -37,7 +41,7 @@ def test_integration_cli(cli_runner, clean_vault):
 
     call(cli_runner, ["set", "c/d", "e"])
 
-    assert call(cli_runner, ["get", "c/d"]).output == "--- e\n...\n"
+    assert call(cli_runner, ["get", "c/d"]).output == "e\n"
 
     assert call(cli_runner, ["list"]).output == "a\nc/\n"
 

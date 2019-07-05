@@ -204,11 +204,11 @@ def get_all(client_obj: client.VaultClientBase, path: Sequence[str]):
 @cli.command()
 @click.pass_obj
 @click.option(
-    "--text",
-    is_flag=True,
+    "--text/--yaml",
+    default=True,
     help=(
-        "--text implies --without-key. Returns the value in "
-        "plain text format instead of yaml."
+        "Returns the value in yaml format instead of plain text."
+        "If the secret is not a string, it will always be yaml."
     ),
 )
 @click.argument("name")
@@ -218,7 +218,10 @@ def get(client_obj: client.VaultClientBase, text: bool, name: str):
     Return a single secret value.
     """
     secret = client_obj.get_secret(path=name)
-    if text:
+    force_yaml = isinstance(secret, list) or isinstance(secret, dict)
+    if text and not force_yaml:
+        if secret is None:
+            secret = "null"
         click.echo(secret)
         return
 

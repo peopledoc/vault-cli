@@ -85,17 +85,17 @@ $ vault --url=https://vault.mydomain:8200 --certificate=/etc/vault/certificate.k
 
 On the following examples, we'll be considering that we have a complete configuration file.
 
-### Read a secret (default is yaml format)
+### Read a secret in plain text (default)
 ```console
 $ vault get my_secret
---- qwerty
-...
+qwerty
 ```
 
-### Read a secret in plain text
+### Read a secret in yaml format
 ```console
-$ vault get my_secret --text
-qwerty
+$ vault get --yaml my_secret
+--- qwerty
+...
 ```
 
 ### Write a secret
@@ -109,9 +109,9 @@ Done
 $ export VAULT_CLI_BASE_PATH=myapp/
 $ vault set /global_secret sharedsecret
 Done
-$ vault get --text /global_secret
+$ vault get /global_secret
 sharedsecret
-$ vault get --text global_secret
+$ vault get global_secret
 Error: Secret not found
 $ unset VAULT_CLI_BASE_PATH
 ```
@@ -127,7 +127,7 @@ $ vault set third_secret --stdin
 <hit ctrl+d to end stdin>
 Done
 
-vault get --text third_secret
+vault get third_secret
 ----BEGIN SECRET KEY----
 ...
 ```
@@ -144,7 +144,7 @@ Done
 $ vault set -- -secret-name -oh-so-secret
 Done
 
-$ vault get --text -- -secret-name
+$ vault get -- -secret-name
 -oh-so-secret
 ```
 
@@ -159,6 +159,7 @@ Done
 $ vault set list_secret secret1 secret2 secret3
 Done
 
+# (For complex types, yaml format is selected)
 $ vault get list_secret
 ---
 - secret1
@@ -176,7 +177,7 @@ Error: Secret already exists at a. Use -f to force overwriting.
 $ vault --safe-write set -f a c
 Done
 ```
-(`safe-write` can be set in your configuration file, see below for details)
+(`safe-write` can be set in your configuration file, see details below)
 
 ### Get all values from the vault in a single command (yaml format)
 ```console
@@ -293,7 +294,7 @@ $ vault delete-all --force
 ```console
 $ vault set password foo
 $ vault set dsn '!template!proto://username:{{ vault("password") }}@host/'
-$ vault get --text dsn
+$ vault get dsn
 proto://username:foo@host/
 $ vault --no-render get --text dsn
 !template!proto://username:{{ vault("password") }}@host/
