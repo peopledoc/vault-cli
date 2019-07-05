@@ -51,6 +51,7 @@ Options:
   --config-file PATH              Config file to use. Use 'no' to disable
                                   config file. Default value: first of
                                   ./.vault.yml, ~/.vault.yml, /etc/vault.yml
+  -V, --version
   -h, --help                      Show this message and exit.
 
 Commands:
