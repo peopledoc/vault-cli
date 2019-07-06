@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+master (unreleased)
+-------------------
+
+- Add a `--prompt` option to prompt user to fill the secret value without showing it in the history or the screen (#94).
+
 0.8.0 (2019-07-05)
 ------------------
 
