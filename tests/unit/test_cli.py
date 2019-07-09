@@ -155,6 +155,35 @@ def test_set_stdin_yaml(cli_runner, vault_with_token):
     assert vault_with_token.db == {"a": {"b": "c"}}
 
 
+def test_set_with_both_prompt_and_value(cli_runner, vault_with_token):
+
+    result = cli_runner.invoke(cli.cli, ["set", "--prompt", "a", "b"])
+
+    assert result.exit_code != 0
+    assert vault_with_token.db == {}
+
+
+def test_set_with_both_prompt_and_stdin(cli_runner, vault_with_token):
+
+    result = cli_runner.invoke(cli.cli, ["set", "--prompt", "--stdin", "a"])
+
+    assert result.exit_code != 0
+    assert vault_with_token.db == {}
+
+
+def test_set_prompt(cli_runner, mocker, vault_with_token):
+
+    prompt = mocker.patch("click.prompt")
+    prompt.return_value = "b"
+    result = cli_runner.invoke(cli.cli, ["set", "--prompt", "a"])
+    # test for prompt function
+    prompt.assert_called_with("Please enter value for `a`", hide_input=True)
+
+    # Correctly stored secret.
+    assert result.exit_code == 0
+    assert vault_with_token.db == {"a": "b"}
+
+
 def test_set_list(cli_runner, vault_with_token):
 
     result = cli_runner.invoke(cli.cli, ["set", "a", "b", "c"])

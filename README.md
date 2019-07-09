@@ -140,6 +140,16 @@ $ cat my_certificate.key | vault set third_secret --stdin
 Done
 ```
 
+### Write a secret using an invisible input prompt
+
+This will avoid your secrets to be displayed in plain text in your shell history.
+
+ ```console
+ $ vault set mykey --prompt
+ Please enter value for `mykey`:
+ Done
+ ```
+
 ### Anything following "--" will not be seen as a flag even if it starts with a "-"
 ```console
 $ vault set -- -secret-name -oh-so-secret

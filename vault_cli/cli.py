@@ -233,6 +233,12 @@ def get(client_obj: client.VaultClientBase, text: bool, name: str):
 @cli.command("set")
 @click.pass_obj
 @click.option("--yaml", "format_yaml", is_flag=True)
+@click.option(
+    "--prompt",
+    is_flag=True,
+    default=False,
+    help="Prompt user for value using a hidden input.",
+)
 @click.option("--stdin/--no-stdin", default=False)
 @click.option(
     "--force/--no-force",
@@ -248,6 +254,7 @@ def get(client_obj: client.VaultClientBase, text: bool, name: str):
 def set_(
     client_obj: client.VaultClientBase,
     format_yaml: bool,
+    prompt: bool,
     stdin: bool,
     name: str,
     value: Sequence[str],
@@ -259,12 +266,22 @@ def set_(
     Value can be either passed as argument (several arguments will be
     interpreted as a list) or via stdin with the --stdin flag.
     """
+    if prompt and value:
+        raise click.UsageError("Can't set both --prompt and a value")
+
     if stdin and value:
         raise click.UsageError("Can't set both --stdin and a value")
+
+    if stdin and prompt:
+        raise click.UsageError("Can't use both --stdin and --prompt")
 
     final_value: types.JSONValue
     if stdin:
         final_value = click.get_text_stream("stdin").read().strip()
+    elif prompt:
+        final_value = click.prompt(
+            f"Please enter value for `{name}`", hide_input=True
+        ).strip()
 
     elif len(value) == 1:
         final_value = value[0]
