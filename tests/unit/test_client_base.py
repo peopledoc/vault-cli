@@ -407,8 +407,16 @@ def test_vault_client_base_get_secrets_error(vault):
         ("delete_secret", ["/foo"], {"path": "/foo"}),
         ("list_secrets", ["foo"], {"path": "base/foo"}),
         ("list_secrets", ["/foo"], {"path": "/foo"}),
-        ("set_secret", ["foo", "value"], {"path": "base/foo", "value": "value"}),
-        ("set_secret", ["/foo", "value"], {"path": "/foo", "value": "value"}),
+        (
+            "set_secret",
+            ["foo", "value"],
+            {"path": "base/foo", "secret": {"value": "value"}},
+        ),
+        (
+            "set_secret",
+            ["/foo", "value"],
+            {"path": "/foo", "secret": {"value": "value"}},
+        ),
     ],
 )
 def test_vault_client_base_absolute_path(vault, mocker, method, params, expected):

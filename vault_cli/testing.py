@@ -26,7 +26,7 @@ class TestVaultClient(client.VaultClientBase):
         if path in self.forbidden_get_paths:
             raise exceptions.VaultForbidden()
         try:
-            return self.db[path]["value"]
+            return self.db[path]
         except KeyError:
             raise exceptions.VaultSecretNotFound()
 
@@ -46,8 +46,8 @@ class TestVaultClient(client.VaultClientBase):
 
         return sorted(set(result) - {""})
 
-    def _set_secret(self, path, value):
-        self.db[path] = {"value": value}
+    def _set_secret(self, path, secret):
+        self.db[path] = secret
 
     def _delete_secret(self, path):
         self.db.pop(path, None)

@@ -2,7 +2,7 @@ import contextlib
 import json
 import logging
 import pathlib
-from typing import Iterable, Optional, Tuple, Type
+from typing import Dict, Iterable, Optional, Tuple, Type
 
 import hvac
 import jinja2
@@ -238,7 +238,8 @@ class VaultClientBase:
         return self._list_secrets(path=self._build_full_path(path))
 
     def get_secret(self, path: str, render: bool = True) -> types.JSONValue:
-        secret = self._get_secret(path=self._build_full_path(path))
+        data = self._get_secret(path=self._build_full_path(path))
+        secret = data["value"]
         if render and self.render:
             secret = self._render_template_value(secret)
         return secret
@@ -354,7 +355,7 @@ class VaultClientBase:
                     f"Cannot create a secret at '{path}' because '{parent}' already exists as a secret"
                 )
 
-        self._set_secret(path=self._build_full_path(path), value=value)
+        self._set_secret(path=self._build_full_path(path), secret={"value": value})
 
     def _init_client(
         self,
@@ -377,13 +378,13 @@ class VaultClientBase:
     def _list_secrets(self, path: str) -> Iterable[str]:
         raise NotImplementedError
 
-    def _get_secret(self, path: str) -> types.JSONValue:
+    def _get_secret(self, path: str) -> Dict[str, types.JSONValue]:
         raise NotImplementedError
 
     def _delete_secret(self, path: str) -> None:
         raise NotImplementedError
 
-    def _set_secret(self, path: str, value: types.JSONValue) -> None:
+    def _set_secret(self, path: str, secret: Dict[str, types.JSONValue]) -> None:
         raise NotImplementedError
 
     def lookup_token(self) -> types.JSONDict:
@@ -452,19 +453,19 @@ class VaultClient(VaultClientBase):
         return secrets["data"]["keys"]
 
     @handle_errors()
-    def _get_secret(self, path: str) -> types.JSONValue:
+    def _get_secret(self, path: str) -> Dict[str, types.JSONValue]:
         secret = self.client.read(path)
         if not secret:
             raise exceptions.VaultSecretNotFound()
-        return secret["data"]["value"]
+        return secret["data"]
 
     @handle_errors()
     def _delete_secret(self, path: str) -> None:
         self.client.delete(path)
 
     @handle_errors()
-    def _set_secret(self, path: str, value: types.JSONValue) -> None:
-        self.client.write(path, value=value)
+    def _set_secret(self, path: str, secret: Dict[str, types.JSONValue]) -> None:
+        self.client.write(path, **secret)
 
     @handle_errors()
     def _lookup_token(self) -> types.JSONDict:
