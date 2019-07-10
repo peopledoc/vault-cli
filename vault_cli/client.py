@@ -239,7 +239,13 @@ class VaultClientBase:
 
     def get_secret(self, path: str, render: bool = True) -> types.JSONValue:
         data = self._get_secret(path=self._build_full_path(path))
-        secret = data["value"]
+        if len(data) == 1 and "value" in data:
+            # secrets set using vault-cli are in a key named "value".
+            # But some secrets (rabbitmq engine, secrets set from other clients) don't
+            # follow this rule.
+            secret = data["value"]
+        else:
+            secret = data
         if render and self.render:
             secret = self._render_template_value(secret)
         return secret

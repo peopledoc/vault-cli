@@ -369,6 +369,17 @@ def test_vault_client_base_get_secret(vault, vault_contents, expected):
     assert vault.get_secret("a") == expected
 
 
+def test_vault_client_base_get_secret_no_value(vault):
+    # the secret has no "value" key. This can not happen when the variable is
+    # set with vault-cli but can if set from another client or if we are using
+    # the rabbitmq engine
+    vault.db = {"rabbitmq/creds/role": {"username": "foo", "password": "bar"}}
+    assert vault.get_secret("rabbitmq/creds/role") == {
+        "username": "foo",
+        "password": "bar",
+    }
+
+
 def test_vault_client_base_get_secret_with_dict(vault):
     vault.db = {
         "credentials": {"value": {"username": "foo", "password": "bar"}},
