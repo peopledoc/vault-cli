@@ -108,7 +108,7 @@ def test_vault_client_ca_bundle_verify(mocker, verify, ca_bundle, expected):
 
 
 def test_vault_client_base_browse_recursive_secrets(vault):
-    vault.db = {"a": "secret-a", "b/c": "secret-bc"}
+    vault.db = {"a": {"value": "secret-a"}, "b/c": {"value": "secret-bc"}}
 
     result = list(vault._browse_recursive_secrets(""))
 
@@ -117,7 +117,7 @@ def test_vault_client_base_browse_recursive_secrets(vault):
 
 def test_vault_client_base_browse_recursive_secrets_single_secret(vault):
 
-    vault.db = {"a": "secret-a"}
+    vault.db = {"a": {"value": "secret-a"}}
 
     result = list(vault._browse_recursive_secrets("a"))
 
@@ -125,7 +125,7 @@ def test_vault_client_base_browse_recursive_secrets_single_secret(vault):
 
 
 def test_vault_client_base_get_all_secrets(vault):
-    vault.db = {"a/c": "secret-ac", "b": "secret-b"}
+    vault.db = {"a/c": {"value": "secret-ac"}, "b": {"value": "secret-b"}}
 
     result = vault.get_all_secrets("a", "")
 
@@ -140,7 +140,7 @@ def test_vault_client_base_get_all_secrets(vault):
     "input, expected", [("a", {"a/c": "secret-ac"}), ("b", {"b": "secret-b"})]
 )
 def test_vault_client_base_get_secrets(vault, input, expected):
-    vault.db = {"a/c": "secret-ac", "b": "secret-b"}
+    vault.db = {"a/c": {"value": "secret-ac"}, "b": {"value": "secret-b"}}
 
     result = vault.get_secrets(input)
 
@@ -148,17 +148,17 @@ def test_vault_client_base_get_secrets(vault, input, expected):
 
 
 def test_vault_client_base_delete_all_secrets_generator(vault):
-    vault.db = {"a/c": "secret-ac", "b": "secret-b"}
+    vault.db = {"a/c": {"value": "secret-ac"}, "b": {"value": "secret-b"}}
 
     result = vault.delete_all_secrets("a", "b", generator=True)
 
     assert next(result) == "a/c"
 
-    assert vault.db == {"a/c": "secret-ac", "b": "secret-b"}
+    assert vault.db == {"a/c": {"value": "secret-ac"}, "b": {"value": "secret-b"}}
 
     assert next(result) == "b"
 
-    assert vault.db == {"b": "secret-b"}
+    assert vault.db == {"b": {"value": "secret-b"}}
 
     with pytest.raises(StopIteration):
         next(result)
@@ -167,7 +167,7 @@ def test_vault_client_base_delete_all_secrets_generator(vault):
 
 
 def test_vault_client_base_delete_all_secrets_no_generator(vault):
-    vault.db = {"a/c": "secret-ac", "b": "secret-b"}
+    vault.db = {"a/c": {"value": "secret-ac"}, "b": {"value": "secret-b"}}
 
     result = vault.delete_all_secrets("a", "b")
 
@@ -186,7 +186,7 @@ def test_vault_client_set_secret(vault):
 
     vault.set_secret("a/b", "c")
 
-    assert vault.db == {"a/b": "c"}
+    assert vault.db == {"a/b": {"value": "c"}}
 
 
 @pytest.mark.parametrize(
@@ -194,13 +194,13 @@ def test_vault_client_set_secret(vault):
 )
 def test_vault_client_set_secret_overwrite_invalid(vault, safe_write, force):
 
-    vault.db = {"a/b": "d"}
+    vault.db = {"a/b": {"value": "d"}}
     vault.safe_write = safe_write
 
     with pytest.raises(exceptions.VaultOverwriteSecretError):
         vault.set_secret("a/b", "c", force=force)
 
-    assert vault.db == {"a/b": "d"}
+    assert vault.db == {"a/b": {"value": "d"}}
 
 
 @pytest.mark.parametrize(
@@ -209,32 +209,32 @@ def test_vault_client_set_secret_overwrite_invalid(vault, safe_write, force):
 )
 def test_vault_client_set_secret_overwrite_valid(vault, safe_write, force, value):
 
-    vault.db = {"a/b": "d"}
+    vault.db = {"a/b": {"value": "d"}}
     vault.safe_write = safe_write
 
     vault.set_secret("a/b", value, force=force)
 
-    assert vault.db == {"a/b": value}
+    assert vault.db == {"a/b": {"value": value}}
 
 
 def test_vault_client_set_secret_when_there_are_existing_secrets_beneath_path(vault):
 
-    vault.db = {"a/b/c": "d"}
+    vault.db = {"a/b/c": {"value": "d"}}
 
     with pytest.raises(exceptions.VaultMixSecretAndFolder):
         vault.set_secret("a/b", "e")
 
-    assert vault.db == {"a/b/c": "d"}
+    assert vault.db == {"a/b/c": {"value": "d"}}
 
 
 def test_vault_client_set_secret_when_a_parent_is_an_existing_secret(vault):
 
-    vault.db = {"a": "c"}
+    vault.db = {"a": {"value": "c"}}
 
     with pytest.raises(exceptions.VaultMixSecretAndFolder):
         vault.set_secret("a/b", "d")
 
-    assert vault.db == {"a": "c"}
+    assert vault.db == {"a": {"value": "c"}}
 
 
 def test_vault_client_set_secret_read_not_allowed(vault, caplog):
@@ -246,7 +246,7 @@ def test_vault_client_set_secret_read_not_allowed(vault, caplog):
 
     vault.set_secret("a/b", "c")
 
-    assert vault.db == {"a/b": "c"}
+    assert vault.db == {"a/b": {"value": "c"}}
 
     assert len(caplog.records) == 1
 
@@ -260,7 +260,7 @@ def test_vault_client_set_secret_list_not_allowed(vault, caplog):
 
     vault.set_secret("a/b", "c")
 
-    assert vault.db == {"a/b": "c"}
+    assert vault.db == {"a/b": {"value": "c"}}
 
     assert len(caplog.records) == 1
 
@@ -274,64 +274,64 @@ def test_vault_client_set_secret_read_parent_not_allowed(vault, caplog):
 
     vault.set_secret("a/b", "c")
 
-    assert vault.db == {"a/b": "c"}
+    assert vault.db == {"a/b": {"value": "c"}}
 
     assert len(caplog.records) == 1
 
 
 def test_vault_client_move_secrets(vault):
 
-    vault.db = {"a/b": "c", "a/d": "e"}
+    vault.db = {"a/b": {"value": "c"}, "a/d": {"value": "e"}}
 
     vault.move_secrets("a", "d")
 
-    assert vault.db == {"d/b": "c", "d/d": "e"}
+    assert vault.db == {"d/b": {"value": "c"}, "d/d": {"value": "e"}}
 
 
 def test_vault_client_move_secrets_generator(vault):
 
-    vault.db = {"a/b": "c", "a/d": "e"}
+    vault.db = {"a/b": {"value": "c"}, "a/d": {"value": "e"}}
 
     result = vault.move_secrets("a", "f", generator=True)
 
     assert next(result) == ("a/b", "f/b")
 
-    assert vault.db == {"a/b": "c", "a/d": "e"}
+    assert vault.db == {"a/b": {"value": "c"}, "a/d": {"value": "e"}}
 
     assert next(result) == ("a/d", "f/d")
 
-    assert vault.db == {"f/b": "c", "a/d": "e"}
+    assert vault.db == {"f/b": {"value": "c"}, "a/d": {"value": "e"}}
 
     with pytest.raises(StopIteration):
         next(result)
 
-    assert vault.db == {"f/b": "c", "f/d": "e"}
+    assert vault.db == {"f/b": {"value": "c"}, "f/d": {"value": "e"}}
 
 
 def test_vault_client_move_secrets_overwrite_safe(vault):
 
-    vault.db = {"a": "c", "b": "d"}
+    vault.db = {"a": {"value": "c"}, "b": {"value": "d"}}
 
     vault.safe_write = True
 
     with pytest.raises(exceptions.VaultOverwriteSecretError):
         vault.move_secrets("a", "b")
 
-    assert vault.db == {"a": "c", "b": "d"}
+    assert vault.db == {"a": {"value": "c"}, "b": {"value": "d"}}
 
 
 def test_vault_client_move_secrets_overwrite_force(vault):
 
-    vault.db = {"a": "c", "b": "d"}
+    vault.db = {"a": {"value": "c"}, "b": {"value": "d"}}
 
     vault.move_secrets("a", "b", force=True)
 
-    assert vault.db == {"b": "c"}
+    assert vault.db == {"b": {"value": "c"}}
 
 
 def test_vault_client_base_render_template(vault):
 
-    vault.db = {"a/b": "c"}
+    vault.db = {"a/b": {"value": "c"}}
 
     assert vault.render_template("Hello {{ vault('a/b') }}") == "Hello c"
 
@@ -345,19 +345,19 @@ def test_vault_client_base_render_template_path_not_found(vault):
     "vault_contents, expected",
     [
         # Secret is not a template
-        ({"a": "b"}, "b"),
+        ({"a": {"value": "b"}}, "b"),
         # Secret not a string
-        ({"a": ["yay"]}, ["yay"]),
+        ({"a": {"value": ["yay"]}}, ["yay"]),
         # Secret is a template without variable expansion
-        ({"a": "!template!b", "b": "c"}, "b"),
+        ({"a": {"value": "!template!b"}, "b": {"value": "c"}}, "b"),
         # Secret is a template
-        ({"a": "!template!{{ vault('b') }}", "b": "c"}, "c"),
+        ({"a": {"value": "!template!{{ vault('b') }}"}, "b": {"value": "c"}}, "c"),
         # No recursion
         (
             {
-                "a": "!template!{{ vault('b') }}",
-                "b": "!template!{{ vault('c') }}",
-                "c": "d",
+                "a": {"value": "!template!{{ vault('b') }}"},
+                "b": {"value": "!template!{{ vault('c') }}"},
+                "c": {"value": "d"},
             },
             "!template!{{ vault('c') }}",
         ),
@@ -371,8 +371,10 @@ def test_vault_client_base_get_secret(vault, vault_contents, expected):
 
 def test_vault_client_base_get_secret_with_dict(vault):
     vault.db = {
-        "credentials": {"username": "foo", "password": "bar"},
-        "dsn": "!template!proto://{{ vault('credentials')['username'] }}:{{ vault('credentials').password }}@host",
+        "credentials": {"value": {"username": "foo", "password": "bar"}},
+        "dsn": {
+            "value": "!template!proto://{{ vault('credentials')['username'] }}:{{ vault('credentials').password }}@host"
+        },
     }
 
     assert vault.get_secret("dsn") == "proto://foo:bar@host"
@@ -390,7 +392,7 @@ def test_vault_client_base_lookup_token(vault):
 
 
 def test_vault_client_base_get_secrets_error(vault):
-    vault.db = {"a": "b", "c": "d"}
+    vault.db = {"a": {"value": "b"}, "c": {"value": "d"}}
     vault.forbidden_get_paths = {"c"}
 
     assert vault.get_secrets("") == {"a": "b", "c": "<error while retrieving secret>"}
