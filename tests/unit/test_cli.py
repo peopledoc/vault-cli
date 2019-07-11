@@ -315,7 +315,7 @@ def test_load_config_no_config(mocker):
 
 @pytest.mark.parametrize(
     "value, expected",
-    [("bla", ["bla"]), (None, ["./.vault.yml", "~/.vault.yml", "/etc/vault.yml"])],
+    [("bla", ["bla"]), (None, ["./vault.yml", "~/.vault.yml", "/etc/vault.yml"])],
 )
 def test_load_config(mocker, value, expected):
     ctx = mocker.Mock()

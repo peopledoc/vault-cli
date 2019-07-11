@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 ENV_PREFIX = "VAULT_CLI"
 
 # Ordered by increasing priority
-CONFIG_FILES = ["./.vault.yml", "~/.vault.yml", "/etc/vault.yml"]
+CONFIG_FILES = ["./vault.yml", "~/.vault.yml", "/etc/vault.yml"]
 
 
 class DEFAULTS:

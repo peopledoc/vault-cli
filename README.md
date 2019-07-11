@@ -50,7 +50,7 @@ Options:
   -v, --verbose                   Use multiple times to increase verbosity
   --config-file PATH              Config file to use. Use 'no' to disable
                                   config file. Default value: first of
-                                  ./.vault.yml, ~/.vault.yml, /etc/vault.yml
+                                  ./vault.yml, ~/.vault.yml, /etc/vault.yml
   -V, --version
   -h, --help                      Show this message and exit.
 
@@ -344,7 +344,7 @@ def test_bla(vault):
 The first file found in the following location is read, parsed and used:
 1. `/etc/vault.yml`
 2. `~/.vault.yml`
-3. `./.vault.yml`
+3. `./vault.yml`
 
 Any option passed as command line flag will be used over the corresponding
 option in the documentation (use either `-` or `_`).
