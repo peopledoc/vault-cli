@@ -93,6 +93,12 @@ def test_list_secrets(mock_hvac):
     mock_hvac.list.assert_called_with("bla/a")
 
 
+def test_list_secrets_sorted(mock_hvac):
+    mock_hvac.list.return_value = {"data": {"keys": ["b", "A", "c"]}}
+
+    assert get_client()._list_secrets("bla/a") == ["A", "b", "c"]
+
+
 def test_list_secrets_empty(mock_hvac):
     mock_hvac.list.return_value = None
 
