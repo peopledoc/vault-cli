@@ -2,7 +2,7 @@
 
 case ${1-default} in
     auth)
-        ln -fs .vault.${2}.yml .vault.yml
+        ln -fs vault.${2}.yml vault.yml
         ;;
     *)
         exec docker-compose up -d
