@@ -1,8 +1,8 @@
 CHANGELOG
 =========
 
-master (unreleased)
--------------------
+0.8.0 (2019-07-11)
+------------------
 
 - Add a `--prompt` option to prompt user to fill the secret value without showing it in the history or the screen (#94).
 - Can now read secrets that are not stored in a "value" key (#97)
