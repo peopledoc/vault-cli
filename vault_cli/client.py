@@ -456,7 +456,7 @@ class VaultClient(VaultClientBase):
         secrets = self.client.list(path)
         if not secrets:
             return []
-        return secrets["data"]["keys"]
+        return sorted(secrets["data"]["keys"])
 
     @handle_errors()
     def _get_secret(self, path: str) -> Dict[str, types.JSONValue]:
