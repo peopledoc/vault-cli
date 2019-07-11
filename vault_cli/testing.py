@@ -46,8 +46,8 @@ class TestVaultClient(client.VaultClientBase):
 
         return sorted(set(result) - {""})
 
-    def _set_secret(self, path, value):
-        self.db[path] = value
+    def _set_secret(self, path, secret):
+        self.db[path] = secret
 
     def _delete_secret(self, path):
         self.db.pop(path, None)

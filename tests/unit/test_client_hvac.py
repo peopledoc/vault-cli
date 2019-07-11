@@ -64,7 +64,7 @@ def test_get_secret(mock_hvac):
 
     mock_hvac.read.return_value = {"data": {"value": "b"}}
 
-    assert get_client()._get_secret("bla/a") == "b"
+    assert get_client()._get_secret("bla/a") == {"value": "b"}
 
     mock_hvac.read.assert_called_with("bla/a")
 
@@ -110,7 +110,7 @@ def test_delete_secret(mock_hvac):
 
 def test_set_secret(mock_hvac):
 
-    get_client()._set_secret("bla/a", "b")
+    get_client()._set_secret("bla/a", {"value": "b"})
 
     mock_hvac.write.assert_called_with("bla/a", value="b")
 

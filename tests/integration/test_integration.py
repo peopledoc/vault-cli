@@ -100,6 +100,12 @@ def test_integration_lib(clean_vault):
 
     assert client.lookup_token()["data"]
 
+    # Use hvac client directly in order to write values that are not in a "value" attribute
+    client.client.write(
+        client._build_full_path("novalue"), username="name", password="pass"
+    )
+    assert client.get_secret("novalue") == {"password": "pass", "username": "name"}
+
 
 def test_env_var_config():
     # Test env var config
