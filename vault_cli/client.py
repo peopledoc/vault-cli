@@ -130,7 +130,7 @@ class VaultClientBase:
     @base_path.setter
     def base_path(self, path: str):
         # ensure the base_path ends with a single '/'
-        self._base_path = (path.rstrip("/") + "/") if path else ""
+        self._base_path = (f"/{path.strip('/')}/") if path else ""
 
     def auth(self):
         verify_ca_bundle = self.verify

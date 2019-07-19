@@ -414,16 +414,16 @@ def test_vault_client_base_get_secrets_error(vault):
 @pytest.mark.parametrize(
     "method, params, expected",
     [
-        ("get_secret", ["foo"], {"path": "base/foo"}),
+        ("get_secret", ["foo"], {"path": "/base/foo"}),
         ("get_secret", ["/foo"], {"path": "/foo"}),
-        ("delete_secret", ["foo"], {"path": "base/foo"}),
+        ("delete_secret", ["foo"], {"path": "/base/foo"}),
         ("delete_secret", ["/foo"], {"path": "/foo"}),
-        ("list_secrets", ["foo"], {"path": "base/foo"}),
+        ("list_secrets", ["foo"], {"path": "/base/foo"}),
         ("list_secrets", ["/foo"], {"path": "/foo"}),
         (
             "set_secret",
             ["foo", "value"],
-            {"path": "base/foo", "secret": {"value": "value"}},
+            {"path": "/base/foo", "secret": {"value": "value"}},
         ),
         (
             "set_secret",
@@ -440,14 +440,22 @@ def test_vault_client_base_absolute_path(vault, mocker, method, params, expected
     mocked.assert_called_with(**expected)
 
 
-@pytest.mark.parametrize("path, expected", [("foo", "base/foo"), ("/foo", "/foo")])
+@pytest.mark.parametrize("path, expected", [("foo", "/base/foo"), ("/foo", "/foo")])
 def test_vault_client_base_build_full_path(vault, path, expected):
     vault.base_path = "base/"
     assert vault._build_full_path(path) == expected
 
 
 @pytest.mark.parametrize(
-    "path, expected", [("foo", "foo/"), ("foo/", "foo/"), ("foo//", "foo/")]
+    "path, expected",
+    [
+        ("foo", "/foo/"),
+        ("foo/", "/foo/"),
+        ("foo//", "/foo/"),
+        ("/foo", "/foo/"),
+        ("/foo/", "/foo/"),
+        ("/foo//", "/foo/"),
+    ],
 )
 def test_vault_client_base_base_path(vault, path, expected):
     vault.base_path = path
