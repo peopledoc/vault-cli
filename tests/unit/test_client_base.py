@@ -354,21 +354,41 @@ def test_vault_client_base_render_template_path_not_found(vault):
         ({"a": {"value": "!template!b"}, "b": {"value": "c"}}, "b"),
         # Secret is a template
         ({"a": {"value": "!template!{{ vault('b') }}"}, "b": {"value": "c"}}, "c"),
-        # No recursion
+        # Finite recursion
         (
             {
                 "a": {"value": "!template!{{ vault('b') }}"},
                 "b": {"value": "!template!{{ vault('c') }}"},
                 "c": {"value": "d"},
             },
-            "!template!{{ vault('c') }}",
+            "d",
         ),
+        # Infinite Recursion
+        (
+            {
+                "a": {"value": "!template!{{ vault('b') }}"},
+                "b": {"value": "!template!{{ vault('c') }}"},
+                "c": {"value": "!template!{{ vault('a') }}"},
+            },
+            '<recursive value "a">',
+        ),
+        # Direct Recursion
+        ({"a": {"value": "!template!{{ vault('a') }}"}}, '<recursive value "a">'),
     ],
 )
 def test_vault_client_base_get_secret(vault, vault_contents, expected):
     vault.db = vault_contents
 
     assert vault.get_secret("a") == expected
+
+
+def test_vault_client_base_get_secret_template_root(vault):
+    vault.base_path = "base"
+    vault.db = {"/base/a": {"value": '!template!{{vault("a")}} yay'}}
+
+    # In case of erroneous caching, e.g. a different cache entry
+    # for /base/a and base/a, we would find '<recursive value "a"> yay yay'
+    assert vault.get_secret("/base/a") == '<recursive value "a"> yay'
 
 
 def test_vault_client_base_get_secret_no_value(vault):

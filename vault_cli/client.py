@@ -3,7 +3,7 @@ import functools
 import json
 import logging
 import pathlib
-from typing import Dict, Iterable, Optional, Tuple, Type
+from typing import Dict, Iterable, Optional, Set, Tuple, Type
 
 import hvac
 import jinja2
@@ -121,7 +121,8 @@ class VaultClientBase:
         self.password = password
         self.safe_write = safe_write
         self.render = render
-        self.cache: Optional[dict] = None
+        self.cache: Optional[Dict[str, types.JSONDict]] = None
+        self._currently_fetching: Set[str] = set()
 
     @property
     def base_path(self):
@@ -259,21 +260,29 @@ class VaultClientBase:
     @caching
     def get_secret(self, path: str, render: bool = True) -> types.JSONValue:
         full_path = self._build_full_path(path)
-        assert self.cache is not None
-        try:
-            data = self.cache[full_path]
-        except KeyError:
-            data = self.cache[full_path] = self._get_secret(path=full_path)
+        if full_path in self._currently_fetching:
+            return f'<recursive value "{path}">'
 
-        if len(data) == 1 and "value" in data:
-            # secrets set using vault-cli are in a key named "value".
-            # But some secrets (rabbitmq engine, secrets set from other clients) don't
-            # follow this rule.
-            secret = data["value"]
-        else:
-            secret = data
-        if render and self.render:
-            secret = self._render_template_value(secret)
+        self._currently_fetching.add(full_path)
+        try:
+            assert self.cache is not None
+            try:
+                data = self.cache[full_path]
+            except KeyError:
+                data = self.cache[full_path] = self._get_secret(path=full_path)
+
+            if len(data) == 1 and "value" in data:
+                # secrets set using vault-cli are in a key named "value".
+                # But some secrets (rabbitmq engine, secrets set from other clients) don't
+                # follow this rule.
+                secret = data["value"]
+            else:
+                secret = data
+            if render and self.render:
+                secret = self._render_template_value(secret)
+
+        finally:
+            self._currently_fetching.remove(full_path)
 
         return secret
 
@@ -333,7 +342,7 @@ class VaultClientBase:
         if not secret.startswith(self.template_prefix):
             return secret
 
-        return self.render_template(secret[len(self.template_prefix) :], render=False)
+        return self.render_template(secret[len(self.template_prefix) :])
 
     @caching
     def render_template(self, template: str, render: bool = True) -> str:
