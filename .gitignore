@@ -7,6 +7,5 @@ dist
 htmlcov
 .tox
 *.pyc
-/.vault-token
-/.vault.yml
+/vault.yml
 /.mypy_cache
