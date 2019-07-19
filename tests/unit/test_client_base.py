@@ -1,6 +1,8 @@
+import itertools
+
 import pytest
 
-from vault_cli import client, exceptions
+from vault_cli import client, exceptions, testing
 
 
 def test_get_client(mocker):
@@ -450,3 +452,64 @@ def test_vault_client_base_build_full_path(vault, path, expected):
 def test_vault_client_base_base_path(vault, path, expected):
     vault.base_path = path
     assert vault.base_path == expected
+
+
+def test_vault_client_base_get_secret_implicit_cache_ends(vault):
+    vault.db = {"a": {"value": "b"}}
+    assert vault.get_secret("a") == "b"
+    vault.db = {"a": {"value": "c"}}
+    # Value updated. Cache was just for the duration of the call
+    assert vault.get_secret("a") == "c"
+
+
+class RaceConditionTestVaultClient(testing.TestVaultClient):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.counter = itertools.count()
+
+    def _get_secret(self, path):
+        if path == "a":
+            val = next(self.counter)
+            return {"b": f"b{val}", "c": f"c{val}"}
+        return super()._get_secret(path)
+
+
+def test_vault_client_base_get_secret_implicit_cache_no_race_condition():
+    # In this test we check that if a value is read several times by
+    # a template, implicit caching makes sure we have the same value
+    # every time.
+
+    # Values returned by this client keep changing
+
+    vault = RaceConditionTestVaultClient()
+
+    assert vault.get_secret("a") == {"b": "b0", "c": "c0"}
+    assert vault.get_secret("a") == {"b": "b1", "c": "c1"}
+
+    vault.db = {"d": {"value": """!template!{{ vault("a").b }}-{{ vault("a").c }}"""}}
+
+    # b2-c3 would be the value if caching didn't work.
+    assert vault.get_secret("d") == "b2-c2"
+
+
+def test_vault_client_base_get_secrets_implicit_cache_no_race_condition():
+    # In this test, the same value is read twice by get-all and template
+    # We check that 2 values are consistent
+
+    vault = RaceConditionTestVaultClient()
+
+    vault.db = {
+        "a": {},
+        "d": {"value": """!template!{{ vault("a").b }}-{{ vault("a").c }}"""},
+    }
+
+    assert vault.get_secrets("") == {"a": {"b": "b0", "c": "c0"}, "d": "b0-c0"}
+
+
+def test_vault_client_base_get_secret_explicit_cache(vault):
+    vault.db = {"a": {"value": "b"}}
+    with vault.caching():
+        assert vault.get_secret("a") == "b"
+        vault.db = {"a": {"value": "c"}}
+        # Value not updated
+        assert vault.get_secret("a") == "b"
