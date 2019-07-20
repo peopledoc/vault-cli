@@ -1,6 +1,8 @@
+import itertools
+
 import pytest
 
-from vault_cli import client, exceptions
+from vault_cli import client, exceptions, testing
 
 
 def test_get_client(mocker):
@@ -352,21 +354,41 @@ def test_vault_client_base_render_template_path_not_found(vault):
         ({"a": {"value": "!template!b"}, "b": {"value": "c"}}, "b"),
         # Secret is a template
         ({"a": {"value": "!template!{{ vault('b') }}"}, "b": {"value": "c"}}, "c"),
-        # No recursion
+        # Finite recursion
         (
             {
                 "a": {"value": "!template!{{ vault('b') }}"},
                 "b": {"value": "!template!{{ vault('c') }}"},
                 "c": {"value": "d"},
             },
-            "!template!{{ vault('c') }}",
+            "d",
         ),
+        # Infinite Recursion
+        (
+            {
+                "a": {"value": "!template!{{ vault('b') }}"},
+                "b": {"value": "!template!{{ vault('c') }}"},
+                "c": {"value": "!template!{{ vault('a') }}"},
+            },
+            '<recursive value "a">',
+        ),
+        # Direct Recursion
+        ({"a": {"value": "!template!{{ vault('a') }}"}}, '<recursive value "a">'),
     ],
 )
 def test_vault_client_base_get_secret(vault, vault_contents, expected):
     vault.db = vault_contents
 
     assert vault.get_secret("a") == expected
+
+
+def test_vault_client_base_get_secret_template_root(vault):
+    vault.base_path = "base"
+    vault.db = {"/base/a": {"value": '!template!{{vault("a")}} yay'}}
+
+    # In case of erroneous caching, e.g. a different cache entry
+    # for /base/a and base/a, we would find '<recursive value "a"> yay yay'
+    assert vault.get_secret("/base/a") == '<recursive value "a"> yay'
 
 
 def test_vault_client_base_get_secret_no_value(vault):
@@ -412,16 +434,16 @@ def test_vault_client_base_get_secrets_error(vault):
 @pytest.mark.parametrize(
     "method, params, expected",
     [
-        ("get_secret", ["foo"], {"path": "base/foo"}),
+        ("get_secret", ["foo"], {"path": "/base/foo"}),
         ("get_secret", ["/foo"], {"path": "/foo"}),
-        ("delete_secret", ["foo"], {"path": "base/foo"}),
+        ("delete_secret", ["foo"], {"path": "/base/foo"}),
         ("delete_secret", ["/foo"], {"path": "/foo"}),
-        ("list_secrets", ["foo"], {"path": "base/foo"}),
+        ("list_secrets", ["foo"], {"path": "/base/foo"}),
         ("list_secrets", ["/foo"], {"path": "/foo"}),
         (
             "set_secret",
             ["foo", "value"],
-            {"path": "base/foo", "secret": {"value": "value"}},
+            {"path": "/base/foo", "secret": {"value": "value"}},
         ),
         (
             "set_secret",
@@ -438,15 +460,84 @@ def test_vault_client_base_absolute_path(vault, mocker, method, params, expected
     mocked.assert_called_with(**expected)
 
 
-@pytest.mark.parametrize("path, expected", [("foo", "base/foo"), ("/foo", "/foo")])
+@pytest.mark.parametrize("path, expected", [("foo", "/base/foo"), ("/foo", "/foo")])
 def test_vault_client_base_build_full_path(vault, path, expected):
     vault.base_path = "base/"
     assert vault._build_full_path(path) == expected
 
 
 @pytest.mark.parametrize(
-    "path, expected", [("foo", "foo/"), ("foo/", "foo/"), ("foo//", "foo/")]
+    "path, expected",
+    [
+        ("foo", "/foo/"),
+        ("foo/", "/foo/"),
+        ("foo//", "/foo/"),
+        ("/foo", "/foo/"),
+        ("/foo/", "/foo/"),
+        ("/foo//", "/foo/"),
+    ],
 )
 def test_vault_client_base_base_path(vault, path, expected):
     vault.base_path = path
     assert vault.base_path == expected
+
+
+def test_vault_client_base_get_secret_implicit_cache_ends(vault):
+    vault.db = {"a": {"value": "b"}}
+    assert vault.get_secret("a") == "b"
+    vault.db = {"a": {"value": "c"}}
+    # Value updated. Cache was just for the duration of the call
+    assert vault.get_secret("a") == "c"
+
+
+class RaceConditionTestVaultClient(testing.TestVaultClient):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.counter = itertools.count()
+
+    def _get_secret(self, path):
+        if path == "a":
+            val = next(self.counter)
+            return {"b": f"b{val}", "c": f"c{val}"}
+        return super()._get_secret(path)
+
+
+def test_vault_client_base_get_secret_implicit_cache_no_race_condition():
+    # In this test we check that if a value is read several times by
+    # a template, implicit caching makes sure we have the same value
+    # every time.
+
+    # Values returned by this client keep changing
+
+    vault = RaceConditionTestVaultClient()
+
+    assert vault.get_secret("a") == {"b": "b0", "c": "c0"}
+    assert vault.get_secret("a") == {"b": "b1", "c": "c1"}
+
+    vault.db = {"d": {"value": """!template!{{ vault("a").b }}-{{ vault("a").c }}"""}}
+
+    # b2-c3 would be the value if caching didn't work.
+    assert vault.get_secret("d") == "b2-c2"
+
+
+def test_vault_client_base_get_secrets_implicit_cache_no_race_condition():
+    # In this test, the same value is read twice by get-all and template
+    # We check that 2 values are consistent
+
+    vault = RaceConditionTestVaultClient()
+
+    vault.db = {
+        "a": {},
+        "d": {"value": """!template!{{ vault("a").b }}-{{ vault("a").c }}"""},
+    }
+
+    assert vault.get_secrets("") == {"a": {"b": "b0", "c": "c0"}, "d": "b0-c0"}
+
+
+def test_vault_client_base_get_secret_explicit_cache(vault):
+    vault.db = {"a": {"value": "b"}}
+    with vault.caching():
+        assert vault.get_secret("a") == "b"
+        vault.db = {"a": {"value": "c"}}
+        # Value not updated
+        assert vault.get_secret("a") == "b"

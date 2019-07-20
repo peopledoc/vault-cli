@@ -1,8 +1,9 @@
 import contextlib
+import functools
 import json
 import logging
 import pathlib
-from typing import Dict, Iterable, Optional, Tuple, Type
+from typing import Dict, Iterable, Optional, Set, Tuple, Type
 
 import hvac
 import jinja2
@@ -73,6 +74,21 @@ def get_client_class() -> Type["VaultClientBase"]:
     return VaultClient
 
 
+def caching(method):
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        override_cache = self.cache is None
+        if override_cache:
+            self.cache = {}
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            if override_cache:
+                self.cache = None
+
+    return wrapper
+
+
 class VaultClientBase:
 
     saved_settings: Optional[types.SettingsDict] = None
@@ -105,6 +121,8 @@ class VaultClientBase:
         self.password = password
         self.safe_write = safe_write
         self.render = render
+        self.cache: Optional[Dict[str, types.JSONDict]] = None
+        self._currently_fetching: Set[str] = set()
 
     @property
     def base_path(self):
@@ -113,7 +131,7 @@ class VaultClientBase:
     @base_path.setter
     def base_path(self, path: str):
         # ensure the base_path ends with a single '/'
-        self._base_path = (path.rstrip("/") + "/") if path else ""
+        self._base_path = (f"/{path.strip('/')}/") if path else ""
 
     def auth(self):
         verify_ca_bundle = self.verify
@@ -204,6 +222,7 @@ class VaultClientBase:
             for sub_path in self._browse_recursive_secrets(key_url, render=render):
                 yield sub_path
 
+    @caching
     def get_all_secrets(self, *paths: str, render: bool = True) -> types.JSONDict:
         """
         Takes several paths, return the nested dict of all secrets below
@@ -219,6 +238,7 @@ class VaultClientBase:
 
         return result
 
+    @caching
     def get_secrets(self, path: str, render: bool = True) -> types.JSONDict:
         """
         Takes a single path an return a path dict with all the secrets
@@ -237,17 +257,33 @@ class VaultClientBase:
     def list_secrets(self, path: str) -> Iterable[str]:
         return self._list_secrets(path=self._build_full_path(path))
 
+    @caching
     def get_secret(self, path: str, render: bool = True) -> types.JSONValue:
-        data = self._get_secret(path=self._build_full_path(path))
-        if len(data) == 1 and "value" in data:
-            # secrets set using vault-cli are in a key named "value".
-            # But some secrets (rabbitmq engine, secrets set from other clients) don't
-            # follow this rule.
-            secret = data["value"]
-        else:
-            secret = data
-        if render and self.render:
-            secret = self._render_template_value(secret)
+        full_path = self._build_full_path(path)
+        if full_path in self._currently_fetching:
+            return f'<recursive value "{path}">'
+
+        self._currently_fetching.add(full_path)
+        try:
+            assert self.cache is not None
+            try:
+                data = self.cache[full_path]
+            except KeyError:
+                data = self.cache[full_path] = self._get_secret(path=full_path)
+
+            if len(data) == 1 and "value" in data:
+                # secrets set using vault-cli are in a key named "value".
+                # But some secrets (rabbitmq engine, secrets set from other clients) don't
+                # follow this rule.
+                secret = data["value"]
+            else:
+                secret = data
+            if render and self.render:
+                secret = self._render_template_value(secret)
+
+        finally:
+            self._currently_fetching.remove(full_path)
+
         return secret
 
     def delete_secret(self, path: str) -> None:
@@ -269,6 +305,7 @@ class VaultClientBase:
             return iterator
         return list(iterator)
 
+    @caching
     def move_secrets_iter(
         self, source: str, dest: str, force: Optional[bool] = None
     ) -> Iterable[Tuple[str, str]]:
@@ -305,8 +342,9 @@ class VaultClientBase:
         if not secret.startswith(self.template_prefix):
             return secret
 
-        return self.render_template(secret[len(self.template_prefix) :], render=False)
+        return self.render_template(secret[len(self.template_prefix) :])
 
+    @caching
     def render_template(self, template: str, render: bool = True) -> str:
         def vault(path):
             try:
@@ -316,6 +354,7 @@ class VaultClientBase:
 
         return jinja2.Template(template).render(vault=vault)
 
+    @caching
     def set_secret(
         self, path: str, value: types.JSONValue, force: Optional[bool] = None
     ) -> None:
@@ -362,6 +401,14 @@ class VaultClientBase:
                 )
 
         self._set_secret(path=self._build_full_path(path), secret={"value": value})
+
+    @contextlib.contextmanager
+    def caching(self):
+        old_cache, self.cache = self.cache, {}
+        try:
+            yield
+        finally:
+            self.cache = old_cache
 
     def _init_client(
         self,
