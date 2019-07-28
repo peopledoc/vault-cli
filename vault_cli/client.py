@@ -3,7 +3,7 @@ import functools
 import json
 import logging
 import pathlib
-from typing import Dict, Iterable, Optional, Set, Tuple, Type
+from typing import Dict, Iterable, Optional, Set, Tuple, Type, Union
 
 import hvac
 import jinja2
@@ -244,7 +244,9 @@ class VaultClientBase:
         return result
 
     @caching
-    def get_secrets(self, path: str, render: bool = True) -> types.JSONDict:
+    def get_secrets(
+        self, path: str, render: bool = True, relative: bool = False
+    ) -> types.JSONDict:
         """
         Takes a path, return all secrets below this path
 
@@ -253,7 +255,10 @@ class VaultClientBase:
         path : str
             Path to read recursively
         render : bool, optional
-            Wether templated secrets should be rendered, by default True
+            Whether templated secrets should be rendered, by default True
+        relative: bool, optional
+            When false (default), the keys of the returned dict are the paths of the secrets
+            When true, the keys are the relative paths of the secret to `path` (`""` if the secret is directly at path `path`)
 
         Returns
         -------
@@ -271,11 +276,20 @@ class VaultClientBase:
             secrets_paths = [path]
 
         result: types.JSONDict = {}
+        path_obj = pathlib.Path(path)
         for subpath in secrets_paths:
+            if relative:
+                if subpath == path:
+                    key = ""
+                else:
+                    key = str(pathlib.Path(subpath).relative_to(path_obj))
+            else:
+                key = subpath
+
             try:
-                result[subpath] = self.get_secret(path=subpath, render=render)
+                result[key] = self.get_secret(path=subpath, render=render)
             except exceptions.VaultAPIException:
-                result[subpath] = "<error while retrieving secret>"
+                result[key] = {"error": "<error while retrieving secret>"}
 
         return result
 
@@ -296,7 +310,9 @@ class VaultClientBase:
         return self._list_secrets(path=self._build_full_path(path))
 
     @caching
-    def get_secret(self, path: str, render: bool = True) -> types.JSONValue:
+    def get_secret(
+        self, path: str, key: Optional[str] = None, render: bool = True
+    ) -> Union[types.JSONValue, utils.RecursiveValue]:
         """
         Retrieve the value of a single secret
 
@@ -304,6 +320,10 @@ class VaultClientBase:
         ----------
         path : str
             Path of the secret
+
+        key : str, optional
+            If set, return only this key
+
         render : bool, optional
             Whether to render templated secret or not, by default True
 
@@ -314,32 +334,35 @@ class VaultClientBase:
         """
         full_path = self._build_full_path(path)
         if full_path in self._currently_fetching:
-            return f'<recursive value "{path}">'
+            return utils.RecursiveValue(path)
 
         self._currently_fetching.add(full_path)
         try:
             assert self.cache is not None
             try:
-                data = self.cache[full_path]
+                mapping = self.cache[full_path]
             except KeyError:
-                data = self.cache[full_path] = self._get_secret(path=full_path)
+                mapping = self.cache[full_path] = self._get_secret(path=full_path)
 
-            if len(data) == 1 and "value" in data:
-                # secrets set using vault-cli are in a key named "value".
-                # But some secrets (rabbitmq engine, secrets set from other clients) don't
-                # follow this rule.
-                secret = data["value"]
-            else:
-                secret = data
-            if render and self.render:
-                secret = self._render_template_value(secret)
+            if mapping and render and self.render:
+                mapping = self._render_template_dict(mapping)
 
         finally:
             self._currently_fetching.remove(full_path)
 
+        if key is not None:
+            try:
+                secret = mapping[key]
+            except KeyError:
+                raise exceptions.VaultSecretNotFound(
+                    errors=[f"Key '{key}' not found in secret at path '{full_path}'"]
+                )
+        else:
+            secret = mapping
+
         return secret
 
-    def delete_secret(self, path: str) -> None:
+    def delete_secret(self, path: str, key: Optional[str] = None) -> None:
         """
         Delete a secret
 
@@ -348,8 +371,32 @@ class VaultClientBase:
         path : str
             Path to the secret
 
+        key : str, optional
+            Do not delete the whole mapping but only this key
+
         """
-        return self._delete_secret(path=self._build_full_path(path))
+        if key is None:
+            self._delete_secret(path=self._build_full_path(path))
+        else:
+            # Delete only one attribute
+            try:
+                secret = self.get_secret(path, render=False)
+            except exceptions.VaultSecretNotFound:
+                # secret does not exist
+                return
+
+            try:
+                secret.pop(key)
+            except KeyError:
+                # nothing to delete
+                return
+
+            if secret:
+                # update the secret with the new mapping
+                self.set_secret(path, secret, force=True)
+            else:
+                # no more entries in the mapping, delete the whole path
+                self._delete_secret(path=self._build_full_path(path))
 
     def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
         for path in paths:
@@ -440,6 +487,11 @@ class VaultClientBase:
 
         return self.render_template(secret[len(self.template_prefix) :])
 
+    def _render_template_dict(
+        self, secrets: Dict[str, types.JSONValue]
+    ) -> Dict[str, types.JSONValue]:
+        return {k: self._render_template_value(v) for k, v in secrets.items()}
+
     @caching
     def render_template(
         self,
@@ -483,7 +535,11 @@ class VaultClientBase:
 
     @caching
     def set_secret(
-        self, path: str, value: types.JSONValue, force: Optional[bool] = None
+        self,
+        path: str,
+        value: types.JSONValue,
+        force: Optional[bool] = None,
+        update: Optional[bool] = None,
     ) -> None:
         """
         Sets the value of a secret
@@ -496,6 +552,8 @@ class VaultClientBase:
             Value of the secret
         force : Optional[bool], optional
             If safe_mode is True, whether to overwrite existing secret
+        update: Optional[bool], optional
+            If true then merge the value with the existing one, else overwrite it
 
         Raises
         ------
@@ -504,6 +562,8 @@ class VaultClientBase:
         exceptions.VaultMixSecretAndFolder
             Either the path is an existing folder or a parent folder is a secret
         """
+        assert isinstance(value, dict)
+
         force = self.get_force(force)
 
         try:
@@ -515,8 +575,23 @@ class VaultClientBase:
                 f"Read access '{path}' forbidden: if it exists, secret will be overridden."
             )
         else:
-            if not force and existing_value != value:
+            # if we overwrite the whole mapping we can compare the value directly
+            # if we update the mapping, we only have to check the updated keys
+            if not update and not force and existing_value != value:
                 raise exceptions.VaultOverwriteSecretError(path=path)
+            if (
+                update
+                and not force
+                and any(
+                    existing_value[key] != value[key]
+                    for key in value.keys() & existing_value.keys()
+                )
+            ):
+                raise exceptions.VaultOverwriteSecretError(path=path)
+
+            if update:
+                # merge value with existing_value
+                value = {**existing_value, **value}
 
         try:
             problematic_secrets = self.list_secrets(path=path)
@@ -546,7 +621,7 @@ class VaultClientBase:
                     f"Cannot create a secret at '{path}' because '{parent}' already exists as a secret"
                 )
 
-        self._set_secret(path=self._build_full_path(path), secret={"value": value})
+        self._set_secret(path=self._build_full_path(path), secret=value)
 
     @contextlib.contextmanager
     def caching(self):
@@ -655,7 +730,9 @@ class VaultClient(VaultClientBase):
     def _get_secret(self, path: str) -> Dict[str, types.JSONValue]:
         secret = self.client.read(path)
         if not secret:
-            raise exceptions.VaultSecretNotFound()
+            raise exceptions.VaultSecretNotFound(
+                errors=[f"Secret not found at path '{path}'"]
+            )
         return secret["data"]
 
     @handle_errors()

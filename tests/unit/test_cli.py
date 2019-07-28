@@ -90,17 +90,26 @@ def test_get_text(cli_runner, vault_with_token, extra_args):
     vault_with_token.db = {"a": {"value": "bar"}}
     result = cli_runner.invoke(cli.cli, ["get", "a"] + extra_args)
 
+    assert result.output == "---\nvalue: bar\n"
+    assert result.exit_code == 0
+
+    result = cli_runner.invoke(cli.cli, ["get", "a", "value"] + extra_args)
+
     assert result.output == "bar\n"
     assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
-    "input, output",
-    [([1, 2], "---\n- 1\n- 2\n"), ({"a": "b"}, "---\na: b\n"), (None, "null\n")],
+    "value, output",
+    [
+        ({"list": [1, 2]}, "---\nlist:\n- 1\n- 2\n"),
+        ({"a": "b"}, "---\na: b\n"),
+        (None, "null\n"),
+    ],
 )
-def test_get_text_special_cases(cli_runner, vault_with_token, input, output):
+def test_get_text_special_cases(cli_runner, vault_with_token, value, output):
 
-    vault_with_token.db = {"a": {"value": input}}
+    vault_with_token.db = {"a": value}
     result = cli_runner.invoke(cli.cli, ["get", "a"])
 
     assert result.output == output
@@ -109,7 +118,7 @@ def test_get_text_special_cases(cli_runner, vault_with_token, input, output):
 
 def test_get_yaml(cli_runner, vault_with_token):
     vault_with_token.db = {"a": {"value": "bar"}}
-    result = cli_runner.invoke(cli.cli, ["get", "a", "--yaml"])
+    result = cli_runner.invoke(cli.cli, ["get", "a", "value", "--yaml"])
 
     assert result.output == "--- bar\n...\n"
     assert result.exit_code == 0
@@ -120,7 +129,9 @@ def test_get_all(cli_runner, vault_with_token):
     vault_with_token.db = {"a/baz": {"value": "bar"}, "a/foo": {"value": "yay"}}
     result = cli_runner.invoke(cli.cli, ["get-all", "a"])
 
-    assert yaml.safe_load(result.output) == {"a": {"baz": "bar", "foo": "yay"}}
+    assert yaml.safe_load(result.output) == {
+        "a": {"baz": {"value": "bar"}, "foo": {"value": "yay"}}
+    }
     assert result.exit_code == 0
 
 
@@ -129,54 +140,50 @@ def test_get_all_flat(cli_runner, vault_with_token):
     vault_with_token.db = {"a/baz": {"value": "bar"}, "a/foo": {"value": "yay"}}
     result = cli_runner.invoke(cli.cli, ["get-all", "--flat", "a"])
 
-    assert yaml.safe_load(result.output) == {"a/baz": "bar", "a/foo": "yay"}
+    assert yaml.safe_load(result.output) == {
+        "a/baz": {"value": "bar"},
+        "a/foo": {"value": "yay"},
+    }
     assert result.exit_code == 0
 
 
 def test_set(cli_runner, vault_with_token):
 
-    result = cli_runner.invoke(cli.cli, ["set", "a", "b"])
+    result = cli_runner.invoke(cli.cli, ["set", "a", "attr=b"])
 
     assert result.exit_code == 0
-    assert vault_with_token.db == {"a": {"value": "b"}}
+    assert vault_with_token.db == {"a": {"attr": "b"}}
+
+
+def test_set_without_value(cli_runner, vault_with_token):
+
+    result = cli_runner.invoke(cli.cli, ["set", "a", "attr"])
+
+    assert result.exit_code == 2
+    assert "Expecting 'key=value' arguments." in result.stdout
 
 
 def test_set_arg_stdin(cli_runner, vault_with_token):
 
-    result = cli_runner.invoke(cli.cli, ["set", "--stdin", "a", "b"])
+    result = cli_runner.invoke(cli.cli, ["set", "a", "value=-"], input="yeah")
 
-    assert result.exit_code != 0
+    assert result.exit_code == 0
+    assert vault_with_token.db == {"a": {"value": "yeah"}}
 
 
 def test_set_stdin(cli_runner, vault_with_token):
-
-    result = cli_runner.invoke(cli.cli, ["set", "--stdin", "a"], input="b")
-
-    assert result.exit_code == 0
-    assert vault_with_token.db == {"a": {"value": "b"}}
-
-
-def test_set_stdin_yaml(cli_runner, vault_with_token):
     # Just checking that yaml and stdin are not incompatible
     result = cli_runner.invoke(
-        cli.cli, ["set", "--stdin", "--yaml", "a"], input=yaml.safe_dump({"b": "c"})
+        cli.cli, ["set", "--file=-", "a"], input=yaml.safe_dump({"b": "c"})
     )
 
     assert result.exit_code == 0
-    assert vault_with_token.db == {"a": {"value": {"b": "c"}}}
-
-
-def test_set_with_both_prompt_and_value(cli_runner, vault_with_token):
-
-    result = cli_runner.invoke(cli.cli, ["set", "--prompt", "a", "b"])
-
-    assert result.exit_code != 0
-    assert vault_with_token.db == {}
+    assert vault_with_token.db == {"a": {"b": "c"}}
 
 
 def test_set_with_both_prompt_and_stdin(cli_runner, vault_with_token):
 
-    result = cli_runner.invoke(cli.cli, ["set", "--prompt", "--stdin", "a"])
+    result = cli_runner.invoke(cli.cli, ["set", "--prompt", "value", "--file=-", "a"])
 
     assert result.exit_code != 0
     assert vault_with_token.db == {}
@@ -190,62 +197,40 @@ def test_set_with_both_yaml_and_multiple_values(cli_runner, vault_with_token):
     assert vault_with_token.db == {}
 
 
-def test_set_strip(cli_runner, vault_with_token):
-
-    result = cli_runner.invoke(cli.cli, ["set", "a", "  b  "])
-
-    assert result.exit_code == 0
-    assert vault_with_token.db == {"a": {"value": "b"}}
-
-
-def test_set_no_strip(cli_runner, vault_with_token):
-
-    result = cli_runner.invoke(cli.cli, ["set", "--no-strip", "a", "  b  "])
-
-    assert result.exit_code == 0
-    assert vault_with_token.db == {"a": {"value": "  b  "}}
-
-
 def test_set_prompt(cli_runner, mocker, vault_with_token):
 
     prompt = mocker.patch("click.prompt")
     prompt.return_value = "b"
-    result = cli_runner.invoke(cli.cli, ["set", "--prompt", "a"])
+    result = cli_runner.invoke(cli.cli, ["set", "--prompt", "a", "value"])
     # test for prompt function
-    prompt.assert_called_with("Please enter value for `a`", hide_input=True)
+    prompt.assert_called_with(
+        "Please enter a value for key `value` of `a`", hide_input=True
+    )
 
     # Correctly stored secret.
     assert result.exit_code == 0
     assert vault_with_token.db == {"a": {"value": "b"}}
 
 
-def test_set_list(cli_runner, vault_with_token):
-
-    result = cli_runner.invoke(cli.cli, ["set", "a", "b", "c"])
-
-    assert result.exit_code == 0
-    assert vault_with_token.db == {"a": {"value": ["b", "c"]}}
-
-
 def test_set_yaml(cli_runner, vault_with_token):
 
-    result = cli_runner.invoke(cli.cli, ["set", "--yaml", "a", '{"b": "c"}'])
+    result = cli_runner.invoke(cli.cli, ["set", "--file=-", "a"], input='{"b": "c"}')
 
     assert result.exit_code == 0
-    assert vault_with_token.db == {"a": {"value": {"b": "c"}}}
+    assert vault_with_token.db == {"a": {"b": "c"}}
 
 
 @pytest.mark.parametrize(
     "args, expected",
     [
         # no safe-write by default
-        (["set", "a", "b"], "b"),
+        (["set", "a", "value=b"], "b"),
         # same, but explicit
-        (["--unsafe-write", "set", "a", "b"], "b"),
+        (["--unsafe-write", "set", "a", "value=b"], "b"),
         # safe-write but with force
-        (["--safe-write", "set", "--force", "a", "b"], "b"),
+        (["--safe-write", "set", "--force", "a", "value=b"], "b"),
         # safe-write but the written value is equal to the current value
-        (["--safe-write", "set", "a", "c"], "c"),
+        (["--safe-write", "set", "a", "value=c"], "c"),
     ],
 )
 def test_set_overwrite_valid(cli_runner, vault_with_token, args, expected):
@@ -262,9 +247,9 @@ def test_set_overwrite_valid(cli_runner, vault_with_token, args, expected):
     "args",
     [
         # safe-write
-        ["--safe-write", "set", "a", "b"],
+        ["--safe-write", "set", "a", "value=b"],
         # no-force
-        ["set", "--no-force", "a", "b"],
+        ["set", "--no-force", "a", "value=b"],
     ],
 )
 def test_set_overwrite_safe_invalid(cli_runner, vault_with_token, args):
@@ -282,7 +267,7 @@ def test_set_mix_secrets_folders(cli_runner, vault_with_token):
 
     vault_with_token.db = {"a/b": {"value": "c"}}
 
-    result = cli_runner.invoke(cli.cli, ["set", "a/b/c", "d"])
+    result = cli_runner.invoke(cli.cli, ["set", "a/b/c", "value=d"])
 
     assert result.exit_code == 1
     assert vault_with_token.db == {"a/b": {"value": "c"}}
@@ -292,7 +277,7 @@ def test_set_mix_folders_secrets(cli_runner, vault_with_token):
 
     vault_with_token.db = {"a/b/c": {"value": "d"}}
 
-    result = cli_runner.invoke(cli.cli, ["set", "a/b", "c"])
+    result = cli_runner.invoke(cli.cli, ["set", "a/b", "value=c"])
 
     assert result.exit_code == 1
     assert vault_with_token.db == {"a/b/c": {"value": "d"}}
@@ -315,20 +300,51 @@ def test_env(cli_runner, vault_with_token, mocker):
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["FOO_BAR"] == "yay"
-    assert kwargs["environ"]["FOO_BAZ"] == "yo"
+    assert kwargs["environ"]["FOO_BAR_VALUE"] == "yay"
+    assert kwargs["environ"]["FOO_BAZ_VALUE"] == "yo"
 
 
 def test_env_prefix(cli_runner, vault_with_token, mocker):
     exec_command = mocker.patch("vault_cli.environment.exec_command")
 
-    vault_with_token.db = {"foo/bar": {"value": "yay"}, "foo/baz": {"value": "yo"}}
+    vault_with_token.db = {
+        "foo/bar": {"value": "yay"},
+        "foo/baz": {"user": "yo", "password": "xxx"},
+    }
     cli_runner.invoke(cli.cli, ["env", "--path", "foo=prefix", "--", "echo", "yay"])
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["PREFIX_BAR"] == "yay"
-    assert kwargs["environ"]["PREFIX_BAZ"] == "yo"
+    assert kwargs["environ"]["PREFIX_BAR_VALUE"] == "yay"
+    assert kwargs["environ"]["PREFIX_BAZ_USER"] == "yo"
+    assert kwargs["environ"]["PREFIX_BAZ_PASSWORD"] == "xxx"
+
+
+def test_env_filter_key(cli_runner, vault_with_token, mocker):
+    exec_command = mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.db = {
+        "foo/bar": {"value": "yay"},
+        "foo/baz": {"user": "yo", "password": "xxx"},
+    }
+    cli_runner.invoke(
+        cli.cli,
+        [
+            "env",
+            "--path",
+            "foo/baz:user=MYNAME",
+            "--path",
+            "foo/baz:password",
+            "--",
+            "echo",
+            "yay",
+        ],
+    )
+
+    _, kwargs = exec_command.call_args
+    assert kwargs["command"] == ("echo", "yay")
+    assert kwargs["environ"]["MYNAME"] == "yo"
+    assert kwargs["environ"]["PASSWORD"] == "xxx"
 
 
 def test_main(mocker):
@@ -521,7 +537,7 @@ def test_template_from_stdin(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": {"value": "c"}}
 
     result = cli_runner.invoke(
-        cli.cli, ["template", "-"], input="Hello {{ vault('a/b') }}"
+        cli.cli, ["template", "-"], input="Hello {{ vault('a/b').value }}"
     )
 
     assert result.exit_code == 0
@@ -532,7 +548,7 @@ def test_template_from_file(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": {"value": "c"}}
 
     with tempfile.NamedTemporaryFile(mode="w+") as fp:
-        fp.write("Hello {{ vault('a/b') }}")
+        fp.write("Hello {{ vault('a/b').value }}")
         fp.flush()
         result = cli_runner.invoke(
             cli.cli, ["template", fp.name], catch_exceptions=False
@@ -548,7 +564,7 @@ def test_template_from_file_with_include(cli_runner, vault_with_token):
     with tempfile.NamedTemporaryFile(dir=os.getcwd(), mode="w+") as template_file:
         with tempfile.NamedTemporaryFile(dir=os.getcwd(), mode="w+") as include_file:
             template_file.write(
-                "Hello {{ vault('a/b') }}\n{% include('"
+                "Hello {{ vault('a/b').value }}\n{% include('"
                 + os.path.basename(include_file.name)
                 + "') %}"
             )
@@ -590,19 +606,3 @@ def test_version(cli_runner):
     assert result.exit_code == 0
     assert result.stdout.startswith("vault-cli " + vault_cli.__version__)
     assert result.stdout.endswith("License: Apache Software License\n")
-
-
-@pytest.mark.parametrize(
-    "input, output",
-    [
-        ("hey", "hey"),
-        ("hey ", "hey"),
-        ("hey ho ", "hey ho"),
-        ("hey ho\n", "hey ho"),
-        ("hey\nho", "hey\nho\n"),
-        ("hey\nho ", "hey\nho\n"),
-        ("hey\nho\n", "hey\nho\n"),
-    ],
-)
-def test_fix_whitespaces(input, output):
-    assert cli.fix_whitespaces(input) == output

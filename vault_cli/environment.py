@@ -6,17 +6,11 @@ from typing import Dict, NoReturn, Optional, Sequence
 from vault_cli import types
 
 
-def make_env_key(path: str, prefix: Optional[str], key: str) -> str:
-    if prefix:
-        relative = pathlib.Path(prefix) / pathlib.Path(key).relative_to(
-            pathlib.Path(path)
-        )
-    else:
-        relative = pathlib.Path(key).relative_to(pathlib.Path(path).parent)
-    return str(relative).upper().replace("/", "_")
+def _normalize(name: str) -> str:
+    return name.upper().replace("/", "_")
 
 
-def make_env_value(value: types.JSONValue) -> str:
+def _make_env_value(value: types.JSONValue) -> str:
     if isinstance(value, str):
         return value
     return json.dumps(value)
@@ -24,3 +18,24 @@ def make_env_value(value: types.JSONValue) -> str:
 
 def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
     os.execvpe(command[0], tuple(command), environ)
+
+
+def get_envvars_for_secret(
+    key: str, secret: types.JSONValue, prefix: Optional[str]
+) -> Dict[str, str]:
+    return {_normalize(prefix or key): _make_env_value(secret)}
+
+
+def get_envvars_for_secrets(
+    secrets: Dict[str, types.JSONDict], path: str, prefix: Optional[str]
+) -> Dict[str, str]:
+    env_secrets = {}
+    if not prefix:
+        prefix = pathlib.Path(path).name
+
+    for subpath, values in secrets.items():
+        for key, value in values.items():
+            env_name = _normalize("_".join(e for e in (prefix, subpath, key) if e))
+            value = _make_env_value(value)
+            env_secrets[env_name] = value
+    return env_secrets

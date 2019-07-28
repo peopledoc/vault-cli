@@ -62,8 +62,8 @@ Commands:
   list          List all the secrets at the given path.
   lookup-token  Return information regarding the current token
   mv            Recursively move secrets from source to destination path.
-  set           Set a single secret to the given value(s).
-  template      Render the given Jinja2 template and insert secrets in it.
+  set           Set a secret.
+  template      Render the given template and insert secrets in it.
 ```
 
 ## Authentication
@@ -86,32 +86,35 @@ On the following examples, we'll be considering that we have a complete configur
 
 ### Read a secret in plain text (default)
 ```console
-$ vault get my_secret
+$ vault get my_secret value
 qwerty
 ```
 
 ### Read a secret in yaml format
 ```console
-$ vault get --yaml my_secret
+$ vault get --yaml my_secret value
 --- qwerty
 ...
 ```
 
 ### Write a secret
 ```console
-$ vault set my_other_secret supersecret
+$ vault set my_other_secret value=supersecret
 Done
 ```
 
 ### Read/write a secret outside the base path
+If a base path is defined it will be prepended to all the paths used by vault-cli
+except when the paths start by a slash (`/`), those are absolute paths.
+
 ```console
-$ export VAULT_CLI_BASE_PATH=myapp/
-$ vault set /global_secret sharedsecret
+$ export VAULT_CLI_BASE_PATH=secretkvv1/myapp/
+$ vault set mysecret value=sharedsecret
 Done
-$ vault get /global_secret
+$ vault get mysecret value
 sharedsecret
-$ vault get global_secret
-Error: Secret not found
+$ vault get /secretkvv1/myapp/mysecret value
+sharedsecret
 $ unset VAULT_CLI_BASE_PATH
 ```
 
@@ -120,7 +123,7 @@ $ unset VAULT_CLI_BASE_PATH
 You can use this when the secret has multiple lines or starts with a "-"
 
 ```console
-$ vault set third_secret --stdin
+$ vault set third_secret certificate=-
 ----BEGIN SECRET KEY----
 ...
 <hit ctrl+d to end stdin>
@@ -134,56 +137,46 @@ vault get third_secret
 Identically, piping allows you to write the content of a file into the vault:
 
 ```console
-$ cat my_certificate.key | vault set third_secret --stdin
+$ cat my_certificate.key | vault set third_secret certificate=-
 Done
 ```
+
+You can also load a key/value mapping in yaml or JSON format from a file:
+```console
+$ vault set third_secret --file=secret.yaml
+Done
+```
+
+A special value of "-" for `--file` means that the file is read from stdin.
 
 ### Write a secret using an invisible input prompt
 
 This will avoid your secrets to be displayed in plain text in your shell history.
 
  ```console
- $ vault set mykey --prompt
- Please enter value for `mykey`:
+ $ vault set mypath --prompt mykey
+ Please enter a value for key `mykey` of `mypath`:
  Done
  ```
 
 ### Anything following "--" will not be seen as a flag even if it starts with a "-"
 ```console
-$ vault set -- -secret-name -oh-so-secret
+$ vault set -- -secret-name -oh-so-secret=xxx
 Done
 
 $ vault get -- -secret-name
--oh-so-secret
-```
-
-### Write a secret complex object
-```console
-$ vault set --yaml blob_secret "{code: supercode}"
-Done
-```
-
-### Write a secret list
-```console
-$ vault set list_secret secret1 secret2 secret3
-Done
-
-# (For complex types, yaml format is selected)
-$ vault get list_secret
 ---
-- secret1
-- secret2
-- secret3
+-oh-so-secret: xxx
 ```
 
 ### Protect yourself from overwriting a secret by mistake
 
 ```console
-vault set a b
+vault set a value=b
 Done
-$ vault --safe-write set a c
+$ vault --safe-write set a value=c
 Error: Secret already exists at a. Use -f to force overwriting.
-$ vault --safe-write set -f a c
+$ vault --safe-write set -f a value=c
 Done
 ```
 (`safe-write` can be set in your configuration file, see details below)
@@ -192,38 +185,54 @@ Done
 ```console
 $ vault get-all
 ---
--secret-name: -oh-so-secret
-blob_secret:
-  code: supercode
-list_secret:
-- secret1
-- secret2
-- secret3
-my_other_secret: supersecret
-my_secret: qwerty
-third_secret: '----BEGIN SECRET KEY----
+-secret-name:
+  -oh-so-secret: xxx
+a:
+  value: c
+my_other_secret:
+  value: supersecret
+third_secret:
+  certificate: '----BEGIN SECRET KEY----
 
-  ...'
+    ...
+
+    '
 ```
 
 ### Get a nested secret based on a path
 ```console
-$ vault set test/my_folder_secret yaysecret
+$ vault set test/my_folder_secret secret=yay
 Done
 
 $ vault get-all test/my_folder_secret
 ---
 test:
-  my_folder_secret: yaysecret
+  my_folder_secret:
+    secret: yay
+
+$ vault get-all --flat test/my_folder_secret
+---
+test/my_folder_secret:
+  secret: yay
 ```
 
 ### Get all values recursively from several folders in a single command (yaml format)
 ```console
 $ vault get-all test my_secret
 ---
-my_secret: qwerty
+my_secret:
+  value: qwerty
 test:
-  my_folder_secret: yaysecret
+  my_folder_secret:
+    secret: yay
+
+$ vault get-all --flat test my_secret
+---
+my_secret:
+  value: qwerty
+test/my_folder_secret:
+  secret: yay
+
 ```
 
 ### Delete a secret
@@ -237,56 +246,58 @@ Done
 $ vault mv my_secret test/my_secret
 Move 'my_secret' to 'test/my_secret'
 
-$ vault mv blob_secret test/blob_secret
-Move 'blob_secret' to 'test/blob_secret'
+$ vault get-all --flat
+-secret-name:
+  -oh-so-secret: xxx
+a:
+  value: c
+test/my_folder_secret:
+  secret: yay
+test/my_secret:
+  value: qwerty
+third_secret:
+  certificate: '----BEGIN SECRET KEY----
 
-$ vault get-all
----
--secret-name: -oh-so-secret
-list_secret:
-- secret1
-- secret2
-- secret3
-test:
-  blob_secret:
-    code: supercode
-  my_folder_secret: yaysecret
-  my_secret: qwerty
-third_secret: '----BEGIN SECRET KEY----
+    ...
 
-  ...'
+    '
 ```
 
 ### Launch a process loading secrets through environment variables
 ```console
-$ vault env --path blob_secret -- env
+$ vault env --path test/my_secret -- env
 ...
-BLOB_SECRET={"code": "supercode"}
+MY_SECRET_VALUE=qwerty
 ...
-$ vault set foo/bar/service/instance/dsn value
-$ vault env --path blob_secret=blob --path foo/bar/service/instance=my -- env
+$ vault set foo/bar/service/instance/main dsn=proto://xxx
+$ vault env --path test/my_secret:value=MYVAL --path foo/bar/service/instance/main=my -- env
 ...
-BLOB={"code": "supercode"}
-MY_DSN=value
+MYVAL=qwerty
+MY_DSN=proto://xxx
 ...
 ```
 
 
 ### Render a template file with values from the vault
 ```console
+$ vault set my_secret username=John password=qwerty
+Done
+
 $ vault template mytemplate.j2 > /etc/conf
 
 # mytemplate.j2:
-Hello={{ vault("my_secret") }}
+User={{ vault("my_secret").username }}
+Password={{ vault("my_secret").password }}
 
 # /etc/conf:
-Hello=querty
+User=John
+Password=qwerty
 ```
 (Use `-` for stdin and `-o <file or ->` to specify the file to write to, or stdout).
 
 ### (Re)create a configuration file based on the current settings
 ```console
-$ vault --url https://something --token mytoken dump-config > .vault.yaml
+$ vault --url https://something --token mytoken dump-config > vault.yaml
 ```
 
 ### Delete everything under blob-secret
@@ -301,12 +312,12 @@ $ vault delete-all --force
 
 ### Create a templated value
 ```console
-$ vault set password foo
-$ vault set dsn '!template!proto://username:{{ vault("password") }}@host/'
-$ vault get dsn
+$ vault set path/to/my/service password=foo
+$ vault set shortcut dsn='!template!proto://username:{{ vault("path/to/my/service").password }}@host/'
+$ vault get shortcut dsn
 proto://username:foo@host/
-$ vault --no-render get --text dsn
-!template!proto://username:{{ vault("password") }}@host/
+$ vault --no-render get shortcut dsn
+!template!proto://username:{{ vault("path/to/my/service").password }}@host/
 ```
 The `vault` function does not render variables recursively.
 
@@ -393,6 +404,34 @@ $ VAULT_CLI_URL=https://myvault.com vault list
 The name is always the uppercase underscored name of the equivalent command
 line option. Token and password can also be passed as environment variables as
 VAULT_CLI_TOKEN and VAULT_CLI_PASSWORD.
+
+## Upgrading
+
+### 1.0
+
+This version includes some breaking changes about key-value mappings management.
+In the previous versions of vault-cli, there was an implicit key `value` that
+was used everywhere. The goal was to provide a path <-> value abstraction.
+But it was hiding the path <-> key/value mapping reality of vault's kv engine.
+
+In this release we removed the implicit ̀`value` key in order to expose a
+key/value mapping instead of a single value. Most of the commands have been
+updated in order to add the key parameter.
+
+The following list shows how to update your commands:
+
+```sh
+(old) vault set path/to/creds xxx
+(new) vault set path/to/creds value=xxx
+
+(old) vault get path/to/creds
+(new) vault get path/to/creds value
+
+(old) vault env --path path/to/creds=FOO -- env  # FOO=xxx
+(new) vault env --path path/to/creds=FOO -- env  # FOO_VALUE=xxx
+(new) vault env --path path/to/creds:value=FOO -- env  # FOO=xxx
+```
+
 
 ## Troubleshooting
 

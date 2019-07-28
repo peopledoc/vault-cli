@@ -30,3 +30,14 @@ def path_to_nested(dict_obj: types.JSONDict) -> types.JSONDict:
             raise ValueError("Inconsistent values detected")
         working_dict[subpath] = value
     return dict_obj
+
+
+class RecursiveValue:
+    def __init__(self, name: str):
+        self.name = name
+
+    def __str__(self) -> str:
+        return f'<recursive value "{self.name}">'
+
+    def __getitem__(self, key: str) -> str:
+        return str(self)
