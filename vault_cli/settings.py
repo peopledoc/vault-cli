@@ -149,8 +149,9 @@ def build_config_from_files(*config_files: str):
     return values
 
 
-def get_vault_options(**kwargs: types.Settings):
-    values = build_config_from_files(*CONFIG_FILES).copy()
+def get_vault_options(*, config_file: Optional[str] = None, **kwargs: types.Settings):
+    config_files = [config_file] if config_file else CONFIG_FILES
+    values = build_config_from_files(*config_files).copy()
     values.update(build_config_from_env(os.environ.copy()))
     values.update(kwargs)
 

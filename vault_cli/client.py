@@ -29,40 +29,30 @@ def get_client(**kwargs) -> "VaultClientBase":
         URL of the vault instance (default: https://localhost:8200)
     verify : bool
         Verify HTTPS certificate (default: True)
-    certificate : str
-        Path to the certificate to connect to vault
+    ca_bundle: str
+        Path to your CA bundle to check the certificate if non standard
+    base_path : str
+        Base path prepended to any requested path that doesn't start with /
+    login_cert : str
+        path to the public certificate to connect to the vault
+    login_cert_key : str
+        path to the certificate key to connect to the vault
     token : str
         Token to connect to Vault
     username : str
         Username used for userpass authentication
     password : str
         Path to the file containing the password for userpass authentication
-    base_path : str
-        Base path for requests
-    backend : str or callable
-        Backend or name of the backend to use ('requests', 'hvac')
+    config_file: str
+        Path to your config file, instead of the default ones
+    safe_write : bool
+        If set to True, will keep you from overwriting secrets without force=True
+    render : bool
+        If set to False, templated secrets will not be rendered
 
     Returns
     -------
-    An instance of the appropriate subclass of VaultClientBase
-    (or whatever was provided as "backend")
-
-    Client instance exposes the following methods:
-    - list_secrets(path)
-        Returns the name of all elements at the given path.
-        Folder names end with "/"
-    - get_secret(path)
-        Returns the value for the secret at the given path
-    - delete_secret(path)
-        Deletes the secret at the given path
-    - set_secret(path, value)
-        Writes the secret at the given path
-    - get_all_secrets(paths=None)
-        Given an iterable of paths, recursively returns all
-        the secrets
-    - delete_all_secrets(paths=None)
-        Given an iterable of paths, recursively yields then deletes
-        all the secrets under those paths. Use with extreme caution.
+    An VaultClient object
     """
     options = settings.get_vault_options(**kwargs)
     client = get_client_class()(**options)
@@ -107,9 +97,6 @@ class VaultClientBase:
         safe_write: bool = settings.DEFAULTS.safe_write,
         render: bool = settings.DEFAULTS.render,
     ):
-        """
-        All parameters are mandatory but may be None
-        """
         self.url = url
         self.verify: types.VerifyOrCABundle = verify
         self.ca_bundle = ca_bundle
@@ -227,6 +214,18 @@ class VaultClientBase:
         """
         Takes several paths, return the nested dict of all secrets below
         those paths
+
+        Parameters
+        ----------
+        *paths : str
+            Paths to read recursively
+        render : bool, optional
+            Wether templated secrets should be rendered, by default True
+
+        Returns
+        -------
+        types.JSONDict
+            {"folder": {"subfolder": {"secret_key": "secret_value"}}}
         """
 
         result: types.JSONDict = {}
@@ -241,8 +240,19 @@ class VaultClientBase:
     @caching
     def get_secrets(self, path: str, render: bool = True) -> types.JSONDict:
         """
-        Takes a single path an return a path dict with all the secrets
-        below this path, recursively
+        Takes a path, return all secrets below this path
+
+        Parameters
+        ----------
+        path : str
+            Path to read recursively
+        render : bool, optional
+            Wether templated secrets should be rendered, by default True
+
+        Returns
+        -------
+        types.JSONDict
+            {"folder/subfolder": {"secret_key": "secret_value"}}
         """
         secrets_paths = self._browse_recursive_secrets(path=path, render=render)
         result: types.JSONDict = {}
@@ -255,10 +265,38 @@ class VaultClientBase:
         return result
 
     def list_secrets(self, path: str) -> Iterable[str]:
+        """
+        List secrets at the given path, without reading their values
+
+        Parameters
+        ----------
+        path : str
+            Folder in which to explore the secrets
+
+        Returns
+        -------
+        Iterable[str]
+            Iterable of secret names
+        """
         return self._list_secrets(path=self._build_full_path(path))
 
     @caching
     def get_secret(self, path: str, render: bool = True) -> types.JSONValue:
+        """
+        Retrieve the value of a single secret
+
+        Parameters
+        ----------
+        path : str
+            Path of the secret
+        render : bool, optional
+            Whether to render templated secret or not, by default True
+
+        Returns
+        -------
+        types.JSONValue
+            Secret value
+        """
         full_path = self._build_full_path(path)
         if full_path in self._currently_fetching:
             return f'<recursive value "{path}">'
@@ -287,12 +325,18 @@ class VaultClientBase:
         return secret
 
     def delete_secret(self, path: str) -> None:
+        """
+        Delete a secret
+
+        Parameters
+        ----------
+        path : str
+            Path to the secret
+
+        """
         return self._delete_secret(path=self._build_full_path(path))
 
     def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
-        """
-        Recursively deletes all the secrets at the given paths.
-        """
         for path in paths:
             secrets_paths = self._browse_recursive_secrets(path=path, render=False)
             for secret_path in secrets_paths:
@@ -300,6 +344,21 @@ class VaultClientBase:
                 self.delete_secret(secret_path)
 
     def delete_all_secrets(self, *paths: str, generator: bool = False) -> Iterable[str]:
+        """
+        If generator is True, recursively yields secret paths then deletes
+        the secrets at the given paths. If False, just delete the secrets and
+        return the list of paths.
+
+        Parameters
+        ----------
+        generator : bool, optional
+            Whether of not to yield before deletion, by default False
+
+        Returns
+        -------
+        Iterable[str]
+            Path to the deleted/to be deleted secrets
+        """
         iterator = self.delete_all_secrets_iter(*paths)
         if generator:
             return iterator
@@ -328,6 +387,26 @@ class VaultClientBase:
         force: Optional[bool] = None,
         generator: bool = False,
     ) -> Iterable[Tuple[str, str]]:
+        """
+        Yield current and new paths, then move a secret or a folder
+        to a new path
+
+        Parameters
+        ----------
+        source : str
+            Path of the secret to move
+        dest : str
+            New path for the secret
+        force : Optional[bool], optional
+            Allow overwriting exiting secret, if safe_mode is True
+        generator : bool, optional
+            Whether of not to yield before move, by default False
+
+        Returns
+        -------
+        Iterable[Tuple[str, str]]
+            [(Current path, new path)]
+        """
         iterator = self.move_secrets_iter(source=source, dest=dest, force=force)
         if generator:
             return iterator
@@ -346,6 +425,28 @@ class VaultClientBase:
 
     @caching
     def render_template(self, template: str, render: bool = True) -> str:
+        """
+        Renders a template to a string, giving it access to a `vault` function
+        that can read from the vault
+
+        Parameters
+        ----------
+        template : str
+            Jinja template string
+        render : bool, optional
+            Whether template secrets should be rendered, by default True
+
+        Returns
+        -------
+        str
+            The rendered template
+
+        Raises
+        ------
+        exceptions.VaultRenderTemplateError
+            If a secret is not found or access is forbidden
+        """
+
         def vault(path):
             try:
                 return self.get_secret(path, render=render)
@@ -358,6 +459,25 @@ class VaultClientBase:
     def set_secret(
         self, path: str, value: types.JSONValue, force: Optional[bool] = None
     ) -> None:
+        """
+        Sets the value of a secret
+
+        Parameters
+        ----------
+        path : str
+            Path to the secret
+        value : types.JSONValue
+            Value of the secret
+        force : Optional[bool], optional
+            If safe_mode is True, whether to overwrite existing secret
+
+        Raises
+        ------
+        exceptions.VaultOverwriteSecretError
+            Cannot overwrite a secret if safe_mode is True and force is False
+        exceptions.VaultMixSecretAndFolder
+            Either the path is an existing folder or a parent folder is a secret
+        """
         force = self.get_force(force)
 
         try:
