@@ -79,12 +79,26 @@ def test_build_config_from_files_no_files(mocker):
 
 
 def test_get_vault_options(mocker):
-    mocker.patch("vault_cli.settings.build_config_from_files", return_value={"a": "b"})
+    build_config_from_files = mocker.patch(
+        "vault_cli.settings.build_config_from_files", return_value={"a": "b"}
+    )
     mocker.patch("os.environ", {"VAULT_CLI_URL": "d"})
 
     expected = {"a": "b", "url": "d", "e": "f"}
 
     assert settings.get_vault_options(e="f") == expected
+    build_config_from_files.assert_called_with(*settings.CONFIG_FILES)
+
+
+def test_get_vault_options_config_file(mocker):
+    build_config_from_files = mocker.patch(
+        "vault_cli.settings.build_config_from_files", return_value={}
+    )
+
+    expected = {"e": "f"}
+
+    assert settings.get_vault_options(e="f", config_file="/bla") == expected
+    build_config_from_files.assert_called_with("/bla")
 
 
 @pytest.mark.parametrize(
