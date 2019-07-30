@@ -4,6 +4,7 @@ CHANGELOG
 0.10.0 (unreleased)
 -------------------
 
+- Add implicit and explicit caching (#102 / #103)
 - Add `config_file=` in lib mode
 
 0.9.0 (2019-07-11)
