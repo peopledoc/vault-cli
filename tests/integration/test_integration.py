@@ -55,6 +55,13 @@ c:
 """
     )
 
+    assert call(cli_runner, ["get-all", "--flat", ""]).output == (
+        """---
+a: b
+c/d: e
+"""
+    )
+
     call(cli_runner, ["delete", "a"])
 
     assert call(cli_runner, ["list"]).output == "c/\n"
