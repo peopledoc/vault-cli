@@ -138,6 +138,18 @@ def test_vault_client_base_get_all_secrets(vault):
     assert result == {"a": {"c": "secret-ac"}}
 
 
+def test_vault_client_base_get_all_secrets_flat(vault):
+    vault.db = {"a/c": {"value": "secret-ac"}, "b": {"value": "secret-b"}}
+
+    result = vault.get_all_secrets("a", "", flat=True)
+
+    assert result == {"a/c": "secret-ac", "b": "secret-b"}
+
+    result = vault.get_all_secrets("a", flat=True)
+
+    assert result == {"a/c": "secret-ac"}
+
+
 @pytest.mark.parametrize(
     "input, expected", [("a", {"a/c": "secret-ac"}), ("b", {"b": "secret-b"})]
 )

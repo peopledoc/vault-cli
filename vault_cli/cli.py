@@ -183,10 +183,15 @@ def list_(client_obj: client.VaultClientBase, path: str):
 
 
 @cli.command(name="get-all")
+@click.option(
+    "--flat",
+    is_flag=True,
+    help=("Returns the full path as keys instead of merging paths into a tree"),
+)
 @click.argument("path", required=False, nargs=-1)
 @click.pass_obj
 @handle_errors()
-def get_all(client_obj: client.VaultClientBase, path: Sequence[str]):
+def get_all(client_obj: client.VaultClientBase, path: Sequence[str], flat: bool):
     """
     Return multiple secrets. Return a single yaml with all the secrets located
     at the given paths. Folders are recursively explored. Without a path,
@@ -194,7 +199,7 @@ def get_all(client_obj: client.VaultClientBase, path: Sequence[str]):
     """
     paths = list(path) or [""]
 
-    result = client_obj.get_all_secrets(*paths)
+    result = client_obj.get_all_secrets(*paths, flat=flat)
 
     click.echo(
         yaml.safe_dump(result, default_flow_style=False, explicit_start=True), nl=False

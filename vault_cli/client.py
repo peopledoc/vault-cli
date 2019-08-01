@@ -210,7 +210,9 @@ class VaultClientBase:
                 yield sub_path
 
     @caching
-    def get_all_secrets(self, *paths: str, render: bool = True) -> types.JSONDict:
+    def get_all_secrets(
+        self, *paths: str, render: bool = True, flat: bool = False
+    ) -> types.JSONDict:
         """
         Takes several paths, return the nested dict of all secrets below
         those paths
@@ -220,7 +222,10 @@ class VaultClientBase:
         *paths : str
             Paths to read recursively
         render : bool, optional
-            Wether templated secrets should be rendered, by default True
+            Whether templated secrets should be rendered, by default True
+        flat : bool, optional
+            Whether to return flat structure with full path as keys or nested
+            structure that looks like a tree
 
         Returns
         -------
@@ -232,8 +237,10 @@ class VaultClientBase:
 
         for path in paths:
             path_dict = self.get_secrets(path, render=render)
-
-            result.update(utils.path_to_nested(path_dict))
+            if flat:
+                result.update(path_dict)
+            else:
+                result.update(utils.path_to_nested(path_dict))
 
         return result
 
