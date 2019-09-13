@@ -422,6 +422,8 @@ class VaultClientBase:
     template_prefix = "!template!"
 
     def _render_template_value(self, secret: types.JSONValue) -> types.JSONValue:
+        if isinstance(secret, dict):
+            return {k: self._render_template_value(v) for k, v in secret.items()}
         if not isinstance(secret, str):
             return secret
 

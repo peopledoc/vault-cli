@@ -7,6 +7,7 @@ CHANGELOG
 - Add implicit and explicit caching (#102 / #103)
 - Add `config_file=` in lib mode
 - Add a `--flat` option to the `get-all` command (the new output uses full paths as dictionnary key)
+- Add support of templates when values are dict
 
 0.9.0 (2019-07-11)
 ------------------
