@@ -366,6 +366,14 @@ def test_vault_client_base_render_template_path_not_found(vault):
         ({"a": {"value": "!template!b"}, "b": {"value": "c"}}, "b"),
         # Secret is a template
         ({"a": {"value": "!template!{{ vault('b') }}"}, "b": {"value": "c"}}, "c"),
+        # Secret is a dict with containing a template
+        (
+            {
+                "a": {"value": {"x": "!template!{{ vault('b') }}", "y": "yay"}},
+                "b": {"value": "c"},
+            },
+            {"x": "c", "y": "yay"},
+        ),
         # Finite recursion
         (
             {
