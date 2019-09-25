@@ -491,7 +491,7 @@ def test_mv_mix_secrets_folders(cli_runner, vault_with_token):
     assert result.exit_code != 0
 
 
-def test_template(cli_runner, vault_with_token):
+def test_template_stdin(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": {"value": "c"}}
 
     result = cli_runner.invoke(

@@ -451,7 +451,7 @@ def mv(
 
 
 @cli.command()
-@click.argument("template", type=click.File("r"), required=True)
+@click.argument("template", type=click.Path(exists=True, allow_dash=True, file_okay=False), required=True)
 @click.option(
     "-o",
     "--output",
@@ -463,7 +463,7 @@ def mv(
 @click.pass_obj
 @handle_errors()
 def template(
-    client_obj: client.VaultClientBase, template: TextIO, output: TextIO
+    client_obj: client.VaultClientBase, template_path: str, output: TextIO
 ) -> None:
     """
     Render the given template and insert secrets in it.
@@ -473,7 +473,7 @@ def template(
 
     If template is -, standard input will be read.
     """
-    result = client_obj.render_template(template.read())
+    result = client_obj.render_template(template_path)
     output.write(result)
 
 

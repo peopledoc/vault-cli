@@ -3,6 +3,7 @@ import functools
 import json
 import logging
 import pathlib
+import sys
 from typing import Dict, Iterable, Optional, Set, Tuple, Type
 
 import hvac
@@ -433,15 +434,15 @@ class VaultClientBase:
         return self.render_template(secret[len(self.template_prefix) :])
 
     @caching
-    def render_template(self, template: str, render: bool = True) -> str:
+    def render_template(self, template_path: str, render: bool = True) -> str:
         """
         Renders a template to a string, giving it access to a `vault` function
         that can read from the vault
 
         Parameters
         ----------
-        template : str
-            Jinja template string
+        template_path : str
+            Jinja template filesystem path
         render : bool, optional
             Whether template secrets should be rendered, by default True
 
@@ -461,6 +462,12 @@ class VaultClientBase:
                 return self.get_secret(path, render=render)
             except exceptions.VaultException:
                 raise exceptions.VaultRenderTemplateError(f"'{path}' not found")
+
+        if template_path == '-':
+            template = sys.stdin.read()
+        else:
+            with open(template_path, "r") as template_fhandle:
+                template = template_fhandle.read()
 
         return jinja2.Template(template).render(vault=vault)
 
