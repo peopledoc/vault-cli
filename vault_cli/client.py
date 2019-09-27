@@ -2,7 +2,9 @@ import contextlib
 import functools
 import json
 import logging
+import os.path
 import pathlib
+import sys
 from typing import Dict, Iterable, Optional, Set, Tuple, Type
 
 import hvac
@@ -463,6 +465,46 @@ class VaultClientBase:
                 raise exceptions.VaultRenderTemplateError(f"'{path}' not found")
 
         return jinja2.Template(template).render(vault=vault)
+
+    @caching
+    def render_template_from_file(self, template_path: str, render: bool = True) -> str:
+        """
+        Renders a template to a string, giving it access to a `vault` function
+        that can read from the vault
+
+        Parameters
+        ----------
+        template_path : str
+            Jinja template file path
+        render : bool, optional
+            Whether template secrets should be rendered, by default True
+
+        Returns
+        -------
+        str
+            The rendered template
+
+        Raises
+        ------
+        exceptions.VaultRenderTemplateError
+            If a secret is not found or access is forbidden
+        """
+
+        def vault(path):
+            try:
+                return self.get_secret(path, render=render)
+            except exceptions.VaultException:
+                raise exceptions.VaultRenderTemplateError(f"'{path}' not found")
+
+        if template_path == "-":
+            dir_name = os.getcwd()
+            env = jinja2.Environment(loader=jinja2.FileSystemLoader(dir_name))
+            template = env.from_string(sys.stdin.read())
+        else:
+            dir_name = os.path.dirname(template_path)
+            env = jinja2.Environment(loader=jinja2.FileSystemLoader(dir_name))
+            template = env.get_template(os.path.basename(template_path))
+        return template.render(vault=vault)
 
     @caching
     def set_secret(

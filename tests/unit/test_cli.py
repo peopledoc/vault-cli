@@ -1,4 +1,7 @@
 import logging
+import os
+import sys
+import tempfile
 
 import click
 import pytest
@@ -491,12 +494,27 @@ def test_mv_mix_secrets_folders(cli_runner, vault_with_token):
     assert result.exit_code != 0
 
 
-def test_template(cli_runner, vault_with_token):
+def test_template_from_stdin(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": {"value": "c"}}
 
     result = cli_runner.invoke(
         cli.cli, ["template", "-"], input="Hello {{ vault('a/b') }}"
     )
+
+    print(result, file=sys.stdout)
+    assert result.stdout == "Hello c"
+    assert result.exit_code == 0
+
+
+def test_template_from_file(cli_runner, vault_with_token):
+    vault_with_token.db = {"a/b": {"value": "c"}}
+
+    with tempfile.NamedTemporaryFile(dir=os.getcwd(), mode="w+") as fp:
+        fp.write("Hello {{ vault('a/b') }}")
+        fp.flush()
+        result = cli_runner.invoke(
+            cli.cli, ["template", fp.name], catch_exceptions=False
+        )
 
     assert result.exit_code == 0
     assert result.stdout == "Hello c"

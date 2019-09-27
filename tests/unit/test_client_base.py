@@ -1,4 +1,6 @@
 import itertools
+import os
+import tempfile
 
 import pytest
 
@@ -346,14 +348,20 @@ def test_vault_client_move_secrets_overwrite_force(vault):
 def test_vault_client_base_render_template(vault):
 
     vault.db = {"a/b": {"value": "c"}}
-
-    assert vault.render_template("Hello {{ vault('a/b') }}") == "Hello c"
+    output = vault.render_template("Hello {{ vault('a/b') }}")
+    assert output == "Hello c"
 
 
 def test_vault_client_base_render_template_path_not_found(vault):
     with pytest.raises(exceptions.VaultRenderTemplateError):
         vault.render_template("Hello {{ vault('a/b') }}")
 
+def test_vault_client_base_render_template_from_file_path_not_found(vault):
+    with tempfile.NamedTemporaryFile(dir=os.getcwd(), mode="w+") as fp:
+        fp.write("Hello {{ vault('a/b') }}")
+        fp.flush()
+        with pytest.raises(exceptions.VaultRenderTemplateError):
+            vault.render_template_from_file(fp.name)
 
 @pytest.mark.parametrize(
     "vault_contents, expected",
