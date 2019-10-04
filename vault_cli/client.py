@@ -433,7 +433,12 @@ class VaultClientBase:
         return self.render_template(secret[len(self.template_prefix) :])
 
     @caching
-    def render_template(self, template: str, render: bool = True) -> str:
+    def render_template(
+        self,
+        template: str,
+        render: bool = True,
+        search_path: pathlib.Path = pathlib.Path("."),
+    ) -> str:
         """
         Renders a template to a string, giving it access to a `vault` function
         that can read from the vault
@@ -444,6 +449,9 @@ class VaultClientBase:
             Jinja template string
         render : bool, optional
             Whether template secrets should be rendered, by default True
+        search_path: pathlib.Path object, optional
+            search path for additional Jinja2 templates, by default current working directory
+            See https://jinja.palletsprojects.com/en/2.10.x/api/#jinja2.FileSystemLoader
 
         Returns
         -------
@@ -462,7 +470,7 @@ class VaultClientBase:
             except exceptions.VaultException:
                 raise exceptions.VaultRenderTemplateError(f"'{path}' not found")
 
-        env = jinja2.Environment(loader=jinja2.FileSystemLoader("./"))
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(search_path.as_posix()))
         return env.from_string(template).render(vault=vault)
 
     @caching

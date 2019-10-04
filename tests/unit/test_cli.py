@@ -1,9 +1,9 @@
 import logging
+import os
+import tempfile
 
 import click
-import os
 import pytest
-import tempfile
 import yaml
 
 import vault_cli
@@ -531,6 +531,7 @@ def test_template_from_file_with_include(cli_runner, vault_with_token):
             template_file.flush()
             include_file.write("Hello all")
             include_file.flush()
+
             result = cli_runner.invoke(
                 cli.cli, ["template", template_file.name], catch_exceptions=False
             )
