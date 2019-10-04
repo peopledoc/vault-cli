@@ -462,7 +462,8 @@ class VaultClientBase:
             except exceptions.VaultException:
                 raise exceptions.VaultRenderTemplateError(f"'{path}' not found")
 
-        return jinja2.Template(template).render(vault=vault)
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader("./"))
+        return env.from_string(template).render(vault=vault)
 
     @caching
     def set_secret(

@@ -469,9 +469,12 @@ def template(
     Render the given template and insert secrets in it.
 
     Rendering is done with jinja2. A vault() function is exposed that
-    recieves a path and outputs the secret at this path.
+    receives a path and outputs the secret at this path.
 
     If template is -, standard input will be read.
+
+    Note that the search path for possible Jinja `{% include() %}` statement is the
+    current working directory.
     """
     result = client_obj.render_template(template.read())
     output.write(result)
