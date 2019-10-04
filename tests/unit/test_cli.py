@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import sys
 import tempfile
 
@@ -509,7 +510,7 @@ def test_template_from_stdin(cli_runner, vault_with_token):
 def test_template_from_file(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": {"value": "c"}}
 
-    with tempfile.NamedTemporaryFile(dir=os.getcwd(), mode="w+") as fp:
+    with tempfile.NamedTemporaryFile(mode="w+") as fp:
         fp.write("Hello {{ vault('a/b') }}")
         fp.flush()
         result = cli_runner.invoke(
@@ -519,6 +520,24 @@ def test_template_from_file(cli_runner, vault_with_token):
     assert result.exit_code == 0
     assert result.stdout == "Hello c"
 
+def test_template_from_file_with_include(cli_runner, vault_with_token):
+    vault_with_token.db = {"a/b": {"value": "c"}}
+
+    tmp_dir = tempfile.mkdtemp(dir=os.getcwd())
+    try:
+        os.mkdir(os.path.join(tmp_dir, 'foobar'))
+        with tempfile.NamedTemporaryFile(dir=tmp_dir, mode="w+") as file1:
+            file1.write("Hello {{ vault('a/b') }}\n{% include('" + file1.name + "') %}")
+            file1.flush()
+            result = cli_runner.invoke(
+                cli.cli, ["template", file1.name], catch_exceptions=False
+            )
+    finally:
+        shutil.rmtree(tmp_dir)
+
+
+    assert result.exit_code == 0
+    assert result.stdout == "Hello c"
 
 def test_lookup_token(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": {"value": "c"}}
