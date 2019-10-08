@@ -1,6 +1,8 @@
 import contextlib
 import logging
 import os
+import pathlib
+import sys
 from typing import Any, Dict, Mapping, NoReturn, Optional, Sequence, TextIO
 
 import click
@@ -451,7 +453,11 @@ def mv(
 
 
 @cli.command()
-@click.argument("template", type=click.File("r"), required=True)
+@click.argument(
+    "template",
+    type=click.Path(exists=True, allow_dash=True, file_okay=True),
+    required=True,
+)
 @click.option(
     "-o",
     "--output",
@@ -462,18 +468,28 @@ def mv(
 )
 @click.pass_obj
 @handle_errors()
-def template(
-    client_obj: client.VaultClientBase, template: TextIO, output: TextIO
-) -> None:
+def template(client_obj: client.VaultClientBase, template: str, output: TextIO) -> None:
     """
     Render the given template and insert secrets in it.
 
-    Rendering is done with jinja2. A vault() function is exposed that
-    recieves a path and outputs the secret at this path.
+    Rendering is done with Jinja2. A vault() function is exposed that
+    receives a path and outputs the secret at this path.
 
-    If template is -, standard input will be read.
+    Search path (see https://jinja.palletsprojects.com/en/2.10.x/api/#jinja2.FileSystemLoader)
+    for possible Jinja2 `{% include() %}` statement is set to the template's directory.
+
+    If template is -, standard input will be read and the current working directory becomes the search path.
+
     """
-    result = client_obj.render_template(template.read())
+    if template == "-":
+        template_text = sys.stdin.read()
+        search_path = pathlib.Path.cwd()
+    else:
+        with open(template, mode="r") as ftemplate:
+            template_text = ftemplate.read()
+        search_path = pathlib.Path(template).parent
+
+    result = client_obj.render_template(template_text, search_path=search_path)
     output.write(result)
 
 

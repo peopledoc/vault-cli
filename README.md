@@ -4,11 +4,9 @@ This tools allows simple interactions with the vault API, allowing
 configuration to be done in a separate step using a YAML configuration file.
 
 This is especially interesting if you interact with Hashicorp Vault from
-automated deployment tools
+automated deployment tools.
 
 ## Installation
-
-The tool is packaged but the package is not yet available on pypi.
 
 `pip install vault-cli`
 
@@ -65,7 +63,7 @@ Commands:
   lookup-token  Return information regarding the current token
   mv            Recursively move secrets from source to destination path.
   set           Set a single secret to the given value(s).
-  template      Render the given template and insert secrets in it.
+  template      Render the given Jinja2 template and insert secrets in it.
 ```
 
 ## Authentication
@@ -284,7 +282,7 @@ Hello={{ vault("my_secret") }}
 # /etc/conf:
 Hello=querty
 ```
-(Use `-` for stdin and `-o <file or ->` to specify the file to write to, or stdout)
+(Use `-` for stdin and `-o <file or ->` to specify the file to write to, or stdout).
 
 ### (Re)create a configuration file based on the current settings
 ```console
@@ -382,7 +380,7 @@ base-path: project/
 ```
 
 If you do so, make sure the permissions of the configuration file itself are
-not too broad
+not too broad.
 
 Just note that the `--verify / --no-verify` flag become `verify: yes` or
 `verify: no`

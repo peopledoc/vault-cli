@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.12.0 (unreleased)
+-------------------
+
+- Add Jinja2 'include' support for template command (#116)
+
 0.11.0 (2019-09-13)
 -------------------
 
