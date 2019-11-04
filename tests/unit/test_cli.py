@@ -182,6 +182,30 @@ def test_set_with_both_prompt_and_stdin(cli_runner, vault_with_token):
     assert vault_with_token.db == {}
 
 
+def test_set_with_both_yaml_and_multiple_values(cli_runner, vault_with_token):
+
+    result = cli_runner.invoke(cli.cli, ["set", "--yaml", "a", "b", "c"])
+
+    assert result.exit_code != 0
+    assert vault_with_token.db == {}
+
+
+def test_set_strip(cli_runner, vault_with_token):
+
+    result = cli_runner.invoke(cli.cli, ["set", "a", "  b  "])
+
+    assert result.exit_code == 0
+    assert vault_with_token.db == {"a": {"value": "b"}}
+
+
+def test_set_no_strip(cli_runner, vault_with_token):
+
+    result = cli_runner.invoke(cli.cli, ["set", "--no-strip", "a", "  b  "])
+
+    assert result.exit_code == 0
+    assert vault_with_token.db == {"a": {"value": "  b  "}}
+
+
 def test_set_prompt(cli_runner, mocker, vault_with_token):
 
     prompt = mocker.patch("click.prompt")
@@ -566,3 +590,19 @@ def test_version(cli_runner):
     assert result.exit_code == 0
     assert result.stdout.startswith("vault-cli " + vault_cli.__version__)
     assert result.stdout.endswith("License: Apache Software License\n")
+
+
+@pytest.mark.parametrize(
+    "input, output",
+    [
+        ("hey", "hey"),
+        ("hey ", "hey"),
+        ("hey ho ", "hey ho"),
+        ("hey ho\n", "hey ho"),
+        ("hey\nho", "hey\nho\n"),
+        ("hey\nho ", "hey\nho\n"),
+        ("hey\nho\n", "hey\nho\n"),
+    ],
+)
+def test_fix_whitespaces(input, output):
+    assert cli.fix_whitespaces(input) == output

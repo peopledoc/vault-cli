@@ -255,6 +255,11 @@ def get(client_obj: client.VaultClientBase, text: bool, name: str):
     help="In case the path already holds a secret, allow overwriting it "
     "(this is necessary only if --safe-write is set).",
 )
+@click.option(
+    "--strip/--no-strip",
+    default=True,
+    help="If --no-strip is set, value will not be stripped of surrounding whitespaces",
+)
 @click.argument("name")
 @click.argument("value", nargs=-1)
 @handle_errors()
@@ -263,6 +268,7 @@ def set_(
     format_yaml: bool,
     prompt: bool,
     stdin: bool,
+    strip: bool,
     name: str,
     value: Sequence[str],
     force: Optional[bool],
@@ -273,35 +279,38 @@ def set_(
     Value can be either passed as argument (several arguments will be
     interpreted as a list) or via stdin with the --stdin flag.
     """
-    if prompt and value:
-        raise click.UsageError("Can't set both --prompt and a value")
+    if prompt + bool(value) + stdin > 1:
+        raise click.UsageError(
+            "Conflicting input methods: use only one of --prompt, --stdin and "
+            "positional argument"
+        )
 
-    if stdin and value:
-        raise click.UsageError("Can't set both --stdin and a value")
-
-    if stdin and prompt:
-        raise click.UsageError("Can't use both --stdin and --prompt")
-
-    final_value: types.JSONValue
+    json_value: types.JSONValue
     if stdin:
-        final_value = click.get_text_stream("stdin").read().strip()
+        json_value = click.get_text_stream("stdin").read()
+
     elif prompt:
-        final_value = click.prompt(
-            f"Please enter value for `{name}`", hide_input=True
-        ).strip()
+        json_value = click.prompt(f"Please enter value for `{name}`", hide_input=True)
 
     elif len(value) == 1:
-        final_value = value[0]
+        json_value = value[0]
 
     else:
-        final_value = list(value)
+        json_value = list(value)
 
     if format_yaml:
-        assert isinstance(final_value, str)
-        final_value = yaml.safe_load(final_value)
+        if not isinstance(json_value, str):
+            raise click.UsageError(
+                "Cannot pass several values when using yaml format. "
+                "Please use a yaml list instead."
+            )
+        json_value = yaml.safe_load(json_value)
+
+    if strip and isinstance(json_value, str):
+        json_value = fix_whitespaces(string=json_value)
 
     try:
-        client_obj.set_secret(path=name, value=final_value, force=force)
+        client_obj.set_secret(path=name, value=json_value, force=force)
     except exceptions.VaultOverwriteSecretError as exc:
         raise click.ClickException(
             f"Secret already exists at {exc.path}. Use -f to force overwriting."
@@ -309,6 +318,18 @@ def set_(
     except exceptions.VaultMixSecretAndFolder as exc:
         raise click.ClickException(str(exc))
     click.echo("Done")
+
+
+def fix_whitespaces(string: str) -> str:
+    """
+    Single line secrets are stripped of all surrounding whitespace, which most probably
+    got here by accident. Multiline secrets are stripped, but a single trailing new line
+    is enforced.
+    """
+    stripped = string.strip()
+    if "\n" in stripped:
+        stripped += "\n"
+    return stripped
 
 
 @cli.command()

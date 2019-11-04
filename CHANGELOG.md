@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.13.0 (unreleased)
+-------------------
+
+- Fix secret whitespace stripping (#110)
+
 0.12.0 (2019-10-08)
 -------------------
 
