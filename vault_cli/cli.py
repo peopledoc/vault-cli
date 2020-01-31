@@ -146,6 +146,7 @@ def cli(ctx: click.Context, **kwargs) -> None:
     kwargs.pop("config_file")
     verbose = kwargs.pop("verbose")
 
+    assert ctx.default_map  # make mypy happy
     kwargs.update(extract_special_args(ctx.default_map, os.environ))
 
     # There might still be files to read, so let's do it now
