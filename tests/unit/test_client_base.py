@@ -451,6 +451,13 @@ def test_vault_client_base_get_secrets_error(vault):
     assert vault.get_secrets("") == {"a": "b", "c": "<error while retrieving secret>"}
 
 
+def test_vault_client_base_get_secrets_list_forbidden(vault):
+    vault.db = {"a": {"value": "b"}, "c": {"value": "d"}}
+    vault.forbidden_list_paths = {"c"}
+
+    assert vault.get_secrets("c") == {"c": "d"}
+
+
 @pytest.mark.parametrize(
     "method, params, expected",
     [

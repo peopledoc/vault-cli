@@ -189,7 +189,6 @@ class VaultClientBase:
         # - path ends with /, we know it's a folder
         # - path doesn't end with a / and yet it's a folder
         # - path is a secret
-
         folder = path.endswith("/") or path == ""
 
         sub_secrets = self.list_secrets(path=path)
@@ -261,7 +260,16 @@ class VaultClientBase:
         types.JSONDict
             {"folder/subfolder": {"secret_key": "secret_value"}}
         """
-        secrets_paths = self._browse_recursive_secrets(path=path, render=render)
+        try:
+            secrets_paths = list(
+                self._browse_recursive_secrets(path=path, render=render)
+            )
+        except exceptions.VaultAPIException:
+            # If we cannot list secrets, we can't browse them, but there's still
+            # a chance that the provided path is a single secret that we can
+            # read
+            secrets_paths = [path]
+
         result: types.JSONDict = {}
         for subpath in secrets_paths:
             try:
