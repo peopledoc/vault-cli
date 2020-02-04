@@ -5,6 +5,7 @@ CHANGELOG
 -------------------
 
 - Fix secret whitespace stripping (#110)
+- Fix vault get-all and vault env without list permission
 
 0.12.0 (2019-10-08)
 -------------------
