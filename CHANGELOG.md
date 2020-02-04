@@ -1,7 +1,12 @@
 CHANGELOG
 =========
 
-0.13.0 (unreleased)
+0.14.0 (unreleased)
+-------------------
+
+- Nothing yet
+
+0.13.0 (2020-02-04)
 -------------------
 
 - Fix secret whitespace stripping (#110)
