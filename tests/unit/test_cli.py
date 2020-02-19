@@ -347,6 +347,20 @@ def test_env_filter_key(cli_runner, vault_with_token, mocker):
     assert kwargs["environ"]["PASSWORD"] == "xxx"
 
 
+def test_env_omit_single_key(cli_runner, vault_with_token, mocker):
+    exec_command = mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.db = {"foo/bar": {"value": "yay"}, "foo/baz": {"password": "yo"}}
+    cli_runner.invoke(
+        cli.cli, ["env", "--path", "foo", "--omit-single-key", "--", "echo", "yay"]
+    )
+
+    _, kwargs = exec_command.call_args
+    assert kwargs["command"] == ("echo", "yay")
+    assert kwargs["environ"]["FOO_BAR"] == "yay"
+    assert kwargs["environ"]["FOO_BAZ"] == "yo"
+
+
 def test_main(mocker):
     mock_cli = mocker.patch("vault_cli.cli.cli")
     environ = mocker.patch("os.environ", {})

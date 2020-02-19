@@ -477,6 +477,13 @@ def test_vault_client_base_get_secret_not_found(vault):
         vault.get_secret("not-exiting")
 
 
+def test_vault_client_base_get_secret_missing_key(vault):
+    vault.db = {"a": {"password": "xxx"}}
+
+    with pytest.raises(exceptions.VaultSecretNotFound):
+        vault.get_secret("a", key="username")
+
+
 def test_vault_client_base_lookup_token(vault):
     assert vault.lookup_token() == {"data": {"expire_time": "2100-01-01T00:00:00"}}
 

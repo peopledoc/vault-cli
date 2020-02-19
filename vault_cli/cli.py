@@ -367,11 +367,21 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
     required=True,
     help="Folder or single item. Pass several times to load multiple values. You can use --path mypath=prefix or --path mypath:key=prefix if you want to change the generated names of the environment variables",
 )
+@click.option(
+    "-o",
+    "--omit-single-key/--no-omit-single-key",
+    is_flag=True,
+    default=False,
+    help="When the secret has only one key, don't use that key to build the name of the environment variable",
+)
 @click.argument("command", nargs=-1)
 @click.pass_obj
 @handle_errors()
 def env(
-    client_obj: client.VaultClientBase, path: Sequence[str], command: Sequence[str]
+    client_obj: client.VaultClientBase,
+    path: Sequence[str],
+    omit_single_key: bool,
+    command: Sequence[str],
 ) -> NoReturn:
     """
     Launch a command, loading secrets in environment.
@@ -413,7 +423,10 @@ def env(
         else:
             secrets = client_obj.get_secrets(path=path, relative=True)
             env_updates = environment.get_envvars_for_secrets(
-                path=path, prefix=prefix, secrets=secrets
+                path=path,
+                prefix=prefix,
+                secrets=secrets,
+                omit_single_key=omit_single_key,
             )
         env_secrets.update(env_updates)
 
