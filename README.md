@@ -458,6 +458,10 @@ a:
     secret: xxx
 ```
 
+## Integrate with SystemD
+
+See [dedicated document](README-systemd.md).
+
 ## Troubleshooting
 
 ### `SyntaxError: invalid syntax`
