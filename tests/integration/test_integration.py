@@ -59,20 +59,20 @@ def test_integration_cli(cli_runner, clean_vault):
         """---
 a:
   value: b
+c/d:
+  bar: f
+  foo: e
+"""
+    )
+
+    assert call(cli_runner, ["get-all", "--no-flat"]).output == (
+        """---
+a:
+  value: b
 c:
   d:
     bar: f
     foo: e
-"""
-    )
-
-    assert call(cli_runner, ["get-all", "--flat", ""]).output == (
-        """---
-a:
-  value: b
-c/d:
-  bar: f
-  foo: e
 """
     )
 

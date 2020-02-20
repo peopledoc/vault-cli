@@ -5,6 +5,7 @@ CHANGELOG
 -------------------
 
 - Remove the hard-coded "value" key used in get/set (#104)
+- Enable --flat by default on `vault get-all`
 
 0.13.0 (2020-02-04)
 -------------------
