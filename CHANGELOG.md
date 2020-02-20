@@ -1,10 +1,10 @@
 CHANGELOG
 =========
 
-0.14.0 (unreleased)
+1.O.0 (unreleased)
 -------------------
 
-- Nothing yet
+- Remove the hard-coded "value" key used in get/set (#104)
 
 0.13.0 (2020-02-04)
 -------------------

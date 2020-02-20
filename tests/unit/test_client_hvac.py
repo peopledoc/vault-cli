@@ -109,9 +109,36 @@ def test_list_secrets_empty(mock_hvac):
 
 def test_delete_secret(mock_hvac):
 
-    get_client()._delete_secret("bla/a")
+    get_client().delete_secret("a")
 
-    mock_hvac.delete.assert_called_with("bla/a")
+    mock_hvac.delete.assert_called_with("/bla/a")
+
+
+def test_delete_secret_one_key(mock_hvac):
+    mock_hvac.read.return_value = {"data": {"value": "b"}}
+
+    get_client().delete_secret("a", "value")
+
+    mock_hvac.delete.assert_called_with("/bla/a")
+
+
+def test_delete_secret_many_keys(mock_hvac):
+    mock_hvac.read.return_value = {"data": {"a": "A", "b": "B"}}
+
+    get_client().delete_secret("a", "b")
+
+    mock_hvac.delete.assert_not_called()
+    mock_hvac.write.assert_called_with("/bla/a", a="A")
+
+
+@pytest.mark.parametrize("existing_mapping", [None, {"data": {"a": "A", "b": "B"}}])
+def test_delete_secret_missing_key_or_mapping(mock_hvac, existing_mapping):
+    mock_hvac.read.return_value = existing_mapping
+
+    get_client().delete_secret("a", "c")
+
+    mock_hvac.delete.assert_not_called()
+    mock_hvac.write.assert_not_called()
 
 
 def test_set_secret(mock_hvac):
