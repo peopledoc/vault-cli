@@ -124,10 +124,10 @@ def test_get_yaml(cli_runner, vault_with_token):
     assert result.exit_code == 0
 
 
-def test_get_all(cli_runner, vault_with_token):
+def test_get_all_no_flat(cli_runner, vault_with_token):
 
     vault_with_token.db = {"a/baz": {"value": "bar"}, "a/foo": {"value": "yay"}}
-    result = cli_runner.invoke(cli.cli, ["get-all", "a"])
+    result = cli_runner.invoke(cli.cli, ["get-all", "--no-flat", "a"])
 
     assert yaml.safe_load(result.output) == {
         "a": {"baz": {"value": "bar"}, "foo": {"value": "yay"}}
@@ -138,7 +138,7 @@ def test_get_all(cli_runner, vault_with_token):
 def test_get_all_flat(cli_runner, vault_with_token):
 
     vault_with_token.db = {"a/baz": {"value": "bar"}, "a/foo": {"value": "yay"}}
-    result = cli_runner.invoke(cli.cli, ["get-all", "--flat", "a"])
+    result = cli_runner.invoke(cli.cli, ["get-all", "a"])
 
     assert yaml.safe_load(result.output) == {
         "a/baz": {"value": "bar"},

@@ -437,6 +437,26 @@ The following list shows how to update your commands:
 (new) vault env --path path/to/creds:value=FOO -- env  # FOO=xxx
 ```
 
+The default output of `vault get-all` has also changed and is now flat by default (this
+behavior is controlled with the `--flat/--no-flat` flags).
+
+```sh
+$ vault set a/b secret=xxx
+$ vault set a/c secret=xxx
+$ vault get-all a
+---
+a/b:
+  secret: xxx
+a/c:
+  secret: xxx
+$ vault get-all --no-flat a
+---
+a:
+  b:
+    secret: xxx
+  c:
+    secret: xxx
+```
 
 ## Troubleshooting
 

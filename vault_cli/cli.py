@@ -197,8 +197,9 @@ def list_(client_obj: client.VaultClientBase, path: str):
 
 @cli.command(name="get-all")
 @click.option(
-    "--flat",
-    is_flag=True,
+    "--flat/--no-flat",
+    default=True,
+    show_default=True,
     help=("Returns the full path as keys instead of merging paths into a tree"),
 )
 @click.argument("path", required=False, nargs=-1)
