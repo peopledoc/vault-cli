@@ -1,11 +1,14 @@
 CHANGELOG
 =========
 
-1.O.0 (unreleased)
+1.0.0 (unreleased)
 -------------------
 
+- Added SystemD documentation (#124)
 - Remove the hard-coded "value" key used in get/set (#104)
-- Enable --flat by default on `vault get-all`
+- Added `vault env --omit-single-key` flag to help compatibility (#104)
+- Added upgrade documentation (#104)
+- Enable --flat by default on `vault get-all` (#130)
 
 0.13.0 (2020-02-04)
 -------------------
