@@ -230,10 +230,23 @@ def get_all(client_obj: client.VaultClientBase, path: Sequence[str], flat: bool)
         "If the secret is not a string, it will always be yaml."
     ),
 )
+@click.option(
+    "-o",
+    "--output",
+    type=click.File("w"),
+    help="File in which to write the secret. "
+    "If ommited (or -), write in standard output",
+)
 @click.argument("name")
 @click.argument("key", required=False)
 @handle_errors()
-def get(client_obj: client.VaultClientBase, text: bool, key: Optional[str], name: str):
+def get(
+    client_obj: client.VaultClientBase,
+    text: bool,
+    output: Optional[TextIO],
+    key: Optional[str],
+    name: str,
+):
     """
     Return a single secret value.
     """
@@ -242,11 +255,13 @@ def get(client_obj: client.VaultClientBase, text: bool, key: Optional[str], name
     if text and not force_yaml:
         if secret is None:
             secret = "null"
-        click.echo(secret)
+        click.echo(secret, file=output)
         return
 
     click.echo(
-        yaml.safe_dump(secret, default_flow_style=False, explicit_start=True), nl=False
+        yaml.safe_dump(secret, default_flow_style=False, explicit_start=True),
+        nl=False,
+        file=output,
     )
 
 
