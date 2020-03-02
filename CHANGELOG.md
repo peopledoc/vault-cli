@@ -1,7 +1,12 @@
 CHANGELOG
 =========
 
-1.1.0 (unreleased)
+1.2.0 (unreleased)
+-------------------
+
+- nothing yet
+
+1.1.0 (2020-02-28)
 -------------------
 
 - Add `--output` option to `vault get` (defaults to stdout)
