@@ -44,3 +44,24 @@ def get_envvars_for_secrets(
             value = _make_env_value(value)
             env_secrets[env_name] = value
     return env_secrets
+
+def get_envvars(
+    vault_client: client.VaultClientBase,
+    path: str,
+    prefix: str,
+    omit_single_key: bool,
+    filter_key: str,
+) -> Dict[str, str]:
+    if filter_key:
+        secret = vault_client.get_secret(path=path, key=filter_key)
+        return get_envvars_for_secrets(
+            path="",
+            prefix=prefix,
+            secrets={"": {filter_key: secret}},
+            omit_single_key=bool(prefix),
+        )
+    else:
+        secrets = vault_client.get_secrets(path=path, relative=True)
+        return get_envvars_for_secrets(
+            path=path, prefix=prefix, secrets=secrets, omit_single_key=omit_single_key
+        )

@@ -107,3 +107,34 @@ def test_get_envvars_for_secrets_omit(secrets, path, prefix, expected):
         )
         == expected
     )
+
+
+@pytest.mark.parametrize(
+    "path, filter_key, prefix, omit_single_key, expected",
+    [
+        ("a", "", "", True, {"A_B": "d"}),
+        ("a", "", "", False, {"A_B_C": "d"}),
+        ("a", "", "e", True, {"E_B": "d"}),
+        ("a", "", "e", False, {"E_B_C": "d"}),
+        ("a/b", "", "", True, {"B": "d"}),
+        ("a/b", "", "", False, {"B_C": "d"}),
+        ("a/b", "", "e", True, {"E": "d"}),
+        ("a/b", "", "e", False, {"E_C": "d"}),
+        ("a/b", "c", "", True, {"C": "d"}),
+        ("a/b", "c", "", False, {"C": "d"}),
+        ("a/b", "c", "e", True, {"E": "d"}),
+        ("a/b", "c", "e", False, {"E": "d"}),
+    ],
+)
+def test_get_envvars(vault, path, prefix, omit_single_key, filter_key, expected):
+    vault.set_secret("a/b", {"c": "d"})
+    assert (
+        environment.get_envvars(
+            vault_client=vault,
+            path=path,
+            prefix=prefix,
+            omit_single_key=omit_single_key,
+            filter_key=filter_key,
+        )
+        == expected
+    )
