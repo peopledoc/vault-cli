@@ -25,12 +25,6 @@ def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
     os.execvpe(command[0], tuple(command), environ)
 
 
-def get_envvars_for_secret(
-    key: str, secret: types.JSONValue, prefix: Optional[str]
-) -> Dict[str, str]:
-    return {_normalize(prefix or key): _make_env_value(secret)}
-
-
 def get_envvars_for_secrets(
     secrets: Dict[str, types.JSONDict],
     path: str,

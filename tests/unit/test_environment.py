@@ -56,20 +56,6 @@ def test_make_env_value(value, expected):
 
 
 @pytest.mark.parametrize(
-    "key, secret, prefix, expected",
-    [
-        ("foo", "secret", "", {"FOO": "secret"}),
-        ("foo", "secret", "prefix", {"PREFIX": "secret"}),
-    ],
-)
-def test_get_envvars_for_secret(key, secret, prefix, expected):
-    assert (
-        environment.get_envvars_for_secret(key=key, secret=secret, prefix=prefix)
-        == expected
-    )
-
-
-@pytest.mark.parametrize(
     "secrets, path, prefix, expected",
     [
         ({"": {"k1": "v1"}}, "a/b", "", {"B_K1": "v1"}),
