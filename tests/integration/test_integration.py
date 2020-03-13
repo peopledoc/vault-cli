@@ -32,9 +32,7 @@ def test_integration_cli(cli_runner, clean_vault):
 
     assert call(cli_runner, ["get", "a", "value", "--yaml"]).output == "--- b\n...\n"
 
-    call(
-        cli_runner, ["set", "c", "--file=-"], input="{'key1':'val1', 'key2':'val2'}",
-    )
+    call(cli_runner, ["set", "c", "--file=-"], input="{'key1':'val1', 'key2':'val2'}")
 
     assert call(cli_runner, ["get", "c"]).output == "---\nkey1: val1\nkey2: val2\n"
 
@@ -165,8 +163,11 @@ def set_ACD(cli_runner):
 
 
 def test_boostrap_env(clean_vault, set_ACD):
-    env = subprocess.check_output("vault env -p A -p C -- env".split())
+    env = subprocess.check_output(
+        "vault env -p A -p C -p C/D:password=PASS -- env".split()
+    )
 
     assert b"A_VALUE=B\n" in env
     assert b"D_USERNAME=foo\n" in env
     assert b"D_PASSWORD=bar\n" in env
+    assert b"PASS=bar\n" in env

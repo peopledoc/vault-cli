@@ -390,7 +390,7 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
     default=False,
     help="When the secret has only one key, don't use that key to build the name of the environment variable",
 )
-@click.argument("command", nargs=-1)
+@click.argument("command", nargs=-1, required=True)
 @click.pass_obj
 @handle_errors()
 def env(
@@ -431,19 +431,13 @@ def env(
         path_with_key, _, prefix = path.partition("=")
         path, _, filter_key = path_with_key.partition(":")
 
-        if filter_key:
-            secret = client_obj.get_secret(path=path, key=filter_key)
-            env_updates = environment.get_envvars_for_secret(
-                key=filter_key, secret=secret, prefix=prefix
-            )
-        else:
-            secrets = client_obj.get_secrets(path=path, relative=True)
-            env_updates = environment.get_envvars_for_secrets(
-                path=path,
-                prefix=prefix,
-                secrets=secrets,
-                omit_single_key=omit_single_key,
-            )
+        env_updates = environment.get_envvars(
+            vault_client=client_obj,
+            path=path,
+            prefix=prefix,
+            omit_single_key=omit_single_key,
+            filter_key=filter_key,
+        )
         env_secrets.update(env_updates)
 
     environ = os.environ.copy()
