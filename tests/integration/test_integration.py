@@ -163,8 +163,11 @@ def set_ACD(cli_runner):
 
 
 def test_boostrap_env(clean_vault, set_ACD):
-    env = subprocess.check_output("vault env -p A -p C -- env".split())
+    env = subprocess.check_output(
+        "vault env -p A -p C -p C/D:password=PASS -- env".split()
+    )
 
     assert b"A_VALUE=B\n" in env
     assert b"D_USERNAME=foo\n" in env
     assert b"D_PASSWORD=bar\n" in env
+    assert b"PASS=bar\n" in env
