@@ -1,13 +1,18 @@
 import json
 import os
 import pathlib
+import re
 from typing import Dict, NoReturn, Optional, Sequence
 
 from vault_cli import types
+_replaced_by_underscore = re.compile(r"[/\- ]")
 
 
 def _normalize(name: str) -> str:
-    return name.upper().replace("/", "_")
+    """
+    Change " ", "-" and "/" into "_" in a string
+    """
+    return _replaced_by_underscore.sub("_", name).upper()
 
 
 def _make_env_value(value: types.JSONValue) -> str:

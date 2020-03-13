@@ -12,7 +12,7 @@ def test_exec_command(mocker):
 
 
 def test_normalize():
-    assert environment._normalize("path/to/secret") == "PATH_TO_SECRET"
+    assert environment._normalize("pa th/to/sec-ret") == "PA_TH_TO_SEC_RET"
 
 
 @pytest.mark.parametrize(
