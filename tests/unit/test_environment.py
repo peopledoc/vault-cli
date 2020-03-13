@@ -1,6 +1,6 @@
 import pytest
 
-from vault_cli import environment
+from vault_cli import environment, exceptions
 
 
 def test_exec_command(mocker):
@@ -13,6 +13,11 @@ def test_exec_command(mocker):
 
 def test_normalize():
     assert environment._normalize("pa th/to/sec-ret") == "PA_TH_TO_SEC_RET"
+
+
+def test_normalize_error():
+    with pytest.raises(exceptions.VaultInvalidEnvironmentName):
+        environment._normalize("a=b")
 
 
 @pytest.mark.parametrize(
@@ -86,6 +91,18 @@ def test_get_envvars_for_secrets(secrets, path, prefix, expected):
         environment.get_envvars_for_secrets(secrets=secrets, path=path, prefix=prefix)
         == expected
     )
+
+
+def test_get_envvars_for_secrets_invalid(caplog):
+    assert environment.get_envvars_for_secrets(
+        secrets={"a/b=": {"c": "d"}, "a/e": {"f=": "g"}, "a/h": {"i": "j"}},
+        path="",
+        prefix="",
+    ) == {"A_H_I": "j"}
+    assert caplog.messages == [
+        "Invalid environment name A_B=_C, skipping secret value",
+        "Invalid environment name A_E_F=, skipping secret value",
+    ]
 
 
 @pytest.mark.parametrize(

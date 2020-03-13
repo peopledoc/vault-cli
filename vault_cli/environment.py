@@ -1,18 +1,28 @@
 import json
+import logging
 import os
 import pathlib
 import re
 from typing import Dict, NoReturn, Sequence
 
-from vault_cli import types
+from vault_cli import client, exceptions, types
+
+logger = logging.getLogger(__name__)
+
 _replaced_by_underscore = re.compile(r"[/\- ]")
+_allowed_named = re.compile(r"[A-Z0-9_]+")
 
 
 def _normalize(name: str) -> str:
     """
     Change " ", "-" and "/" into "_" in a string
     """
-    return _replaced_by_underscore.sub("_", name).upper()
+    envvar_name = _replaced_by_underscore.sub("_", name).upper()
+
+    if not _allowed_named.fullmatch(envvar_name):
+        raise exceptions.VaultInvalidEnvironmentName(envvar_name)
+
+    return envvar_name
 
 
 def _make_env_value(value: types.JSONValue) -> str:
@@ -40,10 +50,15 @@ def get_envvars_for_secrets(
         for key, value in values.items():
             if omit:
                 key = ""
-            env_name = _normalize("_".join(e for e in (prefix, subpath, key) if e))
+            try:
+                env_name = _normalize("_".join(e for e in (prefix, subpath, key) if e))
+            except exceptions.VaultInvalidEnvironmentName as exc:
+                logger.warning(f"Invalid environment name {exc}, skipping secret value")
+                continue
             value = _make_env_value(value)
             env_secrets[env_name] = value
     return env_secrets
+
 
 def get_envvars(
     vault_client: client.VaultClientBase,

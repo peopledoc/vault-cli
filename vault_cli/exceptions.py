@@ -76,3 +76,7 @@ class VaultInternalServerError(VaultAPIException):
 
 class VaultSealed(VaultAPIException):
     message = "Vault sealed or down"
+
+
+class VaultInvalidEnvironmentName(VaultException):
+    pass
