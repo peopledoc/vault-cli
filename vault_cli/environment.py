@@ -2,7 +2,7 @@ import json
 import os
 import pathlib
 import re
-from typing import Dict, NoReturn, Optional, Sequence
+from typing import Dict, NoReturn, Sequence
 
 from vault_cli import types
 _replaced_by_underscore = re.compile(r"[/\- ]")
@@ -28,7 +28,7 @@ def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
 def get_envvars_for_secrets(
     secrets: Dict[str, types.JSONDict],
     path: str,
-    prefix: Optional[str],
+    prefix: str,
     omit_single_key: bool = False,
 ) -> Dict[str, str]:
     env_secrets = {}
