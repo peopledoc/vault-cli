@@ -265,6 +265,7 @@ class VaultClientBase:
         types.JSONDict
             {"folder/subfolder": {"secret_key": "secret_value"}}
         """
+        path = path.rstrip("/")
         try:
             secrets_paths = list(
                 self._browse_recursive_secrets(path=path, render=render)
@@ -400,6 +401,7 @@ class VaultClientBase:
 
     def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
         for path in paths:
+            path = path.rstrip("/")
             secrets_paths = self._browse_recursive_secrets(path=path, render=False)
             for secret_path in secrets_paths:
                 yield secret_path

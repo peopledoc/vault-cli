@@ -137,6 +137,10 @@ def test_vault_client_base_get_all_secrets(vault):
 
     assert result == {"a": {"c": {"value": "secret-ac"}}}
 
+    result = vault.get_all_secrets("a/")
+
+    assert result == {"a": {"c": {"value": "secret-ac"}}}
+
 
 def test_vault_client_base_get_all_secrets_flat(vault):
     vault.db = {"a/c": {"value": "secret-ac"}, "b": {"value": "secret-b"}}
@@ -152,13 +156,16 @@ def test_vault_client_base_get_all_secrets_flat(vault):
 
 @pytest.mark.parametrize(
     "input, expected",
-    [("a", {"a/c": {"value": "secret-ac"}}), ("b", {"b": {"value": "secret-b"}})],
+    [
+        ("a", {"a/c": {"value": "secret-ac"}}),
+        ("b", {"b": {"value": "secret-b"}}),
+        ("a/", {"a/c": {"value": "secret-ac"}}),
+    ],
 )
 def test_vault_client_base_get_secrets(vault, input, expected):
     vault.db = {"a/c": {"value": "secret-ac"}, "b": {"value": "secret-b"}}
 
     result = vault.get_secrets(input)
-
     assert result == expected
 
 
@@ -199,6 +206,14 @@ def test_vault_client_base_delete_all_secrets_no_generator(vault):
     result = vault.delete_all_secrets("a", "b")
 
     assert result == ["a/c", "b"]
+
+    assert vault.db == {}
+
+
+def test_vault_client_base_delete_all_secrets_trailing_slash(vault):
+    vault.db = {"a/c": {"value": "secret-ac"}}
+
+    assert vault.delete_all_secrets("a/") == ["a/c"]
 
     assert vault.db == {}
 

@@ -23,6 +23,7 @@ class TestVaultClient(client.VaultClientBase):
         pass
 
     def _get_secret(self, path):
+        path = path.rstrip("/")
         if path in self.forbidden_get_paths:
             raise exceptions.VaultForbidden()
         try:
@@ -31,6 +32,7 @@ class TestVaultClient(client.VaultClientBase):
             raise exceptions.VaultSecretNotFound()
 
     def _list_secrets(self, path):
+        path = path.rstrip("/")
         if path in self.forbidden_list_paths:
             raise exceptions.VaultForbidden()
         # Just reproducing in memory the behaviour of the real list_secrets

@@ -7,6 +7,7 @@ CHANGELOG
 - Omit secrets in `vault env` when path contains forbidden chars (#138)
 - `vault env` fails properly when program name is not supplied
 - `vault env` now supports `-` and ` ` (spaces) in variable names, changing them into `_`
+- Fix trailing slash in path issue in `get-all` and `delete-all` (#135)
 
 1.1.0 (2020-02-28)
 -------------------
