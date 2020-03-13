@@ -390,7 +390,7 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
     default=False,
     help="When the secret has only one key, don't use that key to build the name of the environment variable",
 )
-@click.argument("command", nargs=-1)
+@click.argument("command", nargs=-1, required=True)
 @click.pass_obj
 @handle_errors()
 def env(
