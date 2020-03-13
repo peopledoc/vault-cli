@@ -32,9 +32,7 @@ def test_integration_cli(cli_runner, clean_vault):
 
     assert call(cli_runner, ["get", "a", "value", "--yaml"]).output == "--- b\n...\n"
 
-    call(
-        cli_runner, ["set", "c", "--file=-"], input="{'key1':'val1', 'key2':'val2'}",
-    )
+    call(cli_runner, ["set", "c", "--file=-"], input="{'key1':'val1', 'key2':'val2'}")
 
     assert call(cli_runner, ["get", "c"]).output == "---\nkey1: val1\nkey2: val2\n"
 

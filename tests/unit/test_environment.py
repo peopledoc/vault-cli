@@ -93,11 +93,11 @@ def test_get_envvars_for_secrets(secrets, path, prefix, expected):
     [
         ({"": {"k1": "v1"}}, "a/b", "", {"B": "v1"}),
         ({"": {"k1": "v1", "k2": "v2"}}, "a/b", "", {"B_K1": "v1", "B_K2": "v2"}),
-        ({"": {"k1": "v1"}}, "a/b", "YAY", {"YAY": "v1"},),
+        ({"": {"k1": "v1"}}, "a/b", "YAY", {"YAY": "v1"}),
         ({"b": {"k1": "v1"}}, "a", "", {"A_B": "v1"}),
-        ({"b": {"k1": "v1"}}, "a", "YAY", {"YAY_B": "v1"},),
+        ({"b": {"k1": "v1"}}, "a", "YAY", {"YAY_B": "v1"}),
         ({"a/b": {"k1": "v1"}}, "", "", {"A_B": "v1"}),
-        ({"a/b": {"k1": "v1"}}, "", "YAY", {"YAY_A_B": "v1"},),
+        ({"a/b": {"k1": "v1"}}, "", "YAY", {"YAY_A_B": "v1"}),
     ],
 )
 def test_get_envvars_for_secrets_omit(secrets, path, prefix, expected):
