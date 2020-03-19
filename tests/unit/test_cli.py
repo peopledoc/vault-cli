@@ -300,8 +300,8 @@ def test_env(cli_runner, vault_with_token, mocker):
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["FOO_BAR_VALUE"] == "yay"
-    assert kwargs["environ"]["FOO_BAZ_VALUE"] == "yo"
+    assert kwargs["environment"]["FOO_BAR_VALUE"] == "yay"
+    assert kwargs["environment"]["FOO_BAZ_VALUE"] == "yo"
 
 
 def test_env_prefix(cli_runner, vault_with_token, mocker):
@@ -315,9 +315,9 @@ def test_env_prefix(cli_runner, vault_with_token, mocker):
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["PREFIX_BAR_VALUE"] == "yay"
-    assert kwargs["environ"]["PREFIX_BAZ_USER"] == "yo"
-    assert kwargs["environ"]["PREFIX_BAZ_PASSWORD"] == "xxx"
+    assert kwargs["environment"]["PREFIX_BAR_VALUE"] == "yay"
+    assert kwargs["environment"]["PREFIX_BAZ_USER"] == "yo"
+    assert kwargs["environment"]["PREFIX_BAZ_PASSWORD"] == "xxx"
 
 
 def test_env_filter_key(cli_runner, vault_with_token, mocker):
@@ -343,8 +343,8 @@ def test_env_filter_key(cli_runner, vault_with_token, mocker):
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["MYNAME"] == "yo"
-    assert kwargs["environ"]["PASSWORD"] == "xxx"
+    assert kwargs["environment"]["MYNAME"] == "yo"
+    assert kwargs["environment"]["PASSWORD"] == "xxx"
 
 
 def test_env_omit_single_key(cli_runner, vault_with_token, mocker):
@@ -357,8 +357,8 @@ def test_env_omit_single_key(cli_runner, vault_with_token, mocker):
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["FOO_BAR"] == "yay"
-    assert kwargs["environ"]["FOO_BAZ"] == "yo"
+    assert kwargs["environment"]["FOO_BAR"] == "yay"
+    assert kwargs["environment"]["FOO_BAZ"] == "yo"
 
 
 def test_main(mocker):

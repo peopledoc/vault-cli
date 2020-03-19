@@ -440,10 +440,7 @@ def env(
         )
         env_secrets.update(env_updates)
 
-    environ = os.environ.copy()
-    environ.update(env_secrets)
-
-    environment.exec_command(command=command, environ=environ)
+    environment.exec_command(command=command, environment=env_secrets)
 
 
 @cli.command("dump-config")

@@ -6,9 +6,11 @@ from vault_cli import environment, exceptions
 def test_exec_command(mocker):
     execvpe = mocker.patch("os.execvpe")
 
-    environment.exec_command(["a", "b"], {"c": "d"})
+    environment.exec_command(["a", "b"], {"C": "d"})
 
-    execvpe.assert_called_with("a", ("a", "b"), {"c": "d"})
+    execvpe.assert_called_with("a", ("a", "b"), mocker.ANY)
+    args, __ = execvpe.call_args
+    assert args[2]["C"] == "d"
 
 
 def test_normalize():
@@ -155,3 +157,12 @@ def test_get_envvars(vault, path, prefix, omit_single_key, filter_key, expected)
         )
         == expected
     )
+
+
+def test_full_environment(mocker):
+    mocker.patch("os.environ", {"A": "B", "C": "D"})
+    assert environment.full_environment({"C": "D_", "E": "F"}) == {
+        "A": "B",
+        "C": "D_",
+        "E": "F",
+    }
