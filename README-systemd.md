@@ -44,7 +44,7 @@ through ``vault env``. Let's launch it as a one-off:
 $ vault env --path mysecret:value -- myprogram
 ```
 
-This will make a variable named ``MYSECRET`` available to ``myprogram``. If you need the
+This will make a variable named ``VALUE`` available to ``myprogram``. If you need the
 environment variable to have a specific name (e.g. ``MYVAR``), you can use:
 
 ```console
@@ -61,6 +61,23 @@ $ vault env --path mysecret:value=MYVAR -- env |grep MYVAR
 If you need so, vault-env can load several secrets by specifying the ``--path`` option
 more than once. If the path corresponds to a "folder", all secrets beneath that path
 will be recursively added as environment variables, through their names.
+Similarily, if you don't specify the key, all the keys defined on the path will be exported:
+
+```console
+$ vault env --path mysecret -- myprogram  # will expose MYSECRET_VALUE
+```
+
+If you don't want the key to be used to build the name of the environment variables for secrets
+that have only one key, use ``--omit-single_key``:
+
+
+```console
+$ vault env --omit-single-key --path mysecret -- myprogram  # will expose MYSECRET
+```
+In the following, we'll consider that we'll be exposing a single key, but in the real life, it's probable
+that you will be exposing more that one keys and folders through several ``--path`` arguments.
+
+### Systemd
 
 Now, let's integrate this with systemd. First, look at the existing execstart command:
 
