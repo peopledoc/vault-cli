@@ -19,7 +19,7 @@ import click
 import yaml
 
 import vault_cli
-from vault_cli import client, environment, exceptions, settings, types
+from vault_cli import client, environment, exceptions, settings, ssh, types
 
 logger = logging.getLogger(__name__)
 
@@ -571,7 +571,64 @@ def lookup_token(client_obj: client.VaultClientBase) -> None:
     )
 
 
+@cli.command("ssh")
+@click.option(
+    "--key",
+    "-k",
+    help="Path and key of the SSH private key in the vault. Format: `path:key`.",
+    required=True,
+)
+@click.option(
+    "--passphrase",
+    "-p",
+    help="Path and key of the SSH private key passphrase in the vault. Format: `path:key`.",
+)
+@click.argument("command", nargs=-1, required=True)
+@click.pass_obj
+@handle_errors()
+def ssh_(
+    client_obj: client.VaultClientBase,
+    key: str,
+    passphrase: Optional[str],
+    command: Sequence[str],
+) -> NoReturn:
+    """
+    Launch a command, with a configured ssh-agent running.
+
+    The ssh agent has all the keys specified as `--key` arguments.
+
+    The effect will be that any command launched through this wrapper will "magically"
+    (thanks to ssh-agent) be able to use the secret keys given as `--key` for their
+    ssh connections.
+    """
+    ssh.ensure_agent()
+
+    if ":" not in key:
+        raise click.UsageError("Format for private_key: `path/to/private_key:key`")
+    private_key_name, private_key_key = key.rsplit(":", 1)
+    private_key_secret = client_obj.get_secret(private_key_name, private_key_key)
+
+    passphrase_secret = None
+    if passphrase:
+        if ":" not in passphrase:
+            raise click.UsageError("Format for passphrase: `path/to/passphrase:key`")
+        passphrase_name, passphrase_key = passphrase.rsplit(":", 1)
+        passphrase_secret = client_obj.get_secret(passphrase_name, passphrase_key)
+
+    ssh.add_key(key=private_key_secret, passphrase=passphrase_secret)
+
+    environment.exec_command(command=command)
+
+
+# This is purposedly not called as a click subcommand, and we cannot take any argument
+def askpass():
+    print(os.environ[ssh.SSH_PASSPHRASE_ENVVAR])
+
+
 def main():
+    if ssh.SSH_PASSPHRASE_ENVVAR in os.environ:
+        return askpass()
+
     # https://click.palletsprojects.com/en/7.x/python3/
     os.environ.setdefault("LC_ALL", "C.UTF-8")
     os.environ.setdefault("LANG", "C.UTF-8")
