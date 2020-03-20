@@ -300,8 +300,8 @@ def test_env(cli_runner, vault_with_token, mocker):
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["FOO_BAR_VALUE"] == "yay"
-    assert kwargs["environ"]["FOO_BAZ_VALUE"] == "yo"
+    assert kwargs["environment"]["FOO_BAR_VALUE"] == "yay"
+    assert kwargs["environment"]["FOO_BAZ_VALUE"] == "yo"
 
 
 def test_env_prefix(cli_runner, vault_with_token, mocker):
@@ -315,9 +315,9 @@ def test_env_prefix(cli_runner, vault_with_token, mocker):
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["PREFIX_BAR_VALUE"] == "yay"
-    assert kwargs["environ"]["PREFIX_BAZ_USER"] == "yo"
-    assert kwargs["environ"]["PREFIX_BAZ_PASSWORD"] == "xxx"
+    assert kwargs["environment"]["PREFIX_BAR_VALUE"] == "yay"
+    assert kwargs["environment"]["PREFIX_BAZ_USER"] == "yo"
+    assert kwargs["environment"]["PREFIX_BAZ_PASSWORD"] == "xxx"
 
 
 def test_env_filter_key(cli_runner, vault_with_token, mocker):
@@ -343,8 +343,8 @@ def test_env_filter_key(cli_runner, vault_with_token, mocker):
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["MYNAME"] == "yo"
-    assert kwargs["environ"]["PASSWORD"] == "xxx"
+    assert kwargs["environment"]["MYNAME"] == "yo"
+    assert kwargs["environment"]["PASSWORD"] == "xxx"
 
 
 def test_env_omit_single_key(cli_runner, vault_with_token, mocker):
@@ -357,18 +357,29 @@ def test_env_omit_single_key(cli_runner, vault_with_token, mocker):
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
-    assert kwargs["environ"]["FOO_BAR"] == "yay"
-    assert kwargs["environ"]["FOO_BAZ"] == "yo"
+    assert kwargs["environment"]["FOO_BAR"] == "yay"
+    assert kwargs["environment"]["FOO_BAZ"] == "yo"
 
 
-def test_main(mocker):
+def test_main(environ, mocker):
     mock_cli = mocker.patch("vault_cli.cli.cli")
-    environ = mocker.patch("os.environ", {})
 
     cli.main()
 
     mock_cli.assert_called_with()
-    assert environ == {"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"}
+    assert set({"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"}.items()) <= set(environ.items())
+
+
+def test_main_askpass(environ, mocker, capsys):
+    mock_cli = mocker.patch("vault_cli.cli.cli")
+    environ.update({"VAULT_CLI_SSH_PASSPHRASE": "foo"})
+
+    cli.main()
+
+    out = capsys.readouterr().out.strip()
+    assert out == "foo"
+
+    mock_cli.assert_not_called()
 
 
 def test_load_config_no_config(mocker):
@@ -620,3 +631,62 @@ def test_version(cli_runner):
     assert result.exit_code == 0
     assert result.stdout.startswith("vault-cli " + vault_cli.__version__)
     assert result.stdout.endswith("License: Apache Software License\n")
+
+
+def test_ssh(cli_runner, vault_with_token, mocker):
+    ensure = mocker.patch("vault_cli.ssh.ensure_agent")
+    add = mocker.patch("vault_cli.ssh.add_key")
+    exec_command = mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.db = {"a/b": {"value": "c"}}
+
+    result = cli_runner.invoke(cli.cli, ["ssh", "--key", "a/b:value", "--", "env"])
+
+    assert result.exit_code == 0
+    ensure.assert_called_with()
+    add.assert_called_with(key="c", passphrase=None)
+    exec_command.assert_called_with(command=("env",))
+
+
+def test_ssh_passphrase(cli_runner, vault_with_token, mocker):
+    ensure = mocker.patch("vault_cli.ssh.ensure_agent")
+    add = mocker.patch("vault_cli.ssh.add_key")
+    exec_command = mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.db = {"a/b": {"value": "c", "passphrase": "d"}}
+
+    result = cli_runner.invoke(
+        cli.cli,
+        ["ssh", "--key", "a/b:value", "--passphrase", "a/b:passphrase", "--", "env"],
+    )
+
+    assert result.exit_code == 0
+    ensure.assert_called_with()
+    add.assert_called_with(key="c", passphrase="d")
+    exec_command.assert_called_with(command=("env",))
+
+
+def test_ssh_wrong_format_key(cli_runner, vault_with_token, mocker):
+    mocker.patch("vault_cli.ssh.ensure_agent")
+    mocker.patch("vault_cli.ssh.add_key")
+    mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.db = {"a/b": {"value": "c"}}
+
+    result = cli_runner.invoke(cli.cli, ["ssh", "--key", "a/b", "--", "env"])
+
+    assert result.exit_code > 0
+
+
+def test_ssh_wrong_format_passphrase(cli_runner, vault_with_token, mocker):
+    mocker.patch("vault_cli.ssh.ensure_agent")
+    mocker.patch("vault_cli.ssh.add_key")
+    mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.db = {"a/b": {"value": "c"}}
+
+    result = cli_runner.invoke(
+        cli.cli, ["ssh", "--key", "a/b:value", "--passphrase", "a/b", "--", "env"],
+    )
+
+    assert result.exit_code > 0

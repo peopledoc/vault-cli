@@ -171,3 +171,26 @@ def test_boostrap_env(clean_vault, set_ACD):
     assert b"D_USERNAME=foo\n" in env
     assert b"D_PASSWORD=bar\n" in env
     assert b"PASS=bar\n" in env
+
+
+def test_ssh(clean_vault, cli_runner):
+    ssh_private = """-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABA/nloeFW
++x5vq/qCi1O8YLAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIGRET06x/iK7QVn3
+XrQGfNyzTcNB778XBpLv6g2HJ9uEAAAAoEjqItV+JKRilnbsPIrBbxSqL/KgzhEO4iAQBD
+WKdaZ6sPyfumXx9RIenITB+trevUI0P8QcMfclwTm6BaXG83i7XjFnywrQFNFpDK+TjlqY
+hZiUENBDt6r3dLkt6ozCFT6T0v52X4+art7pReCKqJcQDvMp0y6wqvfkVHWmWPNn9HbfGP
+Fh34DrZLZim42czNi6I+ww6+/y68rkmExwToM=
+-----END OPENSSH PRIVATE KEY-----
+"""
+    ssh_public = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGRET06x/iK7QVn3XrQGfNyzTcNB778XBpLv6g2HJ9uE joachim@pistache"
+    ssh_passphrase = "foobar"
+    call(
+        cli_runner,
+        ["set", "ssh_key", f"private={ssh_private}", f"passphrase={ssh_passphrase}"],
+    )
+    identities = subprocess.check_output(
+        "vault ssh --key ssh_key:private --passphrase ssh_key:passphrase "
+        "-- ssh-add -L".split()
+    )
+    assert ssh_public in identities.decode("utf-8")

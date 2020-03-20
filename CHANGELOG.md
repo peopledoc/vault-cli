@@ -8,6 +8,7 @@ CHANGELOG
 - `vault env` fails properly when program name is not supplied
 - `vault env` now supports `-` and ` ` (spaces) in variable names, changing them into `_`
 - Fix trailing slash in path issue in `get-all` and `delete-all` (#135)
+- `vault ssh` lets you use SSH without writing the private key on disk
 
 1.1.0 (2020-02-28)
 -------------------

@@ -11,3 +11,10 @@ def isolate_tests():
     for key in os.environ:
         if key.startswith(settings.ENV_PREFIX):
             os.environ.pop(key)
+
+
+@pytest.fixture
+def environ(mocker):
+    env = {}
+    mocker.patch("os.environ", env)
+    return env

@@ -3,7 +3,7 @@ import logging
 import os
 import pathlib
 import re
-from typing import Dict, NoReturn, Sequence
+from typing import Dict, Mapping, NoReturn, Optional, Sequence
 
 from vault_cli import client, exceptions, types
 
@@ -31,8 +31,17 @@ def _make_env_value(value: types.JSONValue) -> str:
     return json.dumps(value)
 
 
-def exec_command(command: Sequence[str], environ: Dict[str, str]) -> NoReturn:
-    os.execvpe(command[0], tuple(command), environ)
+def full_environment(environment: Mapping[str, str]) -> Mapping[str, str]:
+    current_env = os.environ.copy()
+    current_env.update(environment)
+    return current_env
+
+
+def exec_command(
+    command: Sequence[str], environment: Optional[Mapping[str, str]] = None
+) -> NoReturn:
+    environment = full_environment(environment or {})
+    os.execvpe(command[0], tuple(command), environment)
 
 
 def get_envvars_for_secrets(
