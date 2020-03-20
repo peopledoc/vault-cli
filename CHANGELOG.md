@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-1.2.0 (unreleased)
+1.2.0 (2029-03-20)
 -------------------
 
 - Omit secrets in `vault env` when path contains forbidden chars (#138)
