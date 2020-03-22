@@ -1,4 +1,4 @@
-CHANGELOG
+Changelog
 =========
 
 1.2.0 (2029-03-20)
