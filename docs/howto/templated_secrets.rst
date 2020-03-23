@@ -41,3 +41,6 @@ the secret object:
    !template!proto://{{ vault("service").username }}:{{ vault("service").password }}@{{ vault("service").host }}/
 
 Variable rendering can be recursive as long as there is no loop (a uses b, b uses a)
+
+
+TODO document how to set them with ansible.
