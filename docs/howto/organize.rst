@@ -1,5 +1,5 @@
-Reorganize the contents of the vault
-====================================
+Reorganize the content of the vault
+===================================
 
 
 Move secrets and folders

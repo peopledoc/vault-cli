@@ -27,16 +27,16 @@
 
 ``vault-cli`` is a Python 3.6+ tool that offers simple interactions to manipulate
 secrets from `Hashicorp Vault`_. With ``vault-cli``, your secrets can be kept secret,
-while following `12-factor`_ principles.
+while following `12-factor`__ principles.
 
+.. __: https://12factor.net/
 .. _`Hashicorp Vault`: https://www.vaultproject.io/
-.. _`12-factor`: https://12factor.net/
 
 Some features
 -------------
 
-- Cascading (local, user, global) YAML configuration file: configure once, use
-  everywhere
+- Configure once, use everywhere thanks to cascading (local, user, global) YAML
+  configuration file
 - Read, browse, write, move, delete secrets easily
 - Read multiple secrets at once, as YAML
 - Launch processes with your secrets as environment variables
@@ -49,7 +49,7 @@ Some features
 Showcase
 --------
 
-Here's a few things you might do with ``vault-cli``:
+Here are a few things you might do with ``vault-cli``:
 
 .. code-block:: console
 
@@ -68,7 +68,7 @@ Here's a few things you might do with ``vault-cli``:
     $ vault env --path mysecret -- env | grep MYSECRET
     MYSECRET_MYKEY=ohsosecret
 
-    $ # Load a ssh key into your ssh-agent:
+    $ # Load an ssh key into your ssh-agent:
     $ vault ssh --key ssh_private_key -- ssh -T git@github.com
     Hi <username>! You've successfully authenticated, but GitHub does not provide shell access.
 

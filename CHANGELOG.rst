@@ -66,7 +66,7 @@ Changelog
 - Add ``vault lookup-token`` (#77)
 - Remove ``client.get_all()`` (after deprecation period)
 - Add template values and ``--render`` features in client and cli (#65)
-- Add possibility to customize environment variables names in ``vault env`` using
+- Add possibility to customize environment variable names in ``vault env`` using
   ``--path path/to/keys=myprefix``
 - Support absolute path (starting with /): in this case we don't prepend
   the ``base_path`` to the path parameter

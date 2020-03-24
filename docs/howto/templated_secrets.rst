@@ -1,9 +1,9 @@
 Have a secret reference dynamic content
 =======================================
 
-With ``vault-cli``, it's possible to have secret values be Jinja2_ templates.
-This is useful if you have multiple related secrets that you with to retrieve as a
-single string.
+With ``vault-cli``, it's possible to have secret values be Jinja2_ templates. This is
+useful if you have multiple related secrets that you would like to retrieve as a single
+string.
 
 .. _Jinja2: https://jinja.palletsprojects.com/en/2.11.x/
 
@@ -28,7 +28,7 @@ Templated secrets start with the special prefix ``!template!``. Vault-cli recong
 this and will evaluate the rest of the value as a Jinja2 template.
 
 The template context includes a ``vault(path: str)`` function that returns the secret
-object stored at path. Indivial values can be accessed by simply reading attributes on
+object stored at path. Individual values can be accessed by simply reading attributes on
 the secret object:
 
 .. code:: console

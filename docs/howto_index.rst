@@ -3,26 +3,24 @@
 How-to...
 =========
 
-TODO reorder
-
-
 .. toctree::
     :maxdepth: 1
 
-    howto/authenticate
-    howto/base_path
     howto/configure
+    howto/authenticate
+    howto/read
+    howto/write
     howto/environment
-    howto/library
-    howto/lookup
-    howto/organize
-    howto/reading
-    howto/safe_write
-    howto/secret-with-dash
-    howto/ssh
     howto/template
     howto/templated_secrets
-    howto/testing
+    howto/ssh
+    howto/systemd
+    howto/organize
+    howto/base_path
+    howto/safe_write
+    howto/secret-with-dash
+    howto/library
+    howto/test
     howto/troubleshooting
+    howto/lookup
     howto/upgrade
-    howto/writing

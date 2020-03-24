@@ -1,3 +1,5 @@
+.. _template:
+
 Write templated files
 =====================
 

@@ -1,9 +1,11 @@
+.. _vault-env:
 
 Launch a process with your secrets as  environment variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 TODO:
 - all the specifics around env var name
+- including - and _
 - several paths and recursive lookup
 - --omit-single-key
 - --
@@ -20,5 +22,3 @@ TODO:
    MYVAL=qwerty
    MY_DSN=proto://xxx
    ...
-
-

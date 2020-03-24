@@ -24,7 +24,7 @@ You'll need to configure this environment in order to authenticate. Use either:
 
 .. code-block:: console
 
-    $ ./dev-env auth token  # Identify with a token - recommanded
+    $ ./dev-env auth token  # Identify with a token - recommended
     $ ./dev-env auth userpass  # Identify with a username and password
     $ ./dev-env auth cert  # Identify with a certificate
 
@@ -88,7 +88,7 @@ Launch all the tests in order for your current Python version with:
     $ pytest
 
 
-A coverage report will be generatedin the console and HTML.
+A coverage report will be generated in the console and HTML.
 Browse it with:
 
 .. code-block:: console
@@ -113,7 +113,7 @@ All linting errors will be shown by running:
 
 The doc is part of the code too. Whenever you implement something that has a visible
 effect, remember to write the doc too. That being said, if you're not comfortable
-enough with writing in english, it's ok to ask for help in the PR.
+enough with writing in English, it's perfectly ok to request help in the PR.
 
 Compile the doc with:
 

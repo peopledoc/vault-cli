@@ -6,8 +6,10 @@ most of your secrets will be stored under one specific path.
 ``vault-cli`` simplifies your operations by letting you define a ``base-path`` and have
 all paths through all commands be relative to that ``base-path``.
 
-Note that starting a path with a ``/`` will let define the full path from the root,
-similarily to what you would expect in an UNIX file system.
+.. note::
+
+    A path starting with ``/`` will ignore the ``base-path`` and be absolute, similarily
+    to what you would expect in an UNIX file system.
 
 .. code:: console
 

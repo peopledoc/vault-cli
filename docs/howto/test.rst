@@ -2,7 +2,7 @@ Use ``vault-cli`` in your tests
 ===============================
 
 A ``vault`` `pytest fixture`_ is available, but you may want to make sure that vault-cli
-installs its `testing` extra dependecies:
+installs its `testing` extra dependencies:
 
 .. _`pytest fixture`: https://docs.pytest.org/en/latest/fixture.html
 

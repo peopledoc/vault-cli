@@ -1,261 +1,206 @@
 .. _discussions:
 
+===========
 Discussions
 ===========
 
-Why not hvac or hvac-cli?
+Why not vault, hvac or hvac-cli?
+================================
+
+We are aware of the following "competitor" products:
+
+- The official ``vault`` executable can be used as a ``vault`` client
+- The hvac_ (*Hashicorp VAult Client*) Python library which is a wrapper around
+  requests_ implementing the ``vault`` HTTP API
+- The `hvac-cli`_ library - `envconsul`_ which supports providing configuration values
+  from consul_ and ``vault`` into environment variables
+
+At its core, ``vault-cli`` want to provide:
+
+- A simple configuration-file workflow
+- Helps for :ref:`12-factor` integrations.
+
+We felt that no tool was doing what we wanted and was accepting contribution that lead
+to what we were looking for, so that why we `created our own`__.
+
+.. __: https://xkcd.com/927/
+.. _hvac: https://github.com/hvac/hvac
+.. _requests: https://requests.readthedocs.io/en/master/
+.. _`hvac-cli`: https://hvac-cli.readthedocs.io/en/latest/
+.. _`envconsul`: https://github.com/hashicorp/envconsul
+.. _consul: https://www.consul.io/
+
+.. _`12-factor`:
 
 12 factors
+==========
+
+`12-factor`__ applications are centered around having the
+application process communicate with the outside solely through abstract and decoupled
+ways, allowing concrete integration choices vary wildly without impacting the
+application code. This includes, among very different thing:
+
+.. __: https://12factor.net/
+
+- Reading all configuration through environment variables
+- Connect to any external service using exposed configuration
+- Logging through stdout
+- ...
+
+``vault-cli`` shines when used as a layer between your system's process
+manager (SystemD_, Kubernetes_, ...) and your application, to make your secrets be
+accessible by your application in a reasonably decoupled way.
+
+.. _SystemD: https://en.wikipedia.org/wiki/Systemd
+.. _Kubernetes: https://kubernetes.io/
 
 Environment variables
+=====================
+
+`Environment variables`_ are a set of variables provided to a process at launch time,
+with the following properties:
+
+- Environment variables names are usually uppercase ascii with underscores. Other
+  characters can be supported by some operating systems, but ``vault-cli`` limits
+  to this set
+- Environment variables are inherited from the parent process, who has complete
+  control on whether values are transmitted from its own process, removed, or if new
+  values are added. By default, subprocesses inherit their parent process' whole
+  environment.
+- Environment variables are text only. Any other type must be parsed from text. There is
+  no standard way to represent boolean values.
+- Environment and the command-line string are the two main ways decoupled ways of
+  providing context to a process. Any other way involves agreeing on a less standard
+  method, including reading the file at a specific path, etc.
+
+Because they are a standard way to give parameters to a process, environment variables
+can be used by that process with zero knowledge of the deployment specificts.
+
+That being said, there is a debate on whether using secrets for environment variables is
+safe or not. Here are a few common arguments from both sides:
+
+Pros:
+~~~~~
+
+- Simple, standard
+- Avoid writing secrets on disk
+- OS naturally ensures that only the process user and root can read the environment of
+  a running process
+- When following good practice, it doesn't increase the attack surface. The risks are
+  the same as with any other secret strategy
+
+Cons:
+~~~~~
+
+- Because environment variables are automatically transmitted to children processes,
+  and sometimes dumped for debug purposes, putting secrets in there raises the risk of
+  leaking secrets
+- The information of whether the value from an environment variable is secret or not
+  can be implicit in the app, leading to mishandling
+- Environment can be read on Linux at ``/proc/[pid]/environ``.
+
+Good practice to address the "Cons"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Once a secret value is read from the environment variable, it should be removed from
+  the in-memory environment. This will keep the value from being transmitted to
+  children processes, dumped or sent. This does nothing to ``/proc/[pid]/environ``
+  though, because this file contains the *initial* process. But if an attacker can
+  access that file, they can also access the process' memory pages and read the secrets
+  in the process memory directly.
+- It's the application source code's role to very explicitely point our what values
+  are secret. This is true when secrets are read from the environment, as well as
+  from anywhere. You can tie together explicitating the secret nature of a configuration
+  variable and scrubbing it from the environment.
+
+It's no surprise that, while recognizing the value of the "Cons" argument, we think
+the benefits of using secret values in environment outweight the risks.
+
+.. _`Environment variables`: https://en.wikipedia.org/wiki/Environment_variable
 
 Avoid writing secrets on disk
+-----------------------------
 
-Secret objects
+Even in the era of of encrypted drives, we believe it is interesting to set the goal of
+avoiding to write secrets on the disk, for multiple reasons:
 
-kvv1/kvv2
+- It's harder to control who reads a file. than who access a ``vault``. There is no
+  simple audit log allowing you to know who accessed a file.
+- Writing secrets on the disk caches the information, which now exists both in the vault
+  and on the disk. Cache invalidation is no easy task.
+- This relies on having your disks encrypted, which is often something
+  you can't control as easily as choosing the right UNIX user, group and mode.
 
-Vault env/ssh & UNIX signals ?
+That being said, this does apply to physical disks but not necessarily to any
+filesystem. As long as proper user management is done to ensure only the right users can
+access the mount, in-memory filesystems (`Ram disks`__ / tmpfs_) poses no
+specific risks.
 
-PeopleDoc
+See :ref:`SystemD` for strategies on how to avoid writing on disk when your application
+must read secrets from a file system.
 
+.. __: https://en.wikipedia.org/wiki/RAM_drive
+.. _tmpfs: https://en.wikipedia.org/wiki/Tmpfs
 
-SystemD
+``kv v1`` and ``kv v2``, secret engines
+---------------------------------------
 
-Integrate with SystemD
-----------------------
+``vault`` offers several secret engines, including 2 iterations (v1 and v2) of a general
+purpose key/value (kv) store.
 
-Strategies
-~~~~~~~~~~
+``vault-cli`` supports ``v1`` for now, but `plans to support`__ ``v2`` in the future.
 
-One of the aims of having a vault is to protect your secrets and monitor
-access. This can be defeated if you copy the secrets from the vault in a
-local file on the disk (especially if you don’t precisely control who
-can access your file).
+.. __: https://github.com/peopledoc/vault-cli/issues/129
 
-Additionally one of the popular methods of configuring application in
-the cloud-era is through environment variables.
+`kv v2`__ adds a few interesting features:
 
-Vault-cli aims at helping you launch your application with the secrets
-it needs without writing them on disk. This page lists a few scenario
-that may be useful.
+- Versionned secrets (which help solve the rotation problem)
+- Time to live, forcing you to rotate secrets regularily
 
-If the value you need to pass is directly a secret that is stored in the
-vault, perfect. Otherwise, you may want to create a `templated
-value <https://github.com/peopledoc/vault-cli/#create-a-templated-value>`__
-to recreate your secret value by combining static strings and other
-secrets.
+.. __: https://www.vaultproject.io/docs/secrets/kv/kv-v2/#upgrading-from-version-1
 
-Let’s assume the value you need to pass is the value you get with:
+``vault`` also offers a `variety`__ of secret engines, allowing
+you to generate secrets in you ``vault`` directly. ``vault-cli`` currently doesn't
+include specific integrations for those engines, but this is envisionned.
 
-.. code:: console
+.. __: https://www.vaultproject.io/docs/secrets/
 
-   $ vault get mysecret value
-   ohsosecret
+Secret objects and the implicit `value` key
+-------------------------------------------
 
-``vault env``
-~~~~~~~~~~~~~
+In ``vault`` and especially ``kv v1``, a secret is a JSON object (or mapping). Its
+content can be any JSON value (strings, arrays, objects, ...). On the early days of
+``vault-cli`` before `1.0.0`, because most secrets were strings, a design decision had
+been made to not expose the whole secret object, but only its `value` key. This proved
+simpler for basic use-cases, but quickly turned very problematic and confusing when
+working with non-``kv v1`` secret engines or with users of other vault clients.
 
-The first thing you need to figure out is if the process you’re trying
-to integrate supports configuration through environment variables.
+We backed off this decision on ``1.0.0`` and made the key explicit on every subcommand.
 
--  This may be something they tell upfront in their documentation.
--  This may be something that can be achieved through specific
-   configuration tools. For example, tools that let you write
-   configuration in Python files (Sentry) or in dedicated languages like
-   RainerScript (rsyslog).
--  This maybe something that is not well documented but that still
-   exist. Official docker images for the application may be using those
-   variables
--  (And in many cases, this is just not possible)
+Vault env/ssh & UNIX signals
+----------------------------
 
-Assuming you have identified the proper enviroment variable, we will
-launch the program through ``vault env``. Let’s launch it as a one-off:
+When using ``vault env`` or ``vault ssh``, ``vault-cli`` is responsible for launching
+your process. You may wonder if there is a risk that ``vault-cli`` would not forward
+signals correctly, which might be the case if your process was a child process of
+``vault-cli``.
 
-.. code:: console
+Actually, ``vault-cli`` will prepare everything it needs and then use exec__, which
+replace ``vault-cli``'s own process with your process, removing ``vault-cli`` from the
+equation entirely. The risk is then far lower to have ``vault-cli`` cause a problem to
+your process.
 
-   $ vault env --path mysecret:value -- myprogram
+.. __: https://en.wikipedia.org/wiki/Exec_(system_call)
 
-This will make a variable named ``VALUE`` available to ``myprogram``.
-If you need the environment variable to have a specific name
-(e.g. ``MYVAR``), you can use:
+Thanks PeopleDoc
+----------------
 
-.. code:: console
+This project was almost entirely created by PeopleDoc employees on their
+working time. Let's take this opportunity to thank PeopleDoc for funding
+an Open Source project like this!
 
-   $ vault env --path mysecret:value=MYVAR -- myprogram
+If this makes you want to know more about this company, check our website_
+or our `job offerings`_ !
 
-We could check that it works as expected by launching ``env`` instead of
-``myprogram``. ``env`` lists all environment variables.
-
-.. code:: console
-
-   $ vault env --path mysecret:value=MYVAR -- env |grep MYVAR
-
-If you need so, vault-env can load several secrets by specifying the
-``--path`` option more than once. If the path corresponds to a “folder”,
-all secrets beneath that path will be recursively added as environment
-variables, through their names.
-
-Similarily, if you don't specify the key, all the keys defined on the path will be exported:
-
-.. code:: console
-
-   $ vault env --path mysecret -- myprogram  # will expose MYSECRET_VALUE
-
-If you don't want the key to be used to build the name of the environment variables for secrets
-that have only one key, use ``--omit-single_key``:
-
-.. code:: console
-
-   $ vault env --omit-single-key --path mysecret -- myprogram  # will expose MYSECRET
-
-In the following, we'll consider that we'll be exposing a single key, but in the real life, it's probable
-that you will be exposing more that one keys and folders through several ``--path`` arguments.
-
-Systemd
-~~~~~~~
-
-Now, let’s integrate this with systemd. First, look at the existing
-execstart command:
-
-.. code:: console
-
-   $ systemctl cat myprogram.service
-   [Service]
-   ...
-   ExecStart=myprogram --options
-   ...
-
-We’ll create an override file that will change ExecStart to wrap it in
-vault cli:
-
-.. code:: console
-
-   $ sudo systemctl edit myprogram.service
-   # opens a new file for edition. Type the following, adapting your needs:
-   [Service]
-   ExecStart=
-   ExecStart=vault env --path mysecret:value=MYVAR -- myprogram --options
-
-The empty ``ExecStart=`` tells SystemD to ignore the previous command to
-launch and only launch to following one.
-
-Save and quit the file. Load you new configuration file with:
-
-.. code:: console
-
-   $ sudo systemctl daemon-reload
-   $ sudo systemctl restart myprogram.service
-
-``vault get --output``
-~~~~~~~~~~~~~~~~~~~~~~
-
-In some cases, you will need to have a file in the filesystem that
-contains directly the secret. This is often the case with private keys.
-
-Our strategy will be to mount a `RAM
-drive <https://en.wikipedia.org/wiki/RAM_drive>`__ when our process
-start, and have our drive be accessible only for the current process.
-The drive will disappear when the process terminates, and nothing will
-be written on disk.
-
-In this case, we’ll also create a service override file, but this time,
-we will be adding a command that launches before or main command:
-
-.. code:: console
-
-   $ sudo systemctl edit myprogram.service
-   # opens a new file for edition. Type the following, adapting your needs:
-   [Service]
-   TemporaryFileSystem=/private
-   ExecStartPre=vault get mysecret --output=/private/path/to/secret/file
-
-Save and quit the file. Load you new configuration file with:
-
-.. code:: console
-
-   $ sudo systemctl daemon-reload
-   $ sudo systemctl restart myprogram.service
-
-Of course, you will need to configure ``myprogram`` to look for your
-secret file at ``/private/path/to/secret/file``.
-
-If you need several files, you can repeat the ``ExecStartPre`` line as
-many times as needed.
-
-``vault template``
-~~~~~~~~~~~~~~~~~~
-
-In some cases, the program you want to launch doesn’t accept
-configuration through environment but only through configuration files.
-You could be tempted to use the method above, but the configuration file
-mixes secrets and a lot of other information that should not be stored
-in the vault. In this case, you need a way to write your configuration
-file without secrets on disk and, at the last moment, to bake the
-secrets into the file. To do that we’ll use ``vault template``.
-
-Assuming this would be your file:
-
-::
-
-   # /etc/myprogram/myprogram.conf
-   [myprogram]
-   url=http://example.com
-   token=mytoken
-
-Then the first step will be to produce a template for this file without
-the secret:
-
-::
-
-   # /etc/myprogram/myprogram.conf.j2
-   [myprogram]
-   url=http://example.com
-   token={{ vault("mysecret").value }}
-
-The rest depends on whether ``myprogram`` expects to read its
-configuration file at a specific location or if it can accept an
-arbitrary configuration path, and whether the folder containing the
-configuration contains other files or juste that file.
-
-We will be using a ``TemporaryFileSystem`` like above, but this option
-can only be used to make a folder, not a single file. If the
-configuration can be read anywhere or if the whole folder can be
-overridden, then it’s the easier path. Otherwise, you may want to create
-a simlink in place of your configuration file, that will be pointing to
-your temporary file system.
-
-Let’s assume that through configuration or through a symlink,
-``myprogram`` will read its configuration at
-``/private/myprogram.conf``.
-
-The systemd configuration will be close to our previous case:
-
-.. code:: console
-
-   $ sudo systemctl edit myprogram.service
-   # opens a new file for edition. Type the following, adapting your needs:
-   [Service]
-   TemporaryFileSystem=/private
-   ExecStartPre=vault template --input=/etc/myprogram/myprogram.conf.j2 --output=/private/myprogram.conf
-
-Save and quit the file. Load you new configuration file with:
-
-.. code:: console
-
-   $ sudo systemctl daemon-reload
-   $ sudo systemctl restart myprogram.service
-
-``vault_cli`` as a python lib
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Finally, if the program is made with Python and you control it, another
-solution can be to use ``vault_cli`` on the Python side, and load your
-secrets when your process starts. This does not
-`12-factor`_, and it means your
-program will be strongly coupled with the vault, which wouldn’t be
-ideal, but sometimes, ideal just doesn’t exist.
-
-See :ref:`library`.
-
-.. _`12-factor`: https://12factor.net/
+.. _website: https://www.people-doc.com/
+.. _`job offerings`: https://www.people-doc.com/company/careers

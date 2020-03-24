@@ -4,8 +4,8 @@ Configure ``vault-cli``
 There are 3 ways to configure ``vault-cli`` (by decreasing priority):
 
 1. Command-line flags (a.k.a. ``--foo=``)
-2. Environment variabes (a.k.a ``VAULT_CLI_FOO=``)
-3. YAML Configuration file (preferred)
+2. Environment variables (a.k.a ``VAULT_CLI_FOO=``)
+3. YAML configuration file (preferred)
 
 The configuration works identically for each way:
 
@@ -68,6 +68,13 @@ Make sure the secret files have their permissions set accordingly.
 (Re)create a configuration file based on the current settings
 -------------------------------------------------------------
 
+The ``vault-cli dump-config`` will output a YAML file that can be used as a
+configuration file, but mind following the caveats:
+
+- Default values will be explicited
+- Secrets (token or username) will be included directly, even if they were loaded from
+  a dedicated file
+
 .. code:: console
 
-   $ vault --url https://something --token-file /path dump-config > vault.yaml
+   $ vault --url https://something --token-file /path dump-config > vault.yml

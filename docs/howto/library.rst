@@ -11,7 +11,7 @@ Python project, already has all the primitives to access the vault, and you'd be
 
     Yes, we are aware of the irony of taking a project that is literally called ``CLI``
     and use it, not as a ``CLI`` but as a library. Maybe we could have picked a better
-    named, but that ship has sailed.
+    name, but that ship has sailed.
 
 Here is a small usage example. Please refer to the :ref:`reference` section for
 details::

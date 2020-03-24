@@ -8,32 +8,17 @@ TODO
 - Write with secret prompt
 
 Write a secret
-~~~~~~~~~~~~~~
+--------------
 
 .. code:: console
 
    $ vault set my_other_secret value=supersecret
    Done
 
-### Read/write a secret outside the base path If a base path is defined
-it will be prepended to all the paths used by vault-cli except when the
-paths start by a slash (``/``), those are absolute paths.
+Write a secret via ``stdin``
+----------------------------
 
-.. code:: console
-
-   $ export VAULT_CLI_BASE_PATH=secretkvv1/myapp/
-   $ vault set mysecret value=sharedsecret
-   Done
-   $ vault get mysecret value
-   sharedsecret
-   $ vault get /secretkvv1/myapp/mysecret value
-   sharedsecret
-   $ unset VAULT_CLI_BASE_PATH
-
-Write a secret via stdin.
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can use this when the secret has multiple lines or starts with a “-”
+You can use this when the secret has multiple lines or starts with a ``-``:
 
 .. code:: console
 
@@ -55,7 +40,7 @@ vault:
    $ cat my_certificate.key | vault set third_secret certificate=-
    Done
 
-You can also load a key/value mapping in yaml or JSON format from a
+You can also load a key/value mapping in YAML or JSON format from a
 file:
 
 .. code:: console
@@ -63,12 +48,12 @@ file:
    $ vault set third_secret --file=secret.yaml
    Done
 
-A special value of “-” for ``--file`` means that the file is read from
-stdin.
+The special value ``--file=-`` means that the file is read from
+``stdin``.
 
 
 Write a secret using an invisible input prompt
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------
 
 This will avoid your secrets to be displayed in plain text in your shell
 history.

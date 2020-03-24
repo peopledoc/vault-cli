@@ -4,7 +4,7 @@ Avoid overwriting secrets by accident
 Sometimes, you add secrets, sometimes you change existing secrets, and it can be easy
 to make mistakes and overwrite an existing secret that you didn't plan to change.
 
-In order to help you avoid this kind of mistakes, ``vault-cli`` has to operating modes:
+In order to help you avoid this kind of mistakes, ``vault-cli`` has two operating modes:
 
 - ``--safe-write / safe-write: yes``: writing over an existing secret will result in an
   error, except if ``--force`` is passed

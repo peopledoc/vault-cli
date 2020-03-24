@@ -10,15 +10,15 @@ TODO
 
 
 Read a secret in plain text (default)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 .. code:: console
 
    $ vault get my_secret value
    qwerty
 
-Read a secret in yaml format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Read a secret in YAML format
+----------------------------
 
 .. code:: console
 
@@ -28,7 +28,7 @@ Read a secret in yaml format
 
 
 Get all values from the vault in a single command (yaml format)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------------------------
 
 .. code:: console
 
@@ -48,7 +48,7 @@ Get all values from the vault in a single command (yaml format)
        '
 
 Get a nested secret based on a path
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------
 
 .. code:: console
 
@@ -67,7 +67,7 @@ Get a nested secret based on a path
      secret: yay
 
 Get all values recursively from several folders in a single command (yaml format)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------------------------------------------
 
 .. code:: console
 

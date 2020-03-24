@@ -1,4 +1,4 @@
-Troobleshoot your problems
+Troubleshoot your problems
 ==========================
 
 ``SyntaxError: invalid syntax``
