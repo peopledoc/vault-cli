@@ -36,13 +36,13 @@ Some features
 -------------
 
 - Cascading (local, user, global) YAML configuration file: configure once, use
-  everywhere,
-- Read, browse, write, move, delete secrets easily,
-- Read multiple secrets at once, as YAML,
-- Launch processes with your secrets as environment variables,
-- Launch processes with ``ssh-agent`` cofigured from your vault,
-- Write templated files with secrets inside,
-- Combine multiple secrets into a single one (e.g. a DSN string from components).
+  everywhere
+- Read, browse, write, move, delete secrets easily
+- Read multiple secrets at once, as YAML
+- Launch processes with your secrets as environment variables
+- Launch processes with ``ssh-agent`` configured from your vault
+- Write templated files with secrets inside
+- Combine multiple secrets into a single one (e.g. a DSN string from components)
 
 ``vault-cli`` tries to make accessing secrets both secure and painless.
 
@@ -75,8 +75,8 @@ Here's a few things you might do with ``vault-cli``:
 State
 -----
 
-The package is young but supported, alive, we're mindful of deprecations through
-semantic versionning, and accepting bug reports and feature requests.
+The package is young but supported and alive. We're mindful of deprecations through
+semantic versionning and accepting bug reports and feature requests.
 
 .. Below this line is content specific to the README that will not appear in the doc.
 .. end-of-index-doc
