@@ -23,8 +23,8 @@ Either store your token in a dedicated file or store it in the configuration dir
 In both cases, make sure the permissions of the file containing the token
 are not too broad.
 
-The command-line flag ``--token`` is not available, in order to avoid having the token
-been too easily found in the bash history. You can either use the command-line flag
+The command-line flag ``--token`` is not available, in order to avoid the token from
+being too easily found in the bash history. You can either use the command-line flag
 ``--token-file=/path/to/token/file`` to read from a file (including ``-`` for ``stdin``)
 or the ``VAULT_CLI_TOKEN=secret-token`` environment variable.
 

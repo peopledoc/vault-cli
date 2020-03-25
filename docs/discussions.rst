@@ -54,6 +54,8 @@ accessible by your application in a reasonably decoupled way.
 .. _SystemD: https://en.wikipedia.org/wiki/Systemd
 .. _Kubernetes: https://kubernetes.io/
 
+.. _env-vars:
+
 Environment variables
 =====================
 
@@ -115,6 +117,9 @@ Good practice to address the "Cons"
 
 It's no surprise that, while recognizing the value of the "Cons" argument, we think
 the benefits of using secret values in environment outweight the risks.
+
+For more information on how to use environment variables within ``vault-cli``, see
+:ref:`vault-env`
 
 .. _`Environment variables`: https://en.wikipedia.org/wiki/Environment_variable
 

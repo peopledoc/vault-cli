@@ -45,7 +45,7 @@ to integrate supports configuration through environment variables.
    configuration in Python files (Sentry_) or in dedicated languages like
    RainerScript (rsyslog_).
 -  This maybe something that is not well documented but that still
-   exist. Official docker images for the application may be using those
+   exists. Official docker images for the application may be using those
    variables, like for Datadog_.
 -  (And in many cases, this is just not possible)
 
@@ -82,7 +82,7 @@ vault cli:
 .. code:: console
 
    $ sudo systemctl edit myprogram.service
-   # opens a new file for edition. Type the following, adapting your needs:
+   # opens a new file for edition
    [Service]
    ExecStart=
    ExecStart=vault env --path mysecret:value=MYVAR -- myprogram --options
@@ -111,12 +111,12 @@ be written on disk.
 .. __: https://en.wikipedia.org/wiki/RAM_drive
 
 In this case, we’ll also create a service override file, but this time,
-we will be adding a command that launches before or main command:
+we will be adding a command that launches before our main command:
 
 .. code:: console
 
    $ sudo systemctl edit myprogram.service
-   # opens a new file for edition. Type the following, adapting your needs:
+   # opens a new file for edition
    [Service]
    TemporaryFileSystem=/private
    ExecStartPre=vault get mysecret --output=/private/path/to/secret/file
@@ -154,9 +154,9 @@ See the dedicated :ref:`template` documentation for detailed use of ``vault temp
 
 The integration strategy will depend of several factors:
 
-- Does``myprogram`` expects to read its configuration file at a specific location?
+- Does``myprogram`` expect to read its configuration file at a specific location?
 - Does it accept an arbitrary configuration path?
-- Does the folder containing the configuration contains other
+- Does the folder containing the configuration contain other
   files or just that configuration file?
 
 We will be using a ``TemporaryFileSystem`` like above, but this option
@@ -175,7 +175,7 @@ The systemd configuration will be close to our previous case:
 .. code:: console
 
    $ sudo systemctl edit myprogram.service
-   # opens a new file for edition. Type the following, adapting your needs:
+   # opens a new file for edition
    [Service]
    TemporaryFileSystem=/private
    ExecStartPre=vault template --input=/etc/myprogram/myprogram.conf.j2 --output=/private/myprogram.conf
