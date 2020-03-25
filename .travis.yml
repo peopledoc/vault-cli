@@ -24,6 +24,9 @@ matrix:
   - python: 3.7
     env: TOX_ENV=check-lint
 
+  - python: 3.7
+    env: TOX_ENV=docs
+
 
 before_install:
   - "if [ $COVERAGE_FLAG = integration ]; then ./dev-env; ./dev-env auth token; fi"
