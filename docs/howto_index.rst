@@ -18,7 +18,7 @@ How-to...
     howto/organize
     howto/base_path
     howto/safe_write
-    howto/secret-with-dash
+    howto/secret_with_dash
     howto/library
     howto/test
     howto/troubleshooting

@@ -1,3 +1,5 @@
+.. _base-path:
+
 Access a special folder easily
 ==============================
 
