@@ -42,5 +42,35 @@ the secret object:
 
 Variable rendering can be recursive as long as there is no loop (a uses b, b uses a)
 
+Including a templated secret in an Ansible YAML file
+----------------------------------------------------
 
-TODO document how to set them with ansible.
+The following is relevant only if your setup includes Ansible_.
+
+Ansible is based on running Jinja2 on YAML files. Consider a YAML object looking like:
+
+.. code:: yaml
+
+    ---
+    template: !template!{{ vault("path").key }}
+
+The ``!template`` part will be interpreted as an unknown YAML directive. The
+``{{ vault("path").key }}`` will be interpreted by Ansible's Jinja2, which will crash
+because Ansible doesn't have a ``vault`` function in its context.
+
+Using ``!unsafe``, a real Ansible YAML directive this time, we can instruct Ansible
+to leave the rest of the value as-is, and not run Jinja2 on it:
+
+.. code:: yaml
+
+    - name: Add templated secrets
+      command: vault set {{ item.path }} '{{ item.key }}={{ item.template }}'
+      loop:
+        - path: path/one
+          key: mykey
+          template: !unsafe '!template!{{ vault("path").key }}
+        - path: path/two
+          key: otherkey
+          template: !unsafe '!template!{{ vault("/otherpath").somekey }}'
+
+.. _Ansible: https://www.ansible.com/
