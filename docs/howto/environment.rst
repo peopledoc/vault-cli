@@ -7,7 +7,8 @@ See :ref:`env-vars` for reasons why you would want to pass configuration contain
 secrets as environment variables.
 
 ``vault-cli`` can read secrets from the vault, turn them into environment variables and
-launch the process of your choice with those environment variables. This is how it works:
+launch the process of your choice with those environment variables. This is how it
+works:
 
 .. code:: console
 
@@ -18,8 +19,8 @@ launch the process of your choice with those environment variables. This is how 
     $ vault env --path test/my_secret -- bash -c 'echo $MY_SECRET_VALUE'
     qwerty
 
-The environment variable naming
--------------------------------
+Environment variable naming
+---------------------------
 
 A path option looks like this::
 
@@ -33,7 +34,7 @@ A path option looks like this::
   variable name.
 - The mandatory ``root`` element is either the name of a single secret object we want to
   expose, or the root path of a "secret directory" containing one or more secrets we
-  want to expose recursively. The name of the environment variable start with ``root``.
+  want to expose recursively. The name of the environment variable starts with ``root``.
 - If ``root`` is a path to multiple secret objects, then the relative path between
   ``root`` and each secret object will be added to the environment variable name
 - For each secret object, each key of the object will become an environment variable.
@@ -45,15 +46,14 @@ A path option looks like this::
   case, the environment variable name will just be the key.
 - If a ``=prefix`` is provided, it replaces the ``root`` or ``:key`` part.
 - Lastly, paths such as ``--path ""`` or ``--path =prefix`` are valid to express
-  "all the secrets under``base-path``, though doing this can create a risk of exposing
-  more secrets than intended. A sub-path is recommended in that case.
+  "all the secrets under``base-path``", although doing this can create a risk of
+  exposing more secrets than intended. A sub-path is recommended in that case.
 
 
-All parts of the secret environment variable name are uppercased, special
-characters ``/``, ``-`` and  `` `` (space) are changed to ``_``. If an environment
-variable still contains characters that are not alphanumerical or ``_`` after this
-transformation, a warning is raised, and this value is ignored, not appearing in the
-final environment variables.
+All parts of the secret environment variable name are uppercased, special characters
+``/``, ``-`` and  `` `` (space) are changed to ``_``. If an environment variable still
+contains characters that are not alphanumerical or ``_`` after this transformation, a
+warning is raised, and this environment variable is skipped altogether.
 
 Example
 -------
@@ -66,7 +66,7 @@ Let's consider the vault contains only the following secret:
     $ vault set a/b c=mysecret
     Done
 
-This tables maps input to output. Note that there will always be a single environment
+This table maps input to output. Note that there will always be a single environment
 variable and its value will always be ``mysecret``.
 
 +-------------+-----------------------+---------------------------+
@@ -98,18 +98,18 @@ Recommended setup
 
 What we recommend as the ideal setup is the following:
 
-- Application should use a prefix for all its environment variables (say ``MYAPP``)
-- Put all the secrets of the application under a common path named like the prefix
+- Application uses a prefix for all its environment variables (say ``MYAPP``)
+- All the secrets of the application are put under a common path named like the prefix
   (say ``myapp``)
 - Each secret is named like its corresponding environment variable (for
   ``MYAPP_GITHUB_TOKEN`` you'll set ``myapp/github_token value=...``)
-- In most case, have a single key inside each secret, whose value is a list, and use
-  ``--omit-single-key``
-- For groups of related configuration parameters, put them under the same secret
+- Each secret object usually holds a single key inside, whose value is a string, and
+  ``--omit-single-key`` is used
+- Groups of related configuration parameters are in the same secret
   object (say you now have ``MYAPP_GITHUB_TOKEN`` and ``MYAPP_GITHUB_URL``, you'll set
-  ``myapp/github token=... url=...``
+  ``myapp/github token=... url=...``)
 
-Your call should look like:
+Your call would look like:
 
 .. code:: console
 
