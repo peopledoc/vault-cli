@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def get_client(**kwargs) -> "VaultClientBase":
     """
-    Reads the kwargs and associate them with the
+    Reads the kwargs and associates them with the
     config files and default values to produce
     a configured client object ready to do calls.
 
@@ -52,7 +52,7 @@ def get_client(**kwargs) -> "VaultClientBase":
 
     Returns
     -------
-    An VaultClient object
+    A VaultClient object
     """
     options = settings.get_vault_options(**kwargs)
     client = get_client_class()(**options)
