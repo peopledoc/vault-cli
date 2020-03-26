@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.2.0 (2029-03-20)
+1.2.0 (2020-03-20)
 -------------------
 
 - ``vault env`` now supports ``-`` and `` `` (spaces) in variable names, changing them into ``_``
