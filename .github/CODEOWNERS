@@ -1,1 +1,5 @@
-* @mgu @ewjoachim
+*       @mgu @ewjoachim
+
+# Documentation
+*.rst   @mgu @ewjoachim @CorBott
+*.md    @mgu @ewjoachim @CorBott
