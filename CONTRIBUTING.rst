@@ -73,7 +73,7 @@ Use vault-cli:
 
 .. code-block:: console
 
-    $ vault -h
+    $ vault-cli -h
 
 Write tests
 ^^^^^^^^^^^

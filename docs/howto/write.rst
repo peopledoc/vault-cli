@@ -12,7 +12,7 @@ Write a secret
 
 .. code:: console
 
-   $ vault set my_other_secret value=supersecret
+   $ vault-cli set my_other_secret value=supersecret
    Done
 
 Write a secret via ``stdin``
@@ -22,13 +22,13 @@ You can use this when the secret has multiple lines or starts with a ``-``:
 
 .. code:: console
 
-   $ vault set third_secret certificate=-
+   $ vault-cli set third_secret certificate=-
    ----BEGIN SECRET KEY----
    ...
    <hit ctrl+d to end stdin>
    Done
 
-   vault get third_secret
+   vault-cli get third_secret
    ----BEGIN SECRET KEY----
    ...
 
@@ -37,7 +37,7 @@ vault:
 
 .. code:: console
 
-   $ cat my_certificate.key | vault set third_secret certificate=-
+   $ cat my_certificate.key | vault-cli set third_secret certificate=-
    Done
 
 You can also load a key/value mapping in YAML or JSON format from a
@@ -45,7 +45,7 @@ file:
 
 .. code:: console
 
-   $ vault set third_secret --file=secret.yaml
+   $ vault-cli set third_secret --file=secret.yaml
    Done
 
 The special value ``--file=-`` means that the file is read from
@@ -60,6 +60,6 @@ history.
 
 .. code:: console
 
-   $ vault set mypath --prompt mykey
+   $ vault-cli set mypath --prompt mykey
    Please enter a value for key `mykey` of `mypath`:
    Done

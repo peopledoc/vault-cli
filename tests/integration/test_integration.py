@@ -164,7 +164,7 @@ def set_ACD(cli_runner):
 
 def test_boostrap_env(clean_vault, set_ACD):
     env = subprocess.check_output(
-        "vault env -p A -p C -p C/D:password=PASS -- env".split()
+        "vault-cli env -p A -p C -p C/D:password=PASS -- env".split()
     )
 
     assert b"A_VALUE=B\n" in env
@@ -190,7 +190,7 @@ Fh34DrZLZim42czNi6I+ww6+/y68rkmExwToM=
         ["set", "ssh_key", f"private={ssh_private}", f"passphrase={ssh_passphrase}"],
     )
     identities = subprocess.check_output(
-        "vault ssh --key ssh_key:private --passphrase ssh_key:passphrase "
+        "vault-cli ssh --key ssh_key:private --passphrase ssh_key:passphrase "
         "-- ssh-add -L".split()
     )
     assert ssh_public in identities.decode("utf-8")

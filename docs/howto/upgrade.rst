@@ -14,11 +14,18 @@ In this release we removed the implicit ̀``value`` key in order to
 expose a key/value mapping instead of a single value. Most of the
 commands have been updated in order to add the key parameter.
 
-A new option ``--omit-single-key`` was added to ``vault env`` in order
+A new option ``--omit-single-key`` was added to ``vault-cli env`` in order
 to ignore the key when the variable names are built and there is only
 one key in the mapping. This option case simplify your migration as
 there won’t be an additional ``_VALUE`` suffix added to your environment
 variables names.
+
+.. note::
+
+    Since 1.0, the official CLI name has switched from ``vault`` to ``vault-cli``
+    but ``vault`` is kept for backwards compatibility. Because ``vault-cli 0.x`` was
+    only compatible with the name ``vault``, the examples below are written with
+    ``vault``
 
 The following list shows how to update your commands:
 

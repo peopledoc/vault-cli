@@ -37,7 +37,7 @@ Render your template:
 
 .. code:: console
 
-    $ vault template /etc/myapp.conf.j2 --output /etc/myapp.conf
+    $ vault-cli template /etc/myapp.conf.j2 --output /etc/myapp.conf
     $ cat /etc/myapp.conf
     [myapp]
     url = http://example.com

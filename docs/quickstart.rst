@@ -49,7 +49,7 @@ Check your installation with:
 
 .. code:: console
 
-   $ vault -h
+   $ vault-cli -h
 
 Create your configuration file
 ------------------------------

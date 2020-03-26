@@ -7,10 +7,10 @@ Move secrets and folders
 
 .. code:: console
 
-   $ vault mv my_secret test/my_secret
+   $ vault-cli mv my_secret test/my_secret
    Move 'my_secret' to 'test/my_secret'
 
-   $ vault get-all --flat
+   $ vault-cli get-all --flat
    -secret-name:
      -oh-so-secret: xxx
    a:
@@ -29,7 +29,7 @@ Delete a secret
 
 .. code:: console
 
-   $ vault delete my_other_secret
+   $ vault-cli delete my_other_secret
    Done
 
 
@@ -38,11 +38,11 @@ Delete everything under blob-secret
 
 .. code:: console
 
-   $ vault delete-all blob-secret
+   $ vault-cli delete-all blob-secret
 
 Delete everything, no confirmation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: console
 
-   $ vault delete-all --force
+   $ vault-cli delete-all --force

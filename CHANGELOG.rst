@@ -9,6 +9,10 @@ Changelog
 - ``vault ssh`` lets you use SSH without writing the private key on disk
 - Fix trailing slash in path issue in ``get-all`` and ``delete-all`` (#135)
 - Omit secrets in ``vault env`` when path contains forbidden chars (#138)
+- Wrote the documentation at https://vault-cli.readthedocs.io/en/latest/ (#90)
+- Make the official command-line executable name ``vault-cli`` instead of ``vault``.
+  ``vault`` will continue to work for an undeterminate amount of time, except if
+  we receive complaints. (#89)
 
 1.1.0 (2020-02-28)
 -------------------

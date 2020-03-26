@@ -37,11 +37,11 @@ the secret object:
 
 .. code:: console
 
-   $ vault set service username=foo password=bar host=example.com
-   $ vault set shortcut dsn='!template!proto://{{ vault("service").username }}:{{ vault("service").password }}@{{ vault("service").host }}/'
-   $ vault get shortcut dsn
+   $ vault-cli set service username=foo password=bar host=example.com
+   $ vault-cli set shortcut dsn='!template!proto://{{ vault("service").username }}:{{ vault("service").password }}@{{ vault("service").host }}/'
+   $ vault-cli get shortcut dsn
    proto://foo:bar@example.com/
-   $ vault --no-render get shortcut dsn
+   $ vault-cli --no-render get shortcut dsn
    !template!proto://{{ vault("service").username }}:{{ vault("service").password }}@{{ vault("service").host }}/
 
 Variable rendering can be recursive as long as there is no loop (a uses b, b uses a)
