@@ -21,6 +21,10 @@ string.
     ``render: no`` configuration file option or the ``VAULT_CLI_RENDER=false``
     environment variable.
 
+.. note::
+
+    Templated secrets rendering work like ``vault-cli template``. See :ref:`template`.
+
 Create and read a templated secret
 ----------------------------------
 
