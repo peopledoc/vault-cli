@@ -152,6 +152,8 @@ must read secrets from a file system.
 .. __: https://en.wikipedia.org/wiki/RAM_drive
 .. _tmpfs: https://en.wikipedia.org/wiki/Tmpfs
 
+.. _secret-engines:
+
 ``kv v1`` and ``kv v2``, secret engines
 =======================================
 
