@@ -4,6 +4,9 @@
 Discussions
 ===========
 
+.. contents::
+  :depth: 2
+
 Why not vault, hvac or hvac-cli?
 ================================
 
@@ -81,8 +84,8 @@ can be used by that process with zero knowledge of the deployment specificts.
 That being said, there is a debate on whether using secrets for environment variables is
 safe or not. Here are a few common arguments from both sides:
 
-Pros:
-~~~~~
+Pros
+----
 
 - Simple, standard
 - Avoid writing secrets on disk
@@ -91,8 +94,8 @@ Pros:
 - When following good practice, it doesn't increase the attack surface. The risks are
   the same as with any other secret strategy
 
-Cons:
-~~~~~
+Cons
+----
 
 - Because environment variables are automatically transmitted to children processes,
   and sometimes dumped for debug purposes, putting secrets in there raises the risk of
@@ -102,7 +105,7 @@ Cons:
 - Environment can be read on Linux at ``/proc/[pid]/environ``.
 
 Good practice to address the "Cons"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------
 
 - Once a secret value is read from the environment variable, it should be removed from
   the in-memory environment. This will keep the value from being transmitted to
@@ -124,7 +127,7 @@ For more information on how to use environment variables within ``vault-cli``, s
 .. _`Environment variables`: https://en.wikipedia.org/wiki/Environment_variable
 
 Avoid writing secrets on disk
------------------------------
+=============================
 
 Even in the era of of encrypted drives, we believe it is interesting to set the goal of
 avoiding to write secrets on the disk, for multiple reasons:
@@ -148,7 +151,7 @@ must read secrets from a file system.
 .. _tmpfs: https://en.wikipedia.org/wiki/Tmpfs
 
 ``kv v1`` and ``kv v2``, secret engines
----------------------------------------
+=======================================
 
 ``vault`` offers several secret engines, including 2 iterations (v1 and v2) of a general
 purpose key/value (kv) store.
@@ -170,20 +173,20 @@ include specific integrations for those engines, but this is envisionned.
 
 .. __: https://www.vaultproject.io/docs/secrets/
 
-Secret objects and the implicit `value` key
--------------------------------------------
+Secret objects and the implicit ``value`` key
+=============================================
 
 In ``vault`` and especially ``kv v1``, a secret is a JSON object (or mapping). Its
 content can be any JSON value (strings, arrays, objects, ...). On the early days of
-``vault-cli`` before `1.0.0`, because most secrets were strings, a design decision had
-been made to not expose the whole secret object, but only its `value` key. This proved
+``vault-cli`` before ``1.0.0``, because most secrets were strings, a design decision had
+been made to not expose the whole secret object, but only its ``value`` key. This proved
 simpler for basic use-cases, but quickly turned very problematic and confusing when
 working with non-``kv v1`` secret engines or with users of other vault clients.
 
 We backed off this decision on ``1.0.0`` and made the key explicit on every subcommand.
 
 Vault env/ssh & UNIX signals
-----------------------------
+============================
 
 When using ``vault env`` or ``vault ssh``, ``vault-cli`` is responsible for launching
 your process. You may wonder if there is a risk that ``vault-cli`` would not forward
@@ -198,7 +201,7 @@ your process.
 .. __: https://en.wikipedia.org/wiki/Exec_(system_call)
 
 Thanks PeopleDoc
-----------------
+================
 
 This project was almost entirely created by PeopleDoc employees on their
 working time. Let's take this opportunity to thank PeopleDoc for funding
