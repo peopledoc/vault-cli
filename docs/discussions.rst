@@ -126,8 +126,10 @@ For more information on how to use environment variables within ``vault-cli``, s
 
 .. _`Environment variables`: https://en.wikipedia.org/wiki/Environment_variable
 
-Avoid writing secrets on disk
-=============================
+.. _writing-to-disk:
+
+Avoid writing secrets to the disk
+=================================
 
 Even in the era of of encrypted drives, we believe it is interesting to set the goal of
 avoiding to write secrets on the disk, for multiple reasons:
