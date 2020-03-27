@@ -1,3 +1,5 @@
+.. _safe-write:
+
 Avoid overwriting secrets by accident
 =====================================
 
