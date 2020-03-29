@@ -16,18 +16,18 @@ all paths through all commands be relative to that ``base-path``.
 .. code:: console
 
     $ export VAULT_CLI_BASE_PATH="/kvv1/myproject"
-    $ vault set mysecret key=value
+    $ vault-cli set mysecret key=value
 
-    $ vault get mysecret key
+    $ vault-cli get mysecret key
     value
 
-    $ vault get /kvv1/myproject/mysecret key
+    $ vault-cli get /kvv1/myproject/mysecret key
     value
 
     $ unset VAULT_CLI_BASE_PATH
-    $ vault get mysecret key
+    $ vault-cli get mysecret key
     Error: Secret not found
     Secret not found at path '/mysecret'
 
-    $ vault get /kvv1/myproject/mysecret key
+    $ vault-cli get /kvv1/myproject/mysecret key
     value

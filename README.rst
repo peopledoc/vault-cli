@@ -57,19 +57,19 @@ Here are a few things you might do with ``vault-cli``:
     $ pip install vault-cli
 
     $ # Write a secret:
-    $ vault set mysecret mykey --prompt
+    $ vault-cli set mysecret mykey --prompt
     Please enter a value for key `mykey` of `mysecret`: *******
 
     $ # Read a secret:
-    $ vault get mysecret mykey
+    $ vault-cli get mysecret mykey
     ohsosecret
 
     $ # Load a secret into the environment variables:
-    $ vault env --path mysecret -- env | grep MYSECRET
+    $ vault-cli env --path mysecret -- env | grep MYSECRET
     MYSECRET_MYKEY=ohsosecret
 
     $ # Load an ssh key into your ssh-agent:
-    $ vault ssh --key ssh_private_key -- ssh -T git@github.com
+    $ vault-cli ssh --key ssh_private_key -- ssh -T git@github.com
     Hi <username>! You've successfully authenticated, but GitHub does not provide shell access.
 
 State

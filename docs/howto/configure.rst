@@ -37,7 +37,7 @@ on your version is through:
 
 .. code:: console
 
-   $ vault -h
+   $ vault-cli -h
 
 YAML Configuration files
 ------------------------
@@ -77,4 +77,4 @@ configuration file, but mind following the caveats:
 
 .. code:: console
 
-   $ vault --url https://something --token-file /path dump-config > vault.yml
+   $ vault-cli --url https://something --token-file /path dump-config > vault.yml

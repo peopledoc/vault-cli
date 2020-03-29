@@ -6,7 +6,7 @@ This will not work if the token is already expired.
 
 .. code:: console
 
-   $ vault lookup-token
+   $ vault-cli lookup-token
     ---
     auth: null
     data:

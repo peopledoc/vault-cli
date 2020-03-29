@@ -30,7 +30,7 @@ Let’s assume the value you need to pass is the value you get with:
 
 .. code:: console
 
-   $ vault get mysecret value
+   $ vault-cli get mysecret value
    ohsosecret
 
 Passing secrets through environment
@@ -54,14 +54,14 @@ to integrate supports configuration through environment variables.
 .. _Datadog: https://docs.datadoghq.com/agent/docker/?tab=standard#environment-variables
 
 Assuming you have identified the proper enviroment variable, we will
-launch the program through ``vault env``. Let’s launch it as a one-off:
+launch the program through ``vault-cli env``. Let’s launch it as a one-off:
 
 .. code:: console
 
-   $ vault env --path mysecret:value -- myprogram
+   $ vault-cli env --path mysecret:value -- myprogram
 
 This will make a variable named ``VALUE`` available to ``myprogram``.
-See the :ref:`vault env <vault-env>` dedicated page for more details on how you can
+See the :ref:`vault-cli env <vault-env>` dedicated page for more details on how you can
 fine-tune the environment variable names, recursively load secrets as environment
 variables etc.
 
@@ -77,7 +77,7 @@ ExecStart command:
    ...
 
 We’ll create an override file that will change ExecStart to wrap it in
-vault cli:
+``vault-cli``:
 
 .. code:: console
 
@@ -85,7 +85,7 @@ vault cli:
    # opens a new file for edition
    [Service]
    ExecStart=
-   ExecStart=vault env --path mysecret:value=MYVAR -- myprogram --options
+   ExecStart=vault-cli env --path mysecret:value=MYVAR -- myprogram --options
 
 The empty ``ExecStart=`` tells SystemD to ignore the previous command to
 launch and only launch the following one.
@@ -119,7 +119,7 @@ we will be adding a command that launches before our main command:
    # opens a new file for edition
    [Service]
    TemporaryFileSystem=/private
-   ExecStartPre=vault get mysecret --output=/private/path/to/secret/file
+   ExecStartPre=vault-cli get mysecret --output=/private/path/to/secret/file
 
 Save and quit the file. Load your new configuration file with:
 
@@ -148,9 +148,10 @@ You could be tempted to use the method above, but the configuration file
 mixes secrets and a lot of other information that should not be stored
 in the vault. In this case, you need a way to write your configuration
 file without secrets on disk and, at the last moment, to bake the
-secrets into the file. To do that we’ll use ``vault template``.
+secrets into the file. To do that we’ll use ``vault-cli template``.
 
-See the dedicated :ref:`template` documentation for detailed use of ``vault template``.
+See the dedicated :ref:`template` documentation for detailed use of ``vault-cli
+template``.
 
 The integration strategy will depend of several factors:
 
@@ -178,7 +179,7 @@ The systemd configuration will be close to our previous case:
    # opens a new file for edition
    [Service]
    TemporaryFileSystem=/private
-   ExecStartPre=vault template --input=/etc/myprogram/myprogram.conf.j2 --output=/private/myprogram.conf
+   ExecStartPre=vault-cli template --input=/etc/myprogram/myprogram.conf.j2 --output=/private/myprogram.conf
 
 Save and quit the file. Load you new configuration file with:
 

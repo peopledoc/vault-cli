@@ -187,13 +187,13 @@ working with non-``kv v1`` secret engines or with users of other vault clients.
 
 We backed off this decision on ``1.0.0`` and made the key explicit on every subcommand.
 
-Vault env/ssh & UNIX signals
-============================
+``vault-cli env/ssh`` & UNIX signals
+====================================
 
-When using ``vault env`` or ``vault ssh``, ``vault-cli`` is responsible for launching
-your process. You may wonder if there is a risk that ``vault-cli`` would not forward
-signals correctly, which might be the case if your process was a child process of
-``vault-cli``.
+When using ``vault-cli env`` or ``vault-cli ssh``, ``vault-cli`` is responsible for
+launching your process. You may wonder if there is a risk that ``vault-cli`` would not
+forward signals correctly, which might be the case if your process was a child process
+of ``vault-cli``.
 
 Actually, ``vault-cli`` will prepare everything it needs and then use exec__, which
 replace ``vault-cli``'s own process with your process, removing ``vault-cli`` from the

@@ -327,11 +327,11 @@ def set_(
 
     \b
     You can give secrets in 3 different ways:
-    - Usage: vault set [OPTIONS] PATH [key=value...]
+    - Usage: vault-cli set [OPTIONS] PATH [key=value...]
       directly in the arguments. A value of "-" means that value will be read from the standard input
-    - Usage: vault set [OPTIONS] PATH --prompt [key...]
+    - Usage: vault-cli set [OPTIONS] PATH --prompt [key...]
       prompt user for a values using hidden input
-    - Usage: vault set [OPTIONS] PATH --file=/path/to/file
+    - Usage: vault-cli set [OPTIONS] PATH --file=/path/to/file
       using a json/yaml file
     """
     if bool(attributes) + bool(yaml_file) > 1:

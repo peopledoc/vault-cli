@@ -7,9 +7,9 @@ which can lead to all sorts of strange behaviour. Anything following a double da
 
 .. code:: console
 
-   $ vault set -- -secret-name -oh-so-secret=xxx
+   $ vault-cli set -- -secret-name -oh-so-secret=xxx
    Done
 
-   $ vault get -- -secret-name
+   $ vault-cli get -- -secret-name
    ---
    -oh-so-secret: xxx

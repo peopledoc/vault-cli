@@ -13,10 +13,10 @@ works:
 .. code:: console
 
     $ # Setting up a secret:
-    $ vault set test/my_secret value=qwerty
+    $ vault-cli set test/my_secret value=qwerty
     Done
 
-    $ vault env --path test/my_secret -- bash -c 'echo $MY_SECRET_VALUE'
+    $ vault-cli env --path test/my_secret -- bash -c 'echo $MY_SECRET_VALUE'
     qwerty
 
 Environment variable naming
@@ -26,7 +26,7 @@ A path option looks like this::
 
 .. code:: console
 
-    $ vault env --path [path/]{root}[:key][=prefix] [--path ...] -- {command...}
+    $ vault-cli env --path [path/]{root}[:key][=prefix] [--path ...] -- {command...}
 
 - The optional ``path/`` allows you to indicate the location of the secret(s) you want
   to expose. If the root begins with a `/`, the ``base-path`` option will be ignored
@@ -63,7 +63,7 @@ Let's consider the vault contains only the following secret:
 .. code:: console
 
     $ # Setting up a secret:
-    $ vault set a/b c=mysecret
+    $ vault-cli set a/b c=mysecret
     Done
 
 This table maps input to output. Note that there will always be a single environment
@@ -113,4 +113,4 @@ Your call would look like:
 
 .. code:: console
 
-    $ vault env --omit-single-key --path myapp -- myapp
+    $ vault-cli env --omit-single-key --path myapp -- myapp
