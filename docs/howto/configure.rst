@@ -1,3 +1,5 @@
+.. _configure:
+
 Configure ``vault-cli``
 =======================
 

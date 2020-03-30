@@ -15,8 +15,9 @@ We are aware of the following "competitor" products:
 - The official ``vault`` executable can be used as a ``vault`` client
 - The hvac_ (*Hashicorp VAult Client*) Python library which is a wrapper around
   requests_ implementing the ``vault`` HTTP API
-- The `hvac-cli`_ library - `envconsul`_ which supports providing configuration values
-  from consul_ and ``vault`` into environment variables
+- The `hvac-cli`_ library
+- `envconsul`_ which supports providing configuration values from consul_ and
+  ``vault`` into environment variables
 
 At its core, ``vault-cli`` want to provide:
 
@@ -40,7 +41,7 @@ to what we were looking for, so that why we `created our own`__.
 
 `12-factor`__ applications are centered around having the
 application process communicate with the outside solely through abstract and decoupled
-ways, allowing concrete integration choices vary wildly without impacting the
+ways, allowing concrete integration choices to vary wildly without impacting the
 application code. This includes, among very different thing:
 
 .. __: https://12factor.net/
@@ -50,12 +51,12 @@ application code. This includes, among very different thing:
 - Logging through stdout
 - ...
 
-``vault-cli`` shines when used as a layer between your system's process
-manager (SystemD_, Kubernetes_, ...) and your application, to make your secrets be
-accessible by your application in a reasonably decoupled way.
+``vault-cli`` shines when used as a layer between your process manager (SystemD_,
+Docker_, ...) and your application, to make your secrets accessible by your
+application in a reasonably decoupled way.
 
 .. _SystemD: https://en.wikipedia.org/wiki/Systemd
-.. _Kubernetes: https://kubernetes.io/
+.. _Docker: https://www.docker.com/
 
 .. _env-vars:
 
@@ -74,12 +75,12 @@ with the following properties:
   environment.
 - Environment variables are text only. Any other type must be parsed from text. There is
   no standard way to represent boolean values.
-- Environment and the command-line string are the two main ways decoupled ways of
+- Environment and the command-line string are the two main decoupled ways of
   providing context to a process. Any other way involves agreeing on a less standard
   method, including reading the file at a specific path, etc.
 
 Because they are a standard way to give parameters to a process, environment variables
-can be used by that process with zero knowledge of the deployment specificts.
+can be used by that process with zero knowledge of the deployment specifics.
 
 That being said, there is a debate on whether using secrets for environment variables is
 safe or not. Here are a few common arguments from both sides:
@@ -134,7 +135,7 @@ Avoid writing secrets to the disk
 Even in the era of of encrypted drives, we believe it is interesting to set the goal of
 avoiding to write secrets on the disk, for multiple reasons:
 
-- It's harder to control who reads a file. than who access a ``vault``. There is no
+- It's harder to control who reads a file than who access a ``vault``. There is no
   simple audit log allowing you to know who accessed a file.
 - Writing secrets on the disk caches the information, which now exists both in the vault
   and on the disk. Cache invalidation is no easy task.
