@@ -136,8 +136,9 @@ many times as needed.
 
 .. note::
 
-    If you want to use ``ssh`` within your program, and it supports reading the key
-    from ``ssh-agent``, you may want to have a look at the dedicated :ref:`ssh` feature.
+    If you want to use ``ssh`` within your program, and it supports reading the key from
+    ``ssh-agent``, rather than writing the private key to the disk, you may want to have
+    a look at the dedicated :ref:`ssh` feature.
 
 Bake secrets into a complex configuration file
 ----------------------------------------------
