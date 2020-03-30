@@ -24,7 +24,7 @@ the following secret:
 
 .. code:: console
 
-    $ vault set myapp token=mysecrettoken
+    $ vault-cli set myapp token=mysecrettoken
 
 Create your template using Jinja2, indicating where you want to inject secrets and
 which secrets by editing e.g. ``/etc/myapp.conf.j2``::
