@@ -31,7 +31,7 @@ echo "Please prepare the changelog."
 read -p "Press [enter] to continue"
 
 # Craft release commit
-git add CHANGELOG.md
+git add CHANGELOG.rst
 sed -i "s/version = .\\+$/version = ${VERSION}/" setup.cfg
 git add setup.cfg
 git commit -m "Release ${VERSION}"
