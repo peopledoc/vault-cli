@@ -8,7 +8,7 @@ installs its `testing` extra dependencies:
 
 .. code:: console
 
-   $ pip install vault-cli[testing]
+   $ pip install "vault-cli[testing]"
 
 .. code:: python
 
