@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.3.1 (unreleased)
+1.3.1 (2020-04-16)
 ------------------
 
 - Fix package description, broken on PyPI (#161)
