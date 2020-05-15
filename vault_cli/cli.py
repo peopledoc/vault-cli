@@ -49,6 +49,11 @@ def set_verbosity(value: int) -> None:
     logger.info(f"Log level set to {logging.getLevelName(level)}")
 
 
+def set_umask(umask: Optional[int]) -> None:
+    if umask is not None:
+        os.umask(umask)
+
+
 @contextlib.contextmanager
 def handle_errors():
     try:
@@ -63,6 +68,21 @@ def print_version(ctx, __, value):
     click.echo(f"vault-cli {vault_cli.__version__}")
     click.echo(f"License: {vault_cli.__license__}")
     ctx.exit()
+
+
+def parse_octal(value: Optional[str]) -> Optional[int]:
+    if not value:
+        return None
+    return int(value, base=8)
+
+
+def click_octal(_, __, value: Optional[str]) -> Optional[int]:
+    return parse_octal(value)
+
+
+def repr_octal(value: Optional[int]) -> Optional[str]:
+    # #05o means octal with 5 digits (0o octal prefix included)
+    return f"{value:#05o}" if value is not None else None
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -120,6 +140,9 @@ def print_version(ctx, __, value):
     help="Render templated values",
 )
 @click.option(
+    "--umask", callback=click_octal, help="Set umask for newly created files.",
+)
+@click.option(
     "-v", "--verbose", count=True, help="Use multiple times to increase verbosity",
 )
 @click.option(
@@ -139,7 +162,7 @@ def print_version(ctx, __, value):
     is_eager=True,
 )
 @handle_errors()
-def cli(ctx: click.Context, verbose: int, **kwargs) -> None:
+def cli(ctx: click.Context, verbose: int, umask: int, **kwargs) -> None:
     """
     Interact with a Vault. See subcommands for details.
 
@@ -149,6 +172,7 @@ def cli(ctx: click.Context, verbose: int, **kwargs) -> None:
     """
     kwargs.pop("config_file")
     set_verbosity(verbose)
+    set_umask(umask)
 
     assert ctx.default_map  # make mypy happy
     kwargs.update(extract_special_args(ctx.default_map, os.environ))
@@ -156,7 +180,8 @@ def cli(ctx: click.Context, verbose: int, **kwargs) -> None:
     # There might still be files to read, so let's do it now
     kwargs = settings.read_all_files(kwargs)
     saved_settings = kwargs.copy()
-    saved_settings.update({"verbose": verbose})
+
+    saved_settings.update({"verbose": verbose, "umask": repr_octal(umask)})
 
     ctx.obj = client.get_client_class()(**kwargs)  # type: ignore
     ctx.obj.auth()
