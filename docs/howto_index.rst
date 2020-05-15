@@ -17,6 +17,7 @@ How-to...
     howto/systemd
     howto/organize
     howto/base_path
+    howto/permissions
     howto/safe_write
     howto/secret_with_dash
     howto/library
