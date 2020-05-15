@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.4.0 (unreleased)
+------------------
+
+- Verbosity can now be controlled through ``verbose:`` option in config file
+- New option ``umask: / --umask / VAULT_CLI_UMASK`` controls permissions of new files (#162)
+
 1.3.1 (2020-04-16)
 ------------------
 
