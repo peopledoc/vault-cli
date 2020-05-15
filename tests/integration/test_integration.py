@@ -154,15 +154,12 @@ def check_call(command):
 
 
 @pytest.fixture
-def set_ACD(cli_runner):
+def set_ACD(cli_runner, clean_vault):
     call(cli_runner, ["set", "A", "value=B"])
     call(cli_runner, ["set", "C/D", "username=foo", "password=bar"])
-    yield
-    call(cli_runner, ["delete", "A"])
-    call(cli_runner, ["delete", "C/D"])
 
 
-def test_boostrap_env(clean_vault, set_ACD):
+def test_boostrap_env(set_ACD):
     env = subprocess.check_output(
         "vault-cli env -p A -p C -p C/D:password=PASS -- env".split()
     )
