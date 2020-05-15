@@ -43,11 +43,10 @@ def load_config(ctx: click.Context, param: click.Parameter, value: str) -> None:
     ctx.default_map = config
 
 
-def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int:
+def set_verbosity(value: int) -> None:
     level = settings.get_log_level(verbosity=value)
     logging.basicConfig(level=level)
     logger.info(f"Log level set to {logging.getLevelName(level)}")
-    return value
 
 
 @contextlib.contextmanager
@@ -121,12 +120,7 @@ def print_version(ctx, __, value):
     help="Render templated values",
 )
 @click.option(
-    "-v",
-    "--verbose",
-    is_eager=True,
-    callback=set_verbosity,
-    count=True,
-    help="Use multiple times to increase verbosity",
+    "-v", "--verbose", count=True, help="Use multiple times to increase verbosity",
 )
 @click.option(
     "--config-file",
@@ -145,7 +139,7 @@ def print_version(ctx, __, value):
     is_eager=True,
 )
 @handle_errors()
-def cli(ctx: click.Context, **kwargs) -> None:
+def cli(ctx: click.Context, verbose: int, **kwargs) -> None:
     """
     Interact with a Vault. See subcommands for details.
 
@@ -154,7 +148,7 @@ def cli(ctx: click.Context, **kwargs) -> None:
 
     """
     kwargs.pop("config_file")
-    verbose = kwargs.pop("verbose")
+    set_verbosity(verbose)
 
     assert ctx.default_map  # make mypy happy
     kwargs.update(extract_special_args(ctx.default_map, os.environ))

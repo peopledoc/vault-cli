@@ -435,7 +435,7 @@ def test_extract_special_args(config, environ, expected):
 def test_set_verbosity(mocker):
     basic_config = mocker.patch("logging.basicConfig")
 
-    cli.set_verbosity(None, None, 1)
+    cli.set_verbosity(1)
 
     basic_config.assert_called_with(level=logging.INFO)
 
