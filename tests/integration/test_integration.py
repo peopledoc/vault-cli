@@ -154,15 +154,12 @@ def check_call(command):
 
 
 @pytest.fixture
-def set_ACD(cli_runner):
+def set_ACD(cli_runner, clean_vault):
     call(cli_runner, ["set", "A", "value=B"])
     call(cli_runner, ["set", "C/D", "username=foo", "password=bar"])
-    yield
-    call(cli_runner, ["delete", "A"])
-    call(cli_runner, ["delete", "C/D"])
 
 
-def test_boostrap_env(clean_vault, set_ACD):
+def test_boostrap_env(set_ACD):
     env = subprocess.check_output(
         "vault-cli env -p A -p C -p C/D:password=PASS -- env".split()
     )
@@ -194,3 +191,18 @@ Fh34DrZLZim42czNi6I+ww6+/y68rkmExwToM=
         "-- ssh-add -L".split()
     )
     assert ssh_public in identities.decode("utf-8")
+
+
+@pytest.fixture
+def umask():
+    current = os.umask(0)
+    os.umask(current)
+    yield
+    os.umask(current)
+
+
+def test_umask(set_ACD, umask, tmp_path):
+    path = tmp_path / "test_boostrap_env"
+    # umask = 0o066 => permissions = 0o666 - 0o066 = 0o600
+    subprocess.check_output(f"vault-cli --umask=066 get A -o {path}".split())
+    assert oct(path.stat().st_mode & 0o777) == "0o600"
