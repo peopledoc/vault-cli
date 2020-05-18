@@ -6,6 +6,7 @@ Changelog
 
 - Verbosity can now be controlled through ``verbose:`` option in config file
 - New option ``umask: / --umask / VAULT_CLI_UMASK`` controls permissions of new files (#162)
+- Forced dependency pyyaml>=5.3.1 to avoid CVE (#156)
 
 1.3.1 (2020-04-16)
 ------------------
