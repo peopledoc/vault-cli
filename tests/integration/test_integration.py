@@ -171,6 +171,10 @@ def test_boostrap_env(set_ACD):
 
 
 def test_ssh(clean_vault, cli_runner):
+    # In case this is not sufficienlty explicit that this is a test key, then:
+    #
+    #        THIS IS A TEST KEY, DO NOT USE IN THE REAL WORLD
+    #
     ssh_private = """-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABA/nloeFW
 +x5vq/qCi1O8YLAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIGRET06x/iK7QVn3
