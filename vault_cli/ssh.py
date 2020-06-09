@@ -19,7 +19,11 @@ def _launch_command(
 ) -> str:
     environment = env_module.full_environment(environment)
     process = subprocess.Popen(
-        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=environment
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=environment,
     )
     stdout, _ = process.communicate(input=stdin.encode("utf-8"))
     return stdout.decode("utf-8")

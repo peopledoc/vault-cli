@@ -190,11 +190,16 @@ Fh34DrZLZim42czNi6I+ww6+/y68rkmExwToM=
         cli_runner,
         ["set", "ssh_key", f"private={ssh_private}", f"passphrase={ssh_passphrase}"],
     )
-    identities = subprocess.check_output(
+    identities = subprocess.run(
         "vault-cli ssh --key ssh_key:private --passphrase ssh_key:passphrase "
-        "-- ssh-add -L".split()
+        "-- ssh-add -L".split(),
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
-    assert ssh_public in identities.decode("utf-8")
+    assert ssh_public in identities.stdout.decode("utf-8")
+    assert "Identity added" not in identities.stdout.decode("utf-8")
+    assert identities.stderr.decode("utf-8") == ""
 
 
 @pytest.fixture
