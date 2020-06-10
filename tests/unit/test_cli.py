@@ -619,10 +619,12 @@ def test_lookup_token(cli_runner, vault_with_token):
 def test_handle_errors(cli_runner):
     @cli.handle_errors()
     def inner():
-        raise exceptions.VaultException("yay")
+        raise exceptions.VaultException("foo") from ValueError("bar")
 
-    with pytest.raises(click.ClickException):
+    with pytest.raises(click.ClickException) as exc_info:
         inner()
+
+    assert str(exc_info.value) == "VaultException: foo\nValueError: bar"
 
 
 def test_version(cli_runner):

@@ -4,6 +4,7 @@ import sys
 from typing import Mapping, Optional, Sequence
 
 from vault_cli import environment as env_module
+from vault_cli import exceptions
 
 SSH_PASSPHRASE_ENVVAR = "VAULT_CLI_SSH_PASSPHRASE"
 
@@ -18,11 +19,20 @@ def _launch_command(
     command: Sequence[str], stdin: str, environment: Mapping[str, str]
 ) -> str:
     environment = env_module.full_environment(environment)
-    process = subprocess.Popen(
-        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=environment
+    process = subprocess.run(
+        command,
+        input=stdin,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=environment,
+        encoding="utf-8",
     )
-    stdout, _ = process.communicate(input=stdin.encode("utf-8"))
-    return stdout.decode("utf-8")
+    try:
+        process.check_returncode()
+    except subprocess.CalledProcessError as exc:
+        raise exceptions.VaultSubprocessException(process.stderr.strip()) from exc
+
+    return process.stdout.strip()
 
 
 def add_key(key: str, passphrase: Optional[str] = None) -> None:

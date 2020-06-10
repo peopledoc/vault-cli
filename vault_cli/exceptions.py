@@ -80,3 +80,7 @@ class VaultSealed(VaultAPIException):
 
 class VaultInvalidEnvironmentName(VaultException):
     pass
+
+
+class VaultSubprocessException(VaultException):
+    pass
