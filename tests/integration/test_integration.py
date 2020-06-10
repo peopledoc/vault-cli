@@ -84,7 +84,10 @@ c:
     assert result.exit_code == 1
     assert (
         result.output
-        == "Error: Secret not found\nKey 'foo' not found in secret at path '/secretkvv1/c/d'\n"
+        == """Error: VaultSecretNotFound: Secret not found
+Key 'foo' not found in secret at path '/secretkvv1/c/d'
+KeyError: 'foo'
+"""
     )
 
     assert call(cli_runner, ["list"]).output == "c/\n"

@@ -59,7 +59,14 @@ def handle_errors():
     try:
         yield
     except exceptions.VaultException as exc:
-        raise click.ClickException(str(exc))
+        messages = []
+        while True:
+            exc_str = str(exc).strip()
+            messages.append(f"{type(exc).__name__}: {exc_str}")
+            exc = exc.__cause__ or exc.__context__
+            if not exc:
+                break
+        raise click.ClickException("\n".join(messages))
 
 
 def print_version(ctx, __, value):
