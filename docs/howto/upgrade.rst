@@ -10,7 +10,7 @@ key ``value`` that was used everywhere. The goal was to provide a path
 <-> value abstraction. But it was hiding the path <-> key/value mapping
 reality of vault’s kv engine.
 
-In this release we removed the implicit ̀``value`` key in order to
+In this release we removed the implicit ``value`` key in order to
 expose a key/value mapping instead of a single value. Most of the
 commands have been updated in order to add the key parameter.
 
