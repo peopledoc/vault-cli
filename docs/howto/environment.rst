@@ -22,7 +22,7 @@ works:
 Environment variable naming
 ---------------------------
 
-A path option looks like this::
+A path option looks like this:
 
 .. code:: console
 
