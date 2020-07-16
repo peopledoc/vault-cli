@@ -1,5 +1,5 @@
-Have a secret reference dynamic content
-=======================================
+Make a secret point to dynamic content
+======================================
 
 With ``vault-cli``, it's possible to have secret values be Jinja2_ templates. This is
 useful if you have multiple related secrets that you would like to retrieve as a single
