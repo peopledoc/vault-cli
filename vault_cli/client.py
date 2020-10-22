@@ -691,6 +691,8 @@ def handle_errors():
         raise exceptions.VaultSealed(errors=exc.errors) from exc
     except hvac.exceptions.UnexpectedError as exc:
         raise exceptions.VaultAPIException(errors=exc.errors) from exc
+    except requests.exceptions.ConnectionError as exc:
+        raise exceptions.VaultConnectionError() from exc
 
 
 class VaultClient(VaultClientBase):

@@ -37,6 +37,10 @@ class VaultRenderTemplateError(VaultException):
         )
 
 
+class VaultConnectionError(VaultException):
+    message = "Error while connecting to the vault"
+
+
 class VaultAPIException(VaultException):
     message = "Unexpected vault error"
 
