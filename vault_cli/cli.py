@@ -417,9 +417,14 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
 @click.option(
     "-o",
     "--omit-single-key/--no-omit-single-key",
-    is_flag=True,
     default=False,
     help="When the secret has only one key, don't use that key to build the name of the environment variable",
+)
+@click.option(
+    "-f",
+    "--force/--no-force",
+    default=False,
+    help="Run the command even if there is a problem while reading secrets",
 )
 @click.argument("command", nargs=-1, required=True)
 @click.pass_obj
@@ -428,6 +433,7 @@ def env(
     client_obj: client.VaultClientBase,
     path: Sequence[str],
     omit_single_key: bool,
+    force: bool,
     command: Sequence[str],
 ) -> NoReturn:
     """
@@ -458,18 +464,24 @@ def env(
 
     env_secrets = {}
 
-    for path in paths:
-        path_with_key, _, prefix = path.partition("=")
-        path, _, filter_key = path_with_key.partition(":")
+    try:
+        for path in paths:
+            path_with_key, _, prefix = path.partition("=")
+            path, _, filter_key = path_with_key.partition(":")
 
-        env_updates = environment.get_envvars(
-            vault_client=client_obj,
-            path=path,
-            prefix=prefix,
-            omit_single_key=omit_single_key,
-            filter_key=filter_key,
-        )
-        env_secrets.update(env_updates)
+            env_updates = environment.get_envvars(
+                vault_client=client_obj,
+                path=path,
+                prefix=prefix,
+                omit_single_key=omit_single_key,
+                filter_key=filter_key,
+            )
+            env_secrets.update(env_updates)
+    except exceptions.VaultException:
+        if force:
+            logger.exception("Error while fetching secrets, command launched anyway")
+        else:
+            raise
 
     environment.exec_command(command=command, environment=env_secrets)
 
