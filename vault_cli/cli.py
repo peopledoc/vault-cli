@@ -19,7 +19,7 @@ import click
 import yaml
 
 import vault_cli
-from vault_cli import client, environment, exceptions, settings, ssh, types
+from vault_cli import client, environment, exceptions, settings, ssh, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +59,7 @@ def handle_errors():
     try:
         yield
     except exceptions.VaultException as exc:
-        messages = []
-        while True:
-            exc_str = str(exc).strip()
-            messages.append(f"{type(exc).__name__}: {exc_str}")
-            exc = exc.__cause__ or exc.__context__
-            if not exc:
-                break
-        raise click.ClickException("\n".join(messages))
+        raise click.ClickException("\n".join(utils.extract_error_messages(exc)))
 
 
 def print_version(ctx, __, value):
@@ -464,25 +457,23 @@ def env(
 
     env_secrets = {}
 
-    try:
-        for path in paths:
-            path_with_key, _, prefix = path.partition("=")
-            path, _, filter_key = path_with_key.partition(":")
+    for path in paths:
+        path_with_key, _, prefix = path.partition("=")
+        path, _, filter_key = path_with_key.partition(":")
 
-            env_updates = environment.get_envvars(
-                vault_client=client_obj,
-                path=path,
-                prefix=prefix,
-                omit_single_key=omit_single_key,
-                filter_key=filter_key,
-            )
-            env_secrets.update(env_updates)
-    except exceptions.VaultException:
-        if force:
-            logger.exception("Error while fetching secrets, command launched anyway")
-        else:
-            raise
+        env_updates = {}
+        env_updates = environment.get_envvars(
+            vault_client=client_obj,
+            path=path,
+            prefix=prefix,
+            omit_single_key=omit_single_key,
+            filter_key=filter_key,
+        )
 
+        env_secrets.update(env_updates)
+
+    if bool(client_obj.errors) and not force:
+        raise click.ClickException("There was an error while reading the secrets.")
     environment.exec_command(command=command, environment=env_secrets)
 
 

@@ -94,6 +94,7 @@ class VaultClientBase:
         self.safe_write = safe_write
         self.render = render
         self.cache: Dict[str, types.JSONDict] = {}
+        self.errors: List[str] = []
         self._currently_fetching: Set[str] = set()
 
     @property
@@ -153,6 +154,7 @@ class VaultClientBase:
         for when exiting the client used as context manager.
         """
         self.cache = {}
+        self.errors = []
 
     def _build_full_path(self, path: str) -> str:
         if path.startswith("/"):
@@ -272,8 +274,14 @@ class VaultClientBase:
 
             try:
                 result[key] = self.get_secret(path=subpath, render=render)
-            except exceptions.VaultAPIException:
-                result[key] = {"error": "<error while retrieving secret>"}
+            except (
+                exceptions.VaultAPIException,
+                exceptions.VaultRenderTemplateError,
+            ) as exc:
+                for message in utils.extract_error_messages(exc):
+                    logger.error(message)
+                    self.errors.append(message)
+                result[key] = {}
 
         return result
 
@@ -328,7 +336,11 @@ class VaultClientBase:
                 mapping = self.cache[full_path] = self._get_secret(path=full_path)
 
             if mapping and render and self.render:
-                mapping = self._render_template_dict(mapping)
+                try:
+                    mapping = self._render_template_dict(mapping)
+                except exceptions.VaultRenderTemplateError as exc:
+                    message = f'Error while rendering secret at path "{path}"'
+                    raise exceptions.VaultRenderTemplateError(message) from exc
 
         finally:
             self._currently_fetching.remove(full_path)
@@ -473,7 +485,15 @@ class VaultClientBase:
     def _render_template_dict(
         self, secrets: Dict[str, types.JSONValue]
     ) -> Dict[str, types.JSONValue]:
-        return {k: self._render_template_value(v) for k, v in secrets.items()}
+        result = {}
+        for key, value in secrets.items():
+            try:
+                result[key] = self._render_template_value(value)
+            except exceptions.VaultRenderTemplateError as exc:
+                message = f'Error while rendering secret value for key "{key}"'
+                raise exceptions.VaultRenderTemplateError(message) from exc
+
+        return result
 
     def render_template(
         self,
@@ -509,14 +529,21 @@ class VaultClientBase:
         def vault(path):
             try:
                 return self.get_secret(path, render=render)
-            except exceptions.VaultException:
-                raise exceptions.VaultRenderTemplateError(f"'{path}' not found")
+            except exceptions.VaultException as exc:
+                raise exceptions.VaultRenderTemplateError(
+                    "Error while rendering template"
+                ) from exc
 
         env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(search_path.as_posix()),
             keep_trailing_newline=True,
         )
-        return env.from_string(template).render(vault=vault)
+        try:
+            return env.from_string(template).render(vault=vault)
+        except jinja2.exceptions.TemplateSyntaxError as exc:
+            raise exceptions.VaultRenderTemplateError(
+                "Jinja2 template syntax error"
+            ) from exc
 
     def set_secret(
         self,

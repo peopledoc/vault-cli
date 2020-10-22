@@ -31,10 +31,7 @@ class VaultMixSecretAndFolder(VaultException):
 
 
 class VaultRenderTemplateError(VaultException):
-    def __str__(self):
-        return (
-            f"VaultRenderTemplateError: Error while rendering template: {self.args[0]}"
-        )
+    pass
 
 
 class VaultConnectionError(VaultException):

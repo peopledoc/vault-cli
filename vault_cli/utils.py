@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from vault_cli import types
 
 
@@ -41,3 +43,13 @@ class RecursiveValue:
 
     def __getitem__(self, key: str) -> str:
         return str(self)
+
+
+def extract_error_messages(exc: BaseException) -> Iterable[str]:
+    while True:
+        exc_str = str(exc).strip()
+        yield f"{type(exc).__name__}: {exc_str}"
+        opt_exc = exc.__cause__ or exc.__context__
+        if not opt_exc:
+            break
+        exc = opt_exc
