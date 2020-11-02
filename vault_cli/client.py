@@ -3,7 +3,7 @@ import functools
 import json
 import logging
 import pathlib
-from typing import Dict, Iterable, Optional, Set, Tuple, Type, Union
+from typing import Dict, Iterable, Optional, Set, Tuple, Type, Union, List
 
 import hvac
 import jinja2
@@ -64,21 +64,6 @@ def get_client_class() -> Type["VaultClientBase"]:
     return VaultClient
 
 
-def caching(method):
-    @functools.wraps(method)
-    def wrapper(self, *args, **kwargs):
-        override_cache = self.cache is None
-        if override_cache:
-            self.cache = {}
-        try:
-            return method(self, *args, **kwargs)
-        finally:
-            if override_cache:
-                self.cache = None
-
-    return wrapper
-
-
 class VaultClientBase:
 
     saved_settings: Optional[types.SettingsDict] = None
@@ -108,7 +93,7 @@ class VaultClientBase:
         self.password = password
         self.safe_write = safe_write
         self.render = render
-        self.cache: Optional[Dict[str, types.JSONDict]] = None
+        self.cache: Dict[str, types.JSONDict] = {}
         self._currently_fetching: Set[str] = set()
 
     @property
@@ -167,7 +152,7 @@ class VaultClientBase:
         Implement this with the relevant behaviour in children classes
         for when exiting the client used as context manager.
         """
-        pass
+        self.cache = {}
 
     def _build_full_path(self, path: str) -> str:
         if path.startswith("/"):
@@ -208,7 +193,6 @@ class VaultClientBase:
             for sub_path in self._browse_recursive_secrets(key_url, render=render):
                 yield sub_path
 
-    @caching
     def get_all_secrets(
         self, *paths: str, render: bool = True, flat: bool = False
     ) -> types.JSONDict:
@@ -243,7 +227,6 @@ class VaultClientBase:
 
         return result
 
-    @caching
     def get_secrets(
         self, path: str, render: bool = True, relative: bool = False
     ) -> types.JSONDict:
@@ -310,7 +293,6 @@ class VaultClientBase:
         """
         return self._list_secrets(path=self._build_full_path(path))
 
-    @caching
     def get_secret(
         self, path: str, key: Optional[str] = None, render: bool = True
     ) -> Union[types.JSONValue, utils.RecursiveValue]:
@@ -428,7 +410,6 @@ class VaultClientBase:
             return iterator
         return list(iterator)
 
-    @caching
     def move_secrets_iter(
         self, source: str, dest: str, force: Optional[bool] = None
     ) -> Iterable[Tuple[str, str]]:
@@ -494,7 +475,6 @@ class VaultClientBase:
     ) -> Dict[str, types.JSONValue]:
         return {k: self._render_template_value(v) for k, v in secrets.items()}
 
-    @caching
     def render_template(
         self,
         template: str,
@@ -538,7 +518,6 @@ class VaultClientBase:
         )
         return env.from_string(template).render(vault=vault)
 
-    @caching
     def set_secret(
         self,
         path: str,
@@ -627,14 +606,6 @@ class VaultClientBase:
                 )
 
         self._set_secret(path=self._build_full_path(path), secret=value)
-
-    @contextlib.contextmanager
-    def caching(self):
-        old_cache, self.cache = self.cache, {}
-        try:
-            yield
-        finally:
-            self.cache = old_cache
 
     def _init_client(
         self,
@@ -755,4 +726,5 @@ class VaultClient(VaultClientBase):
         return self.client.lookup_token()
 
     def __exit__(self, exc_type, exc_value, traceback):
+        super().__exit__(exc_type, exc_value, traceback)
         self.session.__exit__(exc_type, exc_value, traceback)
