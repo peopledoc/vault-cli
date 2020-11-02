@@ -64,7 +64,7 @@ class VaultUnauthorized(VaultAPIException):
 
 
 class VaultForbidden(VaultAPIException):
-    message = "Invalid authentication"
+    message = "Insufficient access for interacting with the requested secret"
 
 
 class VaultSecretNotFound(VaultAPIException):
