@@ -642,18 +642,28 @@ def ssh_(
     if ":" not in key:
         raise click.UsageError("Format for private_key: `path/to/private_key:key`")
     private_key_name, private_key_key = key.rsplit(":", 1)
-    private_key_secret = client_obj.get_secret(private_key_name, private_key_key)
+    private_key_secret_obj = client_obj.get_secret(private_key_name, private_key_key)
+    private_key_secret = ensure_str(secret=private_key_secret_obj, path=key)
 
     passphrase_secret = None
     if passphrase:
         if ":" not in passphrase:
             raise click.UsageError("Format for passphrase: `path/to/passphrase:key`")
         passphrase_name, passphrase_key = passphrase.rsplit(":", 1)
-        passphrase_secret = client_obj.get_secret(passphrase_name, passphrase_key)
+        passphrase_secret_obj = client_obj.get_secret(passphrase_name, passphrase_key)
+        passphrase_secret = ensure_str(secret=passphrase_secret_obj, path=passphrase)
 
     ssh.add_key(key=private_key_secret, passphrase=passphrase_secret)
 
     environment.exec_command(command=command)
+
+
+def ensure_str(secret, path) -> str:
+    if not isinstance(secret, str):
+        raise exceptions.VaultWrongType(
+            f"secret at {path} is not a string but {type(secret)}"
+        )
+    return secret
 
 
 # This is purposedly not called as a click subcommand, and we cannot take any argument

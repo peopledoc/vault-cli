@@ -1,9 +1,7 @@
-from typing import Iterable
-
-from vault_cli import types
+from typing import Dict, Iterable
 
 
-def path_to_nested(dict_obj: types.JSONDict) -> types.JSONDict:
+def path_to_nested(dict_obj: Dict) -> Dict:
     """
     Transform a dict with paths as keys into a nested
     dict

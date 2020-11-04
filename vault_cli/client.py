@@ -1,9 +1,8 @@
 import contextlib
-import functools
 import json
 import logging
 import pathlib
-from typing import Dict, Iterable, Optional, Set, Tuple, Type, Union, List
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
 import hvac
 import jinja2
@@ -12,6 +11,9 @@ import requests.packages.urllib3
 from vault_cli import exceptions, sessions, settings, types, utils
 
 logger = logging.getLogger(__name__)
+
+JSONRecursive = Union[types.JSONValue, utils.RecursiveValue]
+JSONDictRecursive = Dict[str, JSONRecursive]
 
 
 def get_client(**kwargs) -> "VaultClientBase":
@@ -197,7 +199,7 @@ class VaultClientBase:
 
     def get_all_secrets(
         self, *paths: str, render: bool = True, flat: bool = False
-    ) -> types.JSONDict:
+    ) -> JSONDictRecursive:
         """
         Takes several paths, return the nested dict of all secrets below
         those paths
@@ -218,7 +220,7 @@ class VaultClientBase:
             {"folder": {"subfolder": {"secret_key": "secret_value"}}}
         """
 
-        result: types.JSONDict = {}
+        result: JSONDictRecursive = {}
 
         for path in paths:
             path_dict = self.get_secrets(path, render=render)
@@ -231,7 +233,7 @@ class VaultClientBase:
 
     def get_secrets(
         self, path: str, render: bool = True, relative: bool = False
-    ) -> types.JSONDict:
+    ) -> Dict[str, JSONDictRecursive]:
         """
         Takes a path, return all secrets below this path
 
@@ -261,7 +263,7 @@ class VaultClientBase:
             # read
             secrets_paths = [path]
 
-        result: types.JSONDict = {}
+        result: Dict[str, JSONDictRecursive] = {}
         path_obj = pathlib.Path(path)
         for subpath in secrets_paths:
             if relative:
@@ -273,7 +275,9 @@ class VaultClientBase:
                 key = subpath
 
             try:
-                result[key] = self.get_secret(path=subpath, render=render)
+                secret = self.get_secret(path=subpath, render=render)
+                secret = cast(JSONDictRecursive, secret)
+                result[key] = secret
             except (
                 exceptions.VaultAPIException,
                 exceptions.VaultRenderTemplateError,
@@ -381,8 +385,9 @@ class VaultClientBase:
                 return
 
             try:
+                assert isinstance(secret, dict)
                 secret.pop(key)
-            except KeyError:
+            except (KeyError, AssertionError):
                 # nothing to delete
                 return
 
@@ -434,7 +439,8 @@ class VaultClientBase:
 
             yield (old_path, new_path)
 
-            self.set_secret(new_path, secret, force=force)
+            secret_ = cast(types.JSONDict, secret)
+            self.set_secret(new_path, secret_, force=force)
             self.delete_secret(old_path)
 
     def move_secrets(
@@ -579,6 +585,7 @@ class VaultClientBase:
 
         try:
             existing_value = self.get_secret(path=path, render=False)
+            assert isinstance(existing_value, dict)
         except exceptions.VaultSecretNotFound:
             pass
         except exceptions.VaultForbidden:

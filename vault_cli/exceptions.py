@@ -34,6 +34,10 @@ class VaultRenderTemplateError(VaultException):
     pass
 
 
+class VaultWrongType(VaultException):
+    pass
+
+
 class VaultConnectionError(VaultException):
     message = "Error while connecting to the vault"
 
