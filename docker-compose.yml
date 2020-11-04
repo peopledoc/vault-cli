@@ -1,13 +1,7 @@
 version: '2'
 services:
   vault:
-    image: vault
-    command: /var/vault/vault-startup.sh
-    environment:
-      SKIP_SETCAP: 1
-      VAULT_DEV_ROOT_TOKEN_ID: some-token
+    image: ewjoachim/vault-cli-dev
     ports:
     - "8200:8200"
     - "8443:8443"
-    volumes:
-    - ./dev_docker_config:/var/vault/:ro
