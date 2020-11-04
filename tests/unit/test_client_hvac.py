@@ -5,7 +5,6 @@ import pytest
 
 from vault_cli import client, exceptions
 
-
 """
 In this module, we only check that we call hvac the way we meant to.
 Testing that we work correctly with hvac as a whole is done in the integration

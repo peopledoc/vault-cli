@@ -96,11 +96,14 @@ def test_get_envvars_for_secrets(secrets, path, prefix, expected):
 
 
 def test_get_envvars_for_secrets_invalid(caplog):
-    assert environment.get_envvars_for_secrets(
-        secrets={"a/b=": {"c": "d"}, "a/e": {"f=": "g"}, "a/h": {"i": "j"}},
-        path="",
-        prefix="",
-    ) == {"A_H_I": "j"}
+    assert (
+        environment.get_envvars_for_secrets(
+            secrets={"a/b=": {"c": "d"}, "a/e": {"f=": "g"}, "a/h": {"i": "j"}},
+            path="",
+            prefix="",
+        )
+        == {"A_H_I": "j"}
+    )
     assert caplog.messages == [
         "Invalid environment name A_B=_C, skipping secret value",
         "Invalid environment name A_E_F=, skipping secret value",

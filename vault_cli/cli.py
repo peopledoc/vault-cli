@@ -147,10 +147,15 @@ def repr_octal(value: Optional[int]) -> Optional[str]:
     help="Render templated values",
 )
 @click.option(
-    "--umask", callback=click_octal, help="Set umask for newly created files.",
+    "--umask",
+    callback=click_octal,
+    help="Set umask for newly created files.",
 )
 @click.option(
-    "-v", "--verbose", count=True, help="Use multiple times to increase verbosity",
+    "-v",
+    "--verbose",
+    count=True,
+    help="Use multiple times to increase verbosity",
 )
 @click.option(
     "--config-file",
@@ -472,7 +477,9 @@ def env(
 @cli.command("dump-config")
 @click.pass_obj
 @handle_errors()
-def dump_config(client_obj: client.VaultClientBase,) -> None:
+def dump_config(
+    client_obj: client.VaultClientBase,
+) -> None:
     """
     Display settings in the format of a config file.
     """
