@@ -744,3 +744,12 @@ def test_parse_octal(input, output):
 )
 def test_repr_octal(input, output):
     assert cli.repr_octal(input) == output
+
+
+def test_ensure_str():
+    assert cli.ensure_str("foo", "bar") == "foo"
+
+
+def test_ensure_str_wrong():
+    with pytest.raises(exceptions.VaultWrongType):
+        cli.ensure_str(1, "bar")
