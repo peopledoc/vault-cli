@@ -10,7 +10,7 @@
     :alt: Documentation Status
 
 .. image:: https://travis-ci.org/peopledoc/vault-cli.svg?branch=master
-    :target: https://travis-ci.org/peopledoc/vault-cli
+    :target: https://github.com/peopledoc/vault-cli/workflows/CI/badge.svg
     :alt: Continuous Integration Status
 
 .. image:: https://codecov.io/gh/peopledoc/vault-cli/branch/master/graph/badge.svg

@@ -1,0 +1,13 @@
+name-template: '$NEXT_MINOR_VERSION: TODO: set meaningful title - UNRELEASED'
+tag-template: '$NEXT_MINOR_VERSION'
+change-template: '- $TITLE (#$NUMBER)'
+template: |
+  ## Breaking changes
+
+  ## Changelog
+
+  $CHANGES
+
+  ## Kudos:
+
+  $CONTRIBUTORS

@@ -78,5 +78,4 @@ html_theme_options = {
     "codecov_button": True,
     "github_banner": True,
     "github_button": True,
-    "travis_button": True,
 }
