@@ -9,8 +9,8 @@
     :target: http://vault-cli.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://travis-ci.org/peopledoc/vault-cli.svg?branch=master
-    :target: https://github.com/peopledoc/vault-cli/workflows/CI/badge.svg
+.. image:: https://github.com/peopledoc/vault-cli/workflows/CI/badge.svg
+    :target: https://github.com/peopledoc/vault-cli/actions?query=workflow%3ACI
     :alt: Continuous Integration Status
 
 .. image:: https://codecov.io/gh/peopledoc/vault-cli/branch/master/graph/badge.svg
