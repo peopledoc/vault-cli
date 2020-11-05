@@ -138,5 +138,5 @@ spend too much time setting up the parts of the development environment you don'
 Releasing
 ---------
 
-Use `./release`. If you're not sure about that, read the script, it's
-all laid out.
+Publish the current draft release from the GitHub interface and automation
+will do the rest.

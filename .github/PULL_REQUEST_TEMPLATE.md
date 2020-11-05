@@ -1,7 +1,10 @@
-Closes #ticket-number
+Closes #<ticket number>
 
-### Check list:
-- [ ] Write documentation (we can help you doing so)
-- [ ] Write unit tests (100% coverage ?)
-- [ ] Write or edit integration tests, if applicable ?
-- [ ] Add a line in ``CHANGELOG.rst``
+<!-- Please do not remove this, even if you think you don't need it -->
+### Successful PR Checklist:
+<!-- In case of doubt, we're here to help. CONTRIBUTING.md might help too -->
+- [ ] Tests (units, integration, 100% coverage)
+  - [ ] (not applicable?)
+- [ ] Documentation
+  - [ ] (not applicable?)
+- [ ] Had a good time contributing?

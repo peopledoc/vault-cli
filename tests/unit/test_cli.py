@@ -688,7 +688,8 @@ def test_ssh_wrong_format_passphrase(cli_runner, vault_with_token, mocker):
     vault_with_token.db = {"a/b": {"value": "c"}}
 
     result = cli_runner.invoke(
-        cli.cli, ["ssh", "--key", "a/b:value", "--passphrase", "a/b", "--", "env"],
+        cli.cli,
+        ["ssh", "--key", "a/b:value", "--passphrase", "a/b", "--", "env"],
     )
 
     assert result.exit_code > 0
