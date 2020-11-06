@@ -1,9 +1,8 @@
 import contextlib
-import functools
 import json
 import logging
 import pathlib
-from typing import Dict, Iterable, Optional, Set, Tuple, Type, Union
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
 import hvac
 import jinja2
@@ -12,6 +11,9 @@ import requests.packages.urllib3
 from vault_cli import exceptions, sessions, settings, types, utils
 
 logger = logging.getLogger(__name__)
+
+JSONRecursive = Union[types.JSONValue, utils.RecursiveValue]
+JSONDictRecursive = Dict[str, JSONRecursive]
 
 
 def get_client(**kwargs) -> "VaultClientBase":
@@ -64,21 +66,6 @@ def get_client_class() -> Type["VaultClientBase"]:
     return VaultClient
 
 
-def caching(method):
-    @functools.wraps(method)
-    def wrapper(self, *args, **kwargs):
-        override_cache = self.cache is None
-        if override_cache:
-            self.cache = {}
-        try:
-            return method(self, *args, **kwargs)
-        finally:
-            if override_cache:
-                self.cache = None
-
-    return wrapper
-
-
 class VaultClientBase:
 
     saved_settings: Optional[types.SettingsDict] = None
@@ -108,7 +95,8 @@ class VaultClientBase:
         self.password = password
         self.safe_write = safe_write
         self.render = render
-        self.cache: Optional[Dict[str, types.JSONDict]] = None
+        self.cache: Dict[str, types.JSONDict] = {}
+        self.errors: List[str] = []
         self._currently_fetching: Set[str] = set()
 
     @property
@@ -167,7 +155,8 @@ class VaultClientBase:
         Implement this with the relevant behaviour in children classes
         for when exiting the client used as context manager.
         """
-        pass
+        self.cache = {}
+        self.errors = []
 
     def _build_full_path(self, path: str) -> str:
         if path.startswith("/"):
@@ -208,10 +197,9 @@ class VaultClientBase:
             for sub_path in self._browse_recursive_secrets(key_url, render=render):
                 yield sub_path
 
-    @caching
     def get_all_secrets(
         self, *paths: str, render: bool = True, flat: bool = False
-    ) -> types.JSONDict:
+    ) -> JSONDictRecursive:
         """
         Takes several paths, return the nested dict of all secrets below
         those paths
@@ -232,7 +220,7 @@ class VaultClientBase:
             {"folder": {"subfolder": {"secret_key": "secret_value"}}}
         """
 
-        result: types.JSONDict = {}
+        result: JSONDictRecursive = {}
 
         for path in paths:
             path_dict = self.get_secrets(path, render=render)
@@ -243,10 +231,9 @@ class VaultClientBase:
 
         return result
 
-    @caching
     def get_secrets(
         self, path: str, render: bool = True, relative: bool = False
-    ) -> types.JSONDict:
+    ) -> Dict[str, JSONDictRecursive]:
         """
         Takes a path, return all secrets below this path
 
@@ -276,7 +263,7 @@ class VaultClientBase:
             # read
             secrets_paths = [path]
 
-        result: types.JSONDict = {}
+        result: Dict[str, JSONDictRecursive] = {}
         path_obj = pathlib.Path(path)
         for subpath in secrets_paths:
             if relative:
@@ -288,9 +275,17 @@ class VaultClientBase:
                 key = subpath
 
             try:
-                result[key] = self.get_secret(path=subpath, render=render)
-            except exceptions.VaultAPIException:
-                result[key] = {"error": "<error while retrieving secret>"}
+                secret = self.get_secret(path=subpath, render=render)
+                secret = cast(JSONDictRecursive, secret)
+                result[key] = secret
+            except (
+                exceptions.VaultAPIException,
+                exceptions.VaultRenderTemplateError,
+            ) as exc:
+                for message in utils.extract_error_messages(exc):
+                    logger.error(message)
+                    self.errors.append(message)
+                result[key] = {}
 
         return result
 
@@ -310,7 +305,6 @@ class VaultClientBase:
         """
         return self._list_secrets(path=self._build_full_path(path))
 
-    @caching
     def get_secret(
         self, path: str, key: Optional[str] = None, render: bool = True
     ) -> Union[types.JSONValue, utils.RecursiveValue]:
@@ -346,7 +340,11 @@ class VaultClientBase:
                 mapping = self.cache[full_path] = self._get_secret(path=full_path)
 
             if mapping and render and self.render:
-                mapping = self._render_template_dict(mapping)
+                try:
+                    mapping = self._render_template_dict(mapping)
+                except exceptions.VaultRenderTemplateError as exc:
+                    message = f'Error while rendering secret at path "{path}"'
+                    raise exceptions.VaultRenderTemplateError(message) from exc
 
         finally:
             self._currently_fetching.remove(full_path)
@@ -387,8 +385,9 @@ class VaultClientBase:
                 return
 
             try:
+                assert isinstance(secret, dict)
                 secret.pop(key)
-            except KeyError:
+            except (KeyError, AssertionError):
                 # nothing to delete
                 return
 
@@ -428,7 +427,6 @@ class VaultClientBase:
             return iterator
         return list(iterator)
 
-    @caching
     def move_secrets_iter(
         self, source: str, dest: str, force: Optional[bool] = None
     ) -> Iterable[Tuple[str, str]]:
@@ -441,7 +439,8 @@ class VaultClientBase:
 
             yield (old_path, new_path)
 
-            self.set_secret(new_path, secret, force=force)
+            secret_ = cast(types.JSONDict, secret)
+            self.set_secret(new_path, secret_, force=force)
             self.delete_secret(old_path)
 
     def move_secrets(
@@ -492,9 +491,16 @@ class VaultClientBase:
     def _render_template_dict(
         self, secrets: Dict[str, types.JSONValue]
     ) -> Dict[str, types.JSONValue]:
-        return {k: self._render_template_value(v) for k, v in secrets.items()}
+        result = {}
+        for key, value in secrets.items():
+            try:
+                result[key] = self._render_template_value(value)
+            except exceptions.VaultRenderTemplateError as exc:
+                message = f'Error while rendering secret value for key "{key}"'
+                raise exceptions.VaultRenderTemplateError(message) from exc
 
-    @caching
+        return result
+
     def render_template(
         self,
         template: str,
@@ -529,16 +535,22 @@ class VaultClientBase:
         def vault(path):
             try:
                 return self.get_secret(path, render=render)
-            except exceptions.VaultException:
-                raise exceptions.VaultRenderTemplateError(f"'{path}' not found")
+            except exceptions.VaultException as exc:
+                raise exceptions.VaultRenderTemplateError(
+                    "Error while rendering template"
+                ) from exc
 
         env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(search_path.as_posix()),
             keep_trailing_newline=True,
         )
-        return env.from_string(template).render(vault=vault)
+        try:
+            return env.from_string(template).render(vault=vault)
+        except jinja2.exceptions.TemplateSyntaxError as exc:
+            raise exceptions.VaultRenderTemplateError(
+                "Jinja2 template syntax error"
+            ) from exc
 
-    @caching
     def set_secret(
         self,
         path: str,
@@ -573,6 +585,7 @@ class VaultClientBase:
 
         try:
             existing_value = self.get_secret(path=path, render=False)
+            assert isinstance(existing_value, dict)
         except exceptions.VaultSecretNotFound:
             pass
         except exceptions.VaultForbidden:
@@ -627,14 +640,6 @@ class VaultClientBase:
                 )
 
         self._set_secret(path=self._build_full_path(path), secret=value)
-
-    @contextlib.contextmanager
-    def caching(self):
-        old_cache, self.cache = self.cache, {}
-        try:
-            yield
-        finally:
-            self.cache = old_cache
 
     def _init_client(
         self,
@@ -691,6 +696,8 @@ def handle_errors():
         raise exceptions.VaultSealed(errors=exc.errors) from exc
     except hvac.exceptions.UnexpectedError as exc:
         raise exceptions.VaultAPIException(errors=exc.errors) from exc
+    except requests.exceptions.ConnectionError as exc:
+        raise exceptions.VaultConnectionError() from exc
 
 
 class VaultClient(VaultClientBase):
@@ -753,4 +760,5 @@ class VaultClient(VaultClientBase):
         return self.client.lookup_token()
 
     def __exit__(self, exc_type, exc_value, traceback):
+        super().__exit__(exc_type, exc_value, traceback)
         self.session.__exit__(exc_type, exc_value, traceback)

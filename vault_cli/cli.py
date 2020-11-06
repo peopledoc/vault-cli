@@ -19,7 +19,7 @@ import click
 import yaml
 
 import vault_cli
-from vault_cli import client, environment, exceptions, settings, ssh, types
+from vault_cli import client, environment, exceptions, settings, ssh, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +59,7 @@ def handle_errors():
     try:
         yield
     except exceptions.VaultException as exc:
-        messages = []
-        while True:
-            exc_str = str(exc).strip()
-            messages.append(f"{type(exc).__name__}: {exc_str}")
-            exc = exc.__cause__ or exc.__context__
-            if not exc:
-                break
-        raise click.ClickException("\n".join(messages))
+        raise click.ClickException("\n".join(utils.extract_error_messages(exc)))
 
 
 def print_version(ctx, __, value):
@@ -417,9 +410,14 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
 @click.option(
     "-o",
     "--omit-single-key/--no-omit-single-key",
-    is_flag=True,
     default=False,
     help="When the secret has only one key, don't use that key to build the name of the environment variable",
+)
+@click.option(
+    "-f",
+    "--force/--no-force",
+    default=False,
+    help="Run the command even if there is a problem while reading secrets",
 )
 @click.argument("command", nargs=-1, required=True)
 @click.pass_obj
@@ -428,6 +426,7 @@ def env(
     client_obj: client.VaultClientBase,
     path: Sequence[str],
     omit_single_key: bool,
+    force: bool,
     command: Sequence[str],
 ) -> NoReturn:
     """
@@ -462,6 +461,7 @@ def env(
         path_with_key, _, prefix = path.partition("=")
         path, _, filter_key = path_with_key.partition(":")
 
+        env_updates = {}
         env_updates = environment.get_envvars(
             vault_client=client_obj,
             path=path,
@@ -469,8 +469,11 @@ def env(
             omit_single_key=omit_single_key,
             filter_key=filter_key,
         )
+
         env_secrets.update(env_updates)
 
+    if bool(client_obj.errors) and not force:
+        raise click.ClickException("There was an error while reading the secrets.")
     environment.exec_command(command=command, environment=env_secrets)
 
 
@@ -639,18 +642,28 @@ def ssh_(
     if ":" not in key:
         raise click.UsageError("Format for private_key: `path/to/private_key:key`")
     private_key_name, private_key_key = key.rsplit(":", 1)
-    private_key_secret = client_obj.get_secret(private_key_name, private_key_key)
+    private_key_secret_obj = client_obj.get_secret(private_key_name, private_key_key)
+    private_key_secret = ensure_str(secret=private_key_secret_obj, path=key)
 
     passphrase_secret = None
     if passphrase:
         if ":" not in passphrase:
             raise click.UsageError("Format for passphrase: `path/to/passphrase:key`")
         passphrase_name, passphrase_key = passphrase.rsplit(":", 1)
-        passphrase_secret = client_obj.get_secret(passphrase_name, passphrase_key)
+        passphrase_secret_obj = client_obj.get_secret(passphrase_name, passphrase_key)
+        passphrase_secret = ensure_str(secret=passphrase_secret_obj, path=passphrase)
 
     ssh.add_key(key=private_key_secret, passphrase=passphrase_secret)
 
     environment.exec_command(command=command)
+
+
+def ensure_str(secret, path) -> str:
+    if not isinstance(secret, str):
+        raise exceptions.VaultWrongType(
+            f"secret at {path} is not a string but {type(secret)}"
+        )
+    return secret
 
 
 # This is purposedly not called as a click subcommand, and we cannot take any argument

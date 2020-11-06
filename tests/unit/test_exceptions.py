@@ -11,10 +11,7 @@ def test_vault_overwrite_secret_error():
 
 
 def test_vault_render_template_error():
-    assert (
-        str(exceptions.VaultRenderTemplateError("yay"))
-        == "VaultRenderTemplateError: Error while rendering template: yay"
-    )
+    assert str(exceptions.VaultRenderTemplateError("yay")) == "yay"
 
 
 @pytest.mark.parametrize(

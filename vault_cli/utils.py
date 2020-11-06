@@ -1,7 +1,7 @@
-from vault_cli import types
+from typing import Dict, Iterable
 
 
-def path_to_nested(dict_obj: types.JSONDict) -> types.JSONDict:
+def path_to_nested(dict_obj: Dict) -> Dict:
     """
     Transform a dict with paths as keys into a nested
     dict
@@ -41,3 +41,13 @@ class RecursiveValue:
 
     def __getitem__(self, key: str) -> str:
         return str(self)
+
+
+def extract_error_messages(exc: BaseException) -> Iterable[str]:
+    while True:
+        exc_str = str(exc).strip()
+        yield f"{type(exc).__name__}: {exc_str}"
+        opt_exc = exc.__cause__ or exc.__context__
+        if not opt_exc:
+            break
+        exc = opt_exc

@@ -31,10 +31,15 @@ class VaultMixSecretAndFolder(VaultException):
 
 
 class VaultRenderTemplateError(VaultException):
-    def __str__(self):
-        return (
-            f"VaultRenderTemplateError: Error while rendering template: {self.args[0]}"
-        )
+    pass
+
+
+class VaultWrongType(VaultException):
+    pass
+
+
+class VaultConnectionError(VaultException):
+    message = "Error while connecting to the vault"
 
 
 class VaultAPIException(VaultException):
@@ -63,7 +68,7 @@ class VaultUnauthorized(VaultAPIException):
 
 
 class VaultForbidden(VaultAPIException):
-    message = "Invalid authentication"
+    message = "Insufficient access for interacting with the requested secret"
 
 
 class VaultSecretNotFound(VaultAPIException):

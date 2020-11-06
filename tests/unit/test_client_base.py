@@ -399,9 +399,10 @@ def test_vault_client_base_render_template(vault):
     assert vault.render_template("Hello {{ vault('a/b').value }}") == "Hello c"
 
 
-def test_vault_client_base_render_template_path_not_found(vault):
+@pytest.mark.parametrize("template", ["Hello {{ vault('a/b') }}", "Hello {{"])
+def test_vault_client_base_render_template_path_not_found(vault, template):
     with pytest.raises(exceptions.VaultRenderTemplateError):
-        vault.render_template("Hello {{ vault('a/b') }}")
+        vault.render_template(template)
 
 
 @pytest.mark.parametrize(
@@ -499,18 +500,38 @@ def test_vault_client_base_get_secret_missing_key(vault):
         vault.get_secret("a", key="username")
 
 
+def test_vault_client_base_get_secret_template_error(vault, caplog):
+    vault.db = {"a": {"key": "!template!{{"}}
+
+    with pytest.raises(exceptions.VaultRenderTemplateError) as exc_info:
+        vault.get_secret("a")
+
+    assert str(exc_info.value) == 'Error while rendering secret at path "a"'
+    assert (
+        str(exc_info.value.__cause__)
+        == 'Error while rendering secret value for key "key"'
+    )
+    assert str(exc_info.value.__cause__.__cause__) == "Jinja2 template syntax error"
+
+
 def test_vault_client_base_lookup_token(vault):
     assert vault.lookup_token() == {"data": {"expire_time": "2100-01-01T00:00:00"}}
 
 
-def test_vault_client_base_get_secrets_error(vault):
+def test_vault_client_base_get_secrets_error(vault, caplog):
     vault.db = {"a": {"value": "b"}, "c": {"value": "d"}}
     vault.forbidden_get_paths = {"c"}
 
     assert vault.get_secrets("") == {
         "a": {"value": "b"},
-        "c": {"error": "<error while retrieving secret>"},
+        "c": {},
     }
+    assert caplog.record_tuples[0] == (
+        "vault_cli.client",
+        40,
+        "VaultForbidden: Insufficient access for interacting with the requested "
+        "secret",
+    )
 
 
 def test_vault_client_base_get_secrets_list_forbidden(vault):
@@ -571,12 +592,12 @@ def test_vault_client_base_base_path(vault, path, expected):
     assert vault.base_path == expected
 
 
-def test_vault_client_base_get_secret_implicit_cache_ends(vault):
+def test_vault_client_base_get_secret_implicit_cache(vault):
     vault.db = {"a": {"value": "b"}}
     assert vault.get_secret("a") == {"value": "b"}
     vault.db = {"a": {"value": "c"}}
-    # Value updated. Cache was just for the duration of the call
-    assert vault.get_secret("a") == {"value": "c"}
+    # Value was cached
+    assert vault.get_secret("a") == {"value": "b"}
 
 
 class RaceConditionTestVaultClient(testing.TestVaultClient):
@@ -600,13 +621,16 @@ def test_vault_client_base_get_secret_implicit_cache_no_race_condition():
 
     vault = RaceConditionTestVaultClient()
 
-    assert vault.get_secret("a") == {"b": "b0", "c": "c0"}
-    assert vault.get_secret("a") == {"b": "b1", "c": "c1"}
+    with vault:
+        assert vault.get_secret("a") == {"b": "b0", "c": "c0"}
+    with vault:
+        assert vault.get_secret("a") == {"b": "b1", "c": "c1"}
 
     vault.db = {"d": {"value": """!template!{{ vault("a").b }}-{{ vault("a").c }}"""}}
 
     # b2-c3 would be the value if caching didn't work.
-    assert vault.get_secret("d") == {"value": "b2-c2"}
+    with vault:
+        assert vault.get_secret("d") == {"value": "b2-c2"}
 
 
 def test_vault_client_base_get_secrets_implicit_cache_no_race_condition():
@@ -628,8 +652,9 @@ def test_vault_client_base_get_secrets_implicit_cache_no_race_condition():
 
 def test_vault_client_base_get_secret_explicit_cache(vault):
     vault.db = {"a": {"value": "b"}}
-    with vault.caching():
+    with vault:
         assert vault.get_secret("a") == {"value": "b"}
         vault.db = {"a": {"value": "c"}}
         # Value not updated
         assert vault.get_secret("a") == {"value": "b"}
+    assert vault.get_secret("a") == {"value": "c"}

@@ -2,6 +2,7 @@ import json
 
 import hvac
 import pytest
+import requests
 
 from vault_cli import client, exceptions
 
@@ -176,6 +177,7 @@ def test_set_context_manager(mocker):
         (hvac.exceptions.InternalServerError, exceptions.VaultInternalServerError),
         (hvac.exceptions.VaultDown, exceptions.VaultSealed),
         (hvac.exceptions.UnexpectedError, exceptions.VaultAPIException),
+        (requests.exceptions.ConnectionError, exceptions.VaultConnectionError),
     ],
 )
 def test_handle_errors(hvac_exc, vault_cli_exc):

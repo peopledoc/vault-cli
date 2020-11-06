@@ -5,7 +5,7 @@ import pathlib
 import re
 from typing import Dict, Mapping, NoReturn, Optional, Sequence
 
-from vault_cli import client, exceptions, types
+from vault_cli import client, exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def _normalize(name: str) -> str:
     return envvar_name
 
 
-def _make_env_value(value: types.JSONValue) -> str:
+def _make_env_value(value: client.JSONRecursive) -> str:
     if isinstance(value, str):
         return value
     return json.dumps(value)
@@ -45,7 +45,7 @@ def exec_command(
 
 
 def get_envvars_for_secrets(
-    secrets: Dict[str, types.JSONDict],
+    secrets: Dict[str, client.JSONDictRecursive],
     path: str,
     prefix: str,
     omit_single_key: bool = False,

@@ -114,3 +114,19 @@ Your call would look like:
 .. code:: console
 
     $ vault-cli env --omit-single-key --path myapp -- myapp
+
+Ignoring errors
+---------------
+
+By default, ``vault-cli`` will not launch you program if an error happens during secrets
+collection. You can pass ``--force`` to ensure that your program will be launched,
+even if it will be missing some secrets.
+
+.. code:: console
+
+    $ vault-cli env --path myapp --force -- myapp
+
+.. warning::
+
+    Even if just a single key for a secret produces an error (e.g. a template rendering
+    error), the whole secret will be missing.

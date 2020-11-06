@@ -304,6 +304,36 @@ def test_env(cli_runner, vault_with_token, mocker):
     assert kwargs["environment"]["FOO_BAZ_VALUE"] == "yo"
 
 
+def test_env_error(cli_runner, vault_with_token, mocker):
+    exec_command = mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.forbidden_get_paths.add("foo")
+
+    cli_runner.invoke(cli.cli, ["env", "--path", "foo", "--", "echo", "yay"])
+
+    exec_command.assert_not_called()
+
+
+def test_env_error_force_sub_error(cli_runner, vault_with_token, mocker):
+    exec_command = mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.forbidden_get_paths.add("foo")
+
+    cli_runner.invoke(cli.cli, ["env", "--path", "foo", "--force", "--", "echo", "yay"])
+
+    exec_command.assert_called()
+
+
+def test_env_error_force_main_error(cli_runner, vault_with_token, mocker):
+    exec_command = mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.forbidden_list_paths.add("foo")
+
+    cli_runner.invoke(cli.cli, ["env", "--path", "foo", "--force", "--", "echo", "yay"])
+
+    exec_command.assert_called()
+
+
 def test_env_prefix(cli_runner, vault_with_token, mocker):
     exec_command = mocker.patch("vault_cli.environment.exec_command")
 
@@ -714,3 +744,12 @@ def test_parse_octal(input, output):
 )
 def test_repr_octal(input, output):
     assert cli.repr_octal(input) == output
+
+
+def test_ensure_str():
+    assert cli.ensure_str("foo", "bar") == "foo"
+
+
+def test_ensure_str_wrong():
+    with pytest.raises(exceptions.VaultWrongType):
+        cli.ensure_str(1, "bar")
