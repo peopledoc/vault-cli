@@ -7,9 +7,15 @@ content of the vault.
 Copy secrets and folders
 ------------------------
 
-This is planned but not implemented yet. Please refer to `#119`__
+.. code:: console
 
-.. __: https://github.com/peopledoc/vault-cli/issues/119
+    $ vault-cli set a b=c
+
+    $ vault-cli cp a d/e
+    Copy 'a' to 'd/e'
+
+``vault-cli cp`` follows the ``safe-write`` parameter (see :ref:`safe-write`) and
+has a ``--force`` flag, like ``vault-cli set``.
 
 Move secrets and folders
 ------------------------
