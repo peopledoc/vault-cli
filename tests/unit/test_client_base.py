@@ -392,6 +392,70 @@ def test_vault_client_move_secrets_overwrite_force(vault):
     assert vault.db == {"b": {"value": "c"}}
 
 
+def test_vault_client_copy_secrets(vault):
+
+    vault.db = {"a/b": {"value": "c"}, "a/d": {"value": "e"}}
+
+    vault.copy_secrets("a", "d")
+
+    assert vault.db == {
+        "a/b": {"value": "c"},
+        "a/d": {"value": "e"},
+        "d/b": {"value": "c"},
+        "d/d": {"value": "e"},
+    }
+
+
+def test_vault_client_copy_secrets_generator(vault):
+
+    vault.db = {"a/b": {"value": "c"}, "a/d": {"value": "e"}}
+
+    result = vault.copy_secrets("a", "f", generator=True)
+
+    assert next(result) == ("a/b", "f/b")
+
+    assert vault.db == {"a/b": {"value": "c"}, "a/d": {"value": "e"}}
+
+    assert next(result) == ("a/d", "f/d")
+
+    assert vault.db == {
+        "f/b": {"value": "c"},
+        "a/b": {"value": "c"},
+        "a/d": {"value": "e"},
+    }
+
+    with pytest.raises(StopIteration):
+        next(result)
+
+    assert vault.db == {
+        "a/b": {"value": "c"},
+        "a/d": {"value": "e"},
+        "f/b": {"value": "c"},
+        "f/d": {"value": "e"},
+    }
+
+
+def test_vault_client_copy_secrets_overwrite_safe(vault):
+
+    vault.db = {"a": {"value": "c"}, "b": {"value": "d"}}
+
+    vault.safe_write = True
+
+    with pytest.raises(exceptions.VaultOverwriteSecretError):
+        vault.copy_secrets("a", "b")
+
+    assert vault.db == {"a": {"value": "c"}, "b": {"value": "d"}}
+
+
+def test_vault_client_copy_secrets_overwrite_force(vault):
+
+    vault.db = {"a": {"value": "c"}, "b": {"value": "d"}}
+
+    vault.copy_secrets("a", "b", force=True)
+
+    assert vault.db == {"a": {"value": "c"}, "b": {"value": "c"}}
+
+
 def test_vault_client_base_render_template(vault):
 
     vault.db = {"a/b": {"value": "c"}}

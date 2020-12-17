@@ -132,7 +132,7 @@ def repr_octal(value: Optional[int]) -> Optional[str]:
     "--safe-write/--unsafe-write",
     default=settings.DEFAULTS.safe_write,
     help="When activated, you can't overwrite a secret without "
-    'passing "--force" (in commands "set", "mv", etc)',
+    'passing "--force" (in commands "set", "mv", "cp", etc)',
 )
 @click.option(
     "--render/--no-render",
@@ -543,6 +543,38 @@ def mv(
             source=source, dest=dest, force=force, generator=True
         ):
             click.echo(f"Move '{old_path}' to '{new_path}'")
+    except exceptions.VaultOverwriteSecretError as exc:
+        raise click.ClickException(
+            f"Secret already exists at {exc.path}. Use -f to force overwriting."
+        )
+    except exceptions.VaultMixSecretAndFolder as exc:
+        raise click.ClickException(str(exc))
+
+
+@cli.command()
+@click.argument("source", required=True)
+@click.argument("dest", required=True)
+@click.option(
+    "--force/--no-force",
+    "-f",
+    is_flag=True,
+    default=None,
+    help="In case the path already holds a secret, allow overwriting it "
+    "(this is necessary only if --safe-write is set).",
+)
+@click.pass_obj
+@handle_errors()
+def cp(
+    client_obj: client.VaultClientBase, source: str, dest: str, force: Optional[bool]
+) -> None:
+    """
+    Recursively copy secrets from source to destination path.
+    """
+    try:
+        for old_path, new_path in client_obj.copy_secrets(
+            source=source, dest=dest, force=force, generator=True
+        ):
+            click.echo(f"Copy '{old_path}' to '{new_path}'")
     except exceptions.VaultOverwriteSecretError as exc:
         raise click.ClickException(
             f"Secret already exists at {exc.path}. Use -f to force overwriting."

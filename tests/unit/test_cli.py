@@ -588,6 +588,64 @@ def test_mv_mix_secrets_folders(cli_runner, vault_with_token):
     assert result.exit_code != 0
 
 
+def test_cp(cli_runner, vault_with_token):
+    vault_with_token.db = {
+        "a/b": {"value": "c"},
+        "d/e": {"value": "f"},
+        "d/g": {"value": "h"},
+    }
+
+    result = cli_runner.invoke(cli.cli, ["cp", "d", "a"])
+
+    assert result.output.splitlines() == ["Copy 'd/e' to 'a/e'", "Copy 'd/g' to 'a/g'"]
+    assert vault_with_token.db == {
+        "a/b": {"value": "c"},
+        "a/e": {"value": "f"},
+        "a/g": {"value": "h"},
+        "d/e": {"value": "f"},
+        "d/g": {"value": "h"},
+    }
+    assert result.exit_code == 0
+
+
+def test_cp_overwrite_safe(cli_runner, vault_with_token):
+    vault_with_token.db = {"a/b": {"value": "c"}, "d/b": {"value": "f"}}
+
+    vault_with_token.safe_write = True
+
+    result = cli_runner.invoke(cli.cli, ["cp", "d", "a"])
+
+    assert vault_with_token.db == {"a/b": {"value": "c"}, "d/b": {"value": "f"}}
+    assert result.exit_code != 0
+
+
+def test_cp_overwrite_force(cli_runner, vault_with_token):
+    vault_with_token.db = {"a/b": {"value": "c"}, "d/b": {"value": "f"}}
+
+    result = cli_runner.invoke(cli.cli, ["cp", "d", "a", "--force"])
+
+    assert vault_with_token.db == {"a/b": {"value": "f"}, "d/b": {"value": "f"}}
+    assert result.exit_code == 0
+
+
+def test_cp_mix_folders_secrets(cli_runner, vault_with_token):
+    vault_with_token.db = {"a/b": {"value": "c"}, "d": {"value": "e"}}
+
+    result = cli_runner.invoke(cli.cli, ["cp", "d", "a"])
+
+    assert vault_with_token.db == {"a/b": {"value": "c"}, "d": {"value": "e"}}
+    assert result.exit_code != 0
+
+
+def test_cp_mix_secrets_folders(cli_runner, vault_with_token):
+    vault_with_token.db = {"a/b": {"value": "c"}, "d": {"value": "e"}}
+
+    result = cli_runner.invoke(cli.cli, ["cp", "a", "d"])
+
+    assert vault_with_token.db == {"a/b": {"value": "c"}, "d": {"value": "e"}}
+    assert result.exit_code != 0
+
+
 def test_template_from_stdin(cli_runner, vault_with_token):
     vault_with_token.db = {"a/b": {"value": "c"}}
 

@@ -427,8 +427,12 @@ class VaultClientBase:
             return iterator
         return list(iterator)
 
-    def move_secrets_iter(
-        self, source: str, dest: str, force: Optional[bool] = None
+    def copy_secrets_iter(
+        self,
+        source: str,
+        dest: str,
+        force: Optional[bool] = None,
+        delete_source: Optional[bool] = False,
     ) -> Iterable[Tuple[str, str]]:
 
         source_secrets = self.get_secrets(path=source, render=False)
@@ -441,7 +445,13 @@ class VaultClientBase:
 
             secret_ = cast(types.JSONDict, secret)
             self.set_secret(new_path, secret_, force=force)
-            self.delete_secret(old_path)
+            if delete_source:
+                self.delete_secret(old_path)
+
+    def move_secrets_iter(
+        self, source: str, dest: str, force: Optional[bool] = None
+    ) -> Iterable[Tuple[str, str]]:
+        return self.copy_secrets_iter(source, dest, force, delete_source=True)
 
     def move_secrets(
         self,
@@ -471,6 +481,38 @@ class VaultClientBase:
             [(Current path, new path)]
         """
         iterator = self.move_secrets_iter(source=source, dest=dest, force=force)
+        if generator:
+            return iterator
+        return list(iterator)
+
+    def copy_secrets(
+        self,
+        source: str,
+        dest: str,
+        force: Optional[bool] = None,
+        generator: bool = False,
+    ) -> Iterable[Tuple[str, str]]:
+        """
+        Yield current and new paths, then copy a secret or a folder
+        to a new path
+
+        Parameters
+        ----------
+        source : str
+            Path of the secret to move
+        dest : str
+            New path for the secret
+        force : Optional[bool], optional
+            Allow overwriting exiting secret, if safe_mode is True
+        generator : bool, optional
+            Whether of not to yield before move, by default False
+
+        Returns
+        -------
+        Iterable[Tuple[str, str]]
+            [(Current path, new path)]
+        """
+        iterator = self.copy_secrets_iter(source=source, dest=dest, force=force)
         if generator:
             return iterator
         return list(iterator)
