@@ -663,9 +663,9 @@ def template(client_obj: client.VaultClientBase, template: str, output: TextIO) 
         template_text = sys.stdin.read()
         search_path = pathlib.Path.cwd()
     else:
-        with open(template, mode="r") as ftemplate:
-            template_text = ftemplate.read()
-        search_path = pathlib.Path(template).parent
+        template_path = pathlib.Path(template)
+        template_text = template_path.read_text()
+        search_path = template_path.parent
 
     result = client_obj.render_template(template_text, search_path=search_path)
     output.write(result)
