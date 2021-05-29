@@ -3,15 +3,19 @@ import pytest
 from vault_cli import exceptions
 
 
-def test_vault_overwrite_secret_error():
-    assert (
-        str(exceptions.VaultOverwriteSecretError(path="yay"))
-        == "VaultOverwriteSecretError: Secret at yay already exists"
-    )
-
-
-def test_vault_render_template_error():
-    assert str(exceptions.VaultRenderTemplateError("yay")) == "yay"
+@pytest.mark.parametrize(
+    "kwargs, out",
+    [
+        ({"path": "yay"}, "Secret already exists at yay"),
+        ({"path": "yay", "keys": ["a"]}, "Secret already exists at yay for key: a"),
+        (
+            {"path": "yay", "keys": ["a", "b"]},
+            "Secret already exists at yay for keys: a, b",
+        ),
+    ],
+)
+def test_vault_overwrite_secret_error(kwargs, out):
+    assert str(exceptions.VaultOverwriteSecretError(**kwargs)) == out
 
 
 @pytest.mark.parametrize(

@@ -378,9 +378,7 @@ def set_(
     try:
         client_obj.set_secret(path=path, value=json_value, force=force, update=update)
     except exceptions.VaultOverwriteSecretError as exc:
-        raise click.ClickException(
-            f"Secret already exists at {exc.path}. Use -f to force overwriting."
-        )
+        raise click.ClickException(f"{exc}\nUse -f to force overwriting")
     except exceptions.VaultMixSecretAndFolder as exc:
         raise click.ClickException(str(exc))
     click.echo("Done")
@@ -544,9 +542,7 @@ def mv(
         ):
             click.echo(f"Move '{old_path}' to '{new_path}'")
     except exceptions.VaultOverwriteSecretError as exc:
-        raise click.ClickException(
-            f"Secret already exists at {exc.path}. Use -f to force overwriting."
-        )
+        raise click.ClickException(f"{exc}\nUse -f to force overwriting")
     except exceptions.VaultMixSecretAndFolder as exc:
         raise click.ClickException(str(exc))
 
@@ -576,9 +572,7 @@ def cp(
         ):
             click.echo(f"Copy '{old_path}' to '{new_path}'")
     except exceptions.VaultOverwriteSecretError as exc:
-        raise click.ClickException(
-            f"Secret already exists at {exc.path}. Use -f to force overwriting."
-        )
+        raise click.ClickException(f"{exc}\nUse -f to force overwriting")
     except exceptions.VaultMixSecretAndFolder as exc:
         raise click.ClickException(str(exc))
 

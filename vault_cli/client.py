@@ -639,15 +639,16 @@ class VaultClientBase:
             # if we update the mapping, we only have to check the updated keys
             if not update and not force and existing_value != value:
                 raise exceptions.VaultOverwriteSecretError(path=path)
-            if (
-                update
-                and not force
-                and any(
-                    existing_value[key] != value[key]
-                    for key in value.keys() & existing_value.keys()
-                )
-            ):
-                raise exceptions.VaultOverwriteSecretError(path=path)
+            if update and not force:
+                redefined = [
+                    key
+                    for key in (value.keys() & existing_value.keys())
+                    if existing_value[key] != value[key]
+                ]
+                if any(redefined):
+                    raise exceptions.VaultOverwriteSecretError(
+                        path=path, keys=redefined
+                    )
 
             if update:
                 # merge value with existing_value
