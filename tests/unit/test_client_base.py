@@ -722,3 +722,22 @@ def test_vault_client_base_get_secret_explicit_cache(vault):
         # Value not updated
         assert vault.get_secret("a") == {"value": "b"}
     assert vault.get_secret("a") == {"value": "c"}
+
+
+def test_vault_client_base_set_secrets(vault):
+    secrets = {"a": {"b": "c"}, "d/e/f": {"g": "h"}}
+    with vault:
+        vault.set_secrets(secrets)
+    assert vault.db == secrets
+
+
+def test_vault_client_base_set_secrets_update(vault):
+    vault.db = {"a": {"b": "c"}, "d/e/f": {"i": "j"}}
+    vault.set_secrets({"d/e/f": {"g": "h"}}, update=True)
+    assert vault.db == {"a": {"b": "c"}, "d/e/f": {"g": "h", "i": "j"}}
+
+
+def test_vault_client_base_set_secrets_force(vault):
+    vault.db = {"a": {"b": "c"}, "d/e/f": {"i": "j"}}
+    with pytest.raises(exceptions.VaultOverwriteSecretError):
+        vault.set_secrets({"d/e/f": {"g": "h"}}, force=False)

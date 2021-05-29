@@ -684,6 +684,33 @@ class VaultClientBase:
 
         self._set_secret(path=self._build_full_path(path), secret=value)
 
+    def set_secrets(
+        self,
+        secrets: Dict[str, JSONDictRecursive],
+        force: Optional[bool] = None,
+        update: Optional[bool] = None,
+    ) -> None:
+        """
+        Sets the value of multiple secrets at once. See possible exceptions
+        in
+
+        Parameters
+        ----------
+        secrets :
+            A mapping of secret path -> value, corresponding to the output
+            of `VaultClientBase.get_secrets`
+        force : Optional[bool], optional
+            If safe_mode is True, whether to overwrite existing secrets
+        update: Optional[bool], optional
+            If true then merge the value with the existing one, else overwrite it
+
+        Raises
+        ------
+        see `VaultClientBase.set_secrets`
+        """
+        for path, value in secrets.items():
+            self.set_secret(path=path, value=value, force=force, update=update)
+
     def _init_client(
         self,
         url: str,
