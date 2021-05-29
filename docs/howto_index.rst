@@ -20,6 +20,7 @@ How-to...
     howto/permissions
     howto/safe_write
     howto/secret_with_dash
+    howto/import_export
     howto/library
     howto/test
     howto/troubleshooting
