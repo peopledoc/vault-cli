@@ -4,7 +4,7 @@ import logging
 import pathlib
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
-import hvac
+import hvac  # type: ignore
 import jinja2
 import requests.packages.urllib3
 

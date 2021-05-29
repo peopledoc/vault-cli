@@ -1,5 +1,5 @@
 import requests
-import urllib3
+import urllib3  # type: ignore
 
 
 class Session(requests.Session):
