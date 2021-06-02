@@ -97,8 +97,8 @@ Save and quit the file. Load you new configuration file with:
    $ sudo systemctl daemon-reload
    $ sudo systemctl restart myprogram.service
 
-Writing a single secret to a file before start
-----------------------------------------------
+Writing secrets to files on the filesystem before start
+-------------------------------------------------------
 
 In some cases, you will need to have a file in the filesystem that
 contains directly the secret. This is often the case with private keys.
@@ -110,8 +110,8 @@ be written on disk.
 
 .. __: https://en.wikipedia.org/wiki/RAM_drive
 
-In this case, we’ll also create a service override file, but this time,
-we will be adding a command that launches before our main command:
+In this case, we’ll also create a service override file. We'll add a wrapper
+arount our program like before.
 
 .. code:: console
 
@@ -119,7 +119,7 @@ we will be adding a command that launches before our main command:
    # opens a new file for edition
    [Service]
    TemporaryFileSystem=/private
-   ExecStartPre=vault-cli get mysecret --output=/private/path/to/secret/file
+   ExecStart=vault-cli env --file mysecret:key=/private/path/to/secret/file -- myprogram --options
 
 Save and quit the file. Load your new configuration file with:
 
@@ -131,7 +131,7 @@ Save and quit the file. Load your new configuration file with:
 You will need to configure ``myprogram`` to look for your
 secret file at ``/private/path/to/secret/file``.
 
-If you need several files, you can repeat the ``ExecStartPre`` line as
+If you need several files, you can add more ``--file`` flags, as
 many times as needed.
 
 .. note::
@@ -142,6 +142,15 @@ many times as needed.
 
 Bake secrets into a complex configuration file
 ----------------------------------------------
+
+.. warning::
+
+   It's been reported__ that this approach doesn't work as intended. It's left
+   for inspiration, but as of today, ``ExecStartPre`` cannot write to the
+   private filesystem created by ``TemporaryFileSystem`` in  way that ``ExecStart``
+   can later read. Please refer to the ticket for workarounds.
+
+   .. __: https://github.com/peopledoc/vault-cli/issues/185
 
 In some cases, the program you want to launch doesn’t accept
 configuration through environment but only through configuration files.
