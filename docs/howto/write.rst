@@ -96,6 +96,33 @@ history nor on your screen.
    Please enter a value for key `mykey` of `mypath`:
    Done
 
+
+Write multiple secrets at once
+------------------------------
+
+Using ``vault-cli set-all`` will let you load multiple secrets from a ``yaml`` file
+(or ``yaml``-encoded ``stdin`` by default). The expected format is a mapping
+of secret paths and secret value objects.
+
+.. code:: console
+
+   $ vault-cli set-all
+   ---
+   a/b:
+      c: d
+   e:
+      f: g
+      h: i
+   <hit ctrl+d to end stdin>
+   Done
+   $ vault-cli get-all
+   ---
+   a/b:
+      c: d
+   e:
+      f: g
+      h: i
+
 Caveats
 -------
 

@@ -18,12 +18,16 @@ class VaultSettingsError(VaultException):
 
 
 class VaultOverwriteSecretError(VaultException):
-    def __init__(self, path: str):
+    def __init__(self, path: str, keys: Optional[Iterable[str]] = None):
         self.path = path
+        self.keys = keys
         super().__init__()
 
     def __str__(self):
-        return f"VaultOverwriteSecretError: Secret at {self.path} already exists"
+        s = f"Secret already exists at {self.path}"
+        if self.keys:
+            s += f" for key{'s' if len(self.keys) > 1 else ''}: {', '.join(self.keys)}"
+        return s
 
 
 class VaultMixSecretAndFolder(VaultException):

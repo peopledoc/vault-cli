@@ -4,7 +4,7 @@ import logging
 import pathlib
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
-import hvac
+import hvac  # type: ignore
 import jinja2
 import requests.packages.urllib3
 
@@ -639,15 +639,16 @@ class VaultClientBase:
             # if we update the mapping, we only have to check the updated keys
             if not update and not force and existing_value != value:
                 raise exceptions.VaultOverwriteSecretError(path=path)
-            if (
-                update
-                and not force
-                and any(
-                    existing_value[key] != value[key]
-                    for key in value.keys() & existing_value.keys()
-                )
-            ):
-                raise exceptions.VaultOverwriteSecretError(path=path)
+            if update and not force:
+                redefined = [
+                    key
+                    for key in (value.keys() & existing_value.keys())
+                    if existing_value[key] != value[key]
+                ]
+                if any(redefined):
+                    raise exceptions.VaultOverwriteSecretError(
+                        path=path, keys=redefined
+                    )
 
             if update:
                 # merge value with existing_value
@@ -682,6 +683,33 @@ class VaultClientBase:
                 )
 
         self._set_secret(path=self._build_full_path(path), secret=value)
+
+    def set_secrets(
+        self,
+        secrets: Dict[str, JSONDictRecursive],
+        force: Optional[bool] = None,
+        update: Optional[bool] = None,
+    ) -> None:
+        """
+        Sets the value of multiple secrets at once. See possible exceptions
+        in
+
+        Parameters
+        ----------
+        secrets :
+            A mapping of secret path -> value, corresponding to the output
+            of `VaultClientBase.get_secrets`
+        force : Optional[bool], optional
+            If safe_mode is True, whether to overwrite existing secrets
+        update: Optional[bool], optional
+            If true then merge the value with the existing one, else overwrite it
+
+        Raises
+        ------
+        see `VaultClientBase.set_secrets`
+        """
+        for path, value in secrets.items():
+            self.set_secret(path=path, value=value, force=force, update=update)
 
     def _init_client(
         self,

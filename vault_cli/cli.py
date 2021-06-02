@@ -378,9 +378,60 @@ def set_(
     try:
         client_obj.set_secret(path=path, value=json_value, force=force, update=update)
     except exceptions.VaultOverwriteSecretError as exc:
-        raise click.ClickException(
-            f"Secret already exists at {exc.path}. Use -f to force overwriting."
-        )
+        raise click.ClickException(f"{exc}\nUse -f to force overwriting")
+    except exceptions.VaultMixSecretAndFolder as exc:
+        raise click.ClickException(str(exc))
+    click.echo("Done")
+
+
+@cli.command("set-all")
+@click.pass_obj
+@click.option(
+    "--update/--clear",
+    default=True,
+    help="Update the current kv mapping or replace the its content",
+)
+@click.option(
+    "--force/--no-force",
+    "-f",
+    is_flag=True,
+    default=None,
+    help="In case the path already holds a secret, allow overwriting it "
+    "(this is necessary only if --safe-write is set).",
+)
+@click.argument(
+    "yaml_file",
+    default="-",
+    type=click.File(),
+)
+@handle_errors()
+def set_all(
+    client_obj: client.VaultClientBase,
+    update: bool,
+    force: Optional[bool],
+    yaml_file: TextIO,
+):
+    """
+    Set multiple secrets at once from a yaml mapping.
+    \b
+    Mapping expected format:
+    path/to/secret/a:
+        somekey: mysecret
+        otherkey: othersecret
+    path/to/secret/a:
+        yetanotherkey: [the, secret, is, a, list]
+    """
+    secrets = yaml.safe_load(yaml_file)
+    error = "Mapping expected format is a mapping of paths to secret objects"
+    if not isinstance(secrets, dict) or not all(
+        isinstance(v, dict) for v in secrets.values()
+    ):
+        raise click.ClickException(error)
+
+    try:
+        client_obj.set_secrets(secrets=secrets, force=force, update=update)
+    except exceptions.VaultOverwriteSecretError as exc:
+        raise click.ClickException(f"{exc}\nUse -f to force overwriting")
     except exceptions.VaultMixSecretAndFolder as exc:
         raise click.ClickException(str(exc))
     click.echo("Done")
@@ -544,9 +595,7 @@ def mv(
         ):
             click.echo(f"Move '{old_path}' to '{new_path}'")
     except exceptions.VaultOverwriteSecretError as exc:
-        raise click.ClickException(
-            f"Secret already exists at {exc.path}. Use -f to force overwriting."
-        )
+        raise click.ClickException(f"{exc}\nUse -f to force overwriting")
     except exceptions.VaultMixSecretAndFolder as exc:
         raise click.ClickException(str(exc))
 
@@ -576,9 +625,7 @@ def cp(
         ):
             click.echo(f"Copy '{old_path}' to '{new_path}'")
     except exceptions.VaultOverwriteSecretError as exc:
-        raise click.ClickException(
-            f"Secret already exists at {exc.path}. Use -f to force overwriting."
-        )
+        raise click.ClickException(f"{exc}\nUse -f to force overwriting")
     except exceptions.VaultMixSecretAndFolder as exc:
         raise click.ClickException(str(exc))
 

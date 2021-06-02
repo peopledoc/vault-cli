@@ -283,6 +283,46 @@ def test_set_mix_folders_secrets(cli_runner, vault_with_token):
     assert vault_with_token.db == {"a/b/c": {"value": "d"}}
 
 
+def test_set_all(cli_runner, vault_with_token):
+
+    result = cli_runner.invoke(cli.cli, ["set-all"], input="""a/b: {"c": "d"}""")
+
+    assert result.exit_code == 0
+    assert result.stdout.strip() == "Done"
+    assert vault_with_token.db == {"a/b": {"c": "d"}}
+
+
+def test_set_all_wrong_type(cli_runner, vault_with_token):
+    result = cli_runner.invoke(cli.cli, ["set-all"], input="""[1, 2, 3]""")
+    assert result.exit_code != 0
+    error = "Error: Mapping expected format is a mapping of paths to secret objects"
+    assert result.stdout.strip() == error
+    assert vault_with_token.db == {}
+
+
+def test_set_all_force(cli_runner, vault_with_token):
+    vault_with_token.db = {"a/b": {"c": "d"}}
+    result = cli_runner.invoke(
+        cli.cli, ["set-all", "--no-force"], input="""a/b: {"c": "e"}"""
+    )
+    assert result.exit_code != 0
+    error = (
+        "Error: Secret already exists at a/b for key: c\nUse -f to force overwriting"
+    )
+    assert result.stdout.strip() == error
+    assert vault_with_token.db == {"a/b": {"c": "d"}}
+
+
+def test_set_all_mix(cli_runner, vault_with_token):
+    vault_with_token.db = {"a/b": {"c": "d"}}
+    result = cli_runner.invoke(cli.cli, ["set-all"], input="""a: {"e": "f"}""")
+
+    assert result.exit_code != 0
+    error = "Error: Cannot create a secret at 'a' because it is already a folder containing a/b"
+    assert result.stdout.strip() == error
+    assert vault_with_token.db == {"a/b": {"c": "d"}}
+
+
 def test_delete(cli_runner, vault_with_token):
 
     vault_with_token.db = {"a": {"value": "foo"}, "b": {"value": "bar"}}
