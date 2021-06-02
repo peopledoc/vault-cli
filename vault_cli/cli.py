@@ -518,6 +518,10 @@ def env(
 
     for path in envvars:
         path, key, prefix = get_env_parts(path)
+        if not path and key:
+            raise click.BadOptionUsage(
+                "envvar", "Cannot omit the path if a filter key is provided"
+            )
 
         env_updates = {}
         env_updates = environment.get_envvars(

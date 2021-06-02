@@ -354,6 +354,15 @@ def test_env_error(cli_runner, vault_with_token, mocker):
     exec_command.assert_not_called()
 
 
+def test_env_envvar_format_error(cli_runner):
+    result = cli_runner.invoke(
+        cli.cli, ["env", "--envvar", ":foo", "--", "echo", "yay"]
+    )
+
+    assert result.exit_code != 0
+    assert "Cannot omit the path if a filter key is provided" in result.output
+
+
 def test_env_error_force_sub_error(cli_runner, vault_with_token, mocker):
     exec_command = mocker.patch("vault_cli.environment.exec_command")
 
