@@ -1,4 +1,5 @@
 import contextlib
+import json
 import logging
 import os
 import pathlib
@@ -466,10 +467,26 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
     """,
 )
 @click.option(
+    "--file",
+    multiple=True,
+    help="""
+    Write a secret from this path into a file on the filesystem. Expected format is
+    path/in/vault[:key]=/path/in/filesystem . This option is meant to be used when you are
+    your command can only read its inputs from a file and not from the environment (e.g.
+    secret keys, ...). It's highly recommended to only use the option when provided with
+    a secure private temporary filesystem. Writing to a physical disk should be avoided
+    when possible. If the secret a collection (object or array), it's dumped in YAML
+    format.
+    """,
+)
+@click.option(
     "-o",
     "--omit-single-key/--no-omit-single-key",
     default=False,
-    help="When the secret has only one key, don't use that key to build the name of the environment variable",
+    help="""
+    When the secret has only one key, don't use that key to build the name of the
+    environment variable. This option doesn't affect --file.
+    """,
 )
 @click.option(
     "-f",
@@ -483,6 +500,7 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
 def env(
     client_obj: client.VaultClientBase,
     envvar: Sequence[str],
+    file: Sequence[str],
     omit_single_key: bool,
     force: bool,
     command: Sequence[str],
@@ -513,6 +531,7 @@ def env(
     Using `--path a/b/c:username=FOO` will inject `FOO=me` in the environment.
     """
     envvars = list(envvar) or []
+    files = list(file) or []
 
     env_secrets = {}
 
@@ -533,6 +552,22 @@ def env(
         )
 
         env_secrets.update(env_updates)
+
+    for file in files:
+        path, key, filesystem_path = get_env_parts(file)
+        if not (path and filesystem_path):
+            raise click.BadOptionUsage(
+                "file", "--file expects both a vault path and a filesystem path"
+            )
+        secret_obj = client_obj.get_secret(path=path, key=key or None)
+
+        if not isinstance(secret_obj, (list, dict)):
+            secret = str(secret_obj).strip() + "\n"
+        else:
+            secret = yaml.safe_dump(
+                secret_obj, default_flow_style=False, explicit_start=True
+            )
+        pathlib.Path(filesystem_path).write_text(secret)
 
     if bool(client_obj.errors) and not force:
         raise click.ClickException("There was an error while reading the secrets.")
