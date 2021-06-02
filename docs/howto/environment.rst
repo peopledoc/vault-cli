@@ -26,7 +26,7 @@ A path option looks like this:
 
 .. code:: console
 
-    $ vault-cli env --path [path/]{root}[:key][=prefix] [--path ...] -- {command...}
+    $ vault-cli env --envvar [path/]{root}[:key][=prefix] [--envvar ...] -- {command...}
 
 - The optional ``path/`` allows you to indicate the location of the secret(s) you want
   to expose. If the root begins with a `/`, the ``base-path`` option will be ignored
@@ -45,10 +45,9 @@ A path option looks like this:
 - You can limit a secret object to expose a single key by specifying ``:key``. In this
   case, the environment variable name will just be the key.
 - If a ``=prefix`` is provided, it replaces the ``root`` or ``:key`` part.
-- Lastly, paths such as ``--path ""`` or ``--path =prefix`` are valid to express
-  "all the secrets under``base-path``", although doing this can create a risk of
-  exposing more secrets than intended. A sub-path is recommended in that case.
-
+- Lastly, paths such as ``--envvar ""``, ``--envvar .`` or ``--envvar =prefix`` are
+  valid to express "all the secrets under``base-path``", although doing this can create
+  a risk of exposing more secrets than intended. A sub-path is recommended in that case.
 
 All parts of the secret environment variable name are uppercased, special characters
 ``/``, ``-`` and  `` `` (space) are changed to ``_``. If an environment variable still
