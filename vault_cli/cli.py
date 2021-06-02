@@ -508,9 +508,8 @@ def env(
 
     env_secrets = {}
 
-    for path in paths:
-        path_with_key, _, prefix = path.partition("=")
-        path, _, filter_key = path_with_key.partition(":")
+    for path in envvars:
+        path, key, prefix = get_env_parts(path)
 
         env_updates = {}
         env_updates = environment.get_envvars(
@@ -518,7 +517,7 @@ def env(
             path=path,
             prefix=prefix,
             omit_single_key=omit_single_key,
-            filter_key=filter_key,
+            filter_key=key,
         )
 
         env_secrets.update(env_updates)
@@ -526,6 +525,12 @@ def env(
     if bool(client_obj.errors) and not force:
         raise click.ClickException("There was an error while reading the secrets.")
     environment.exec_command(command=command, environment=env_secrets)
+
+
+def get_env_parts(value: str) -> Tuple[str, str, str]:
+    part12, _, part3 = value.partition("=")
+    part1, _, part2 = part12.partition(":")
+    return part1, part2, part3
 
 
 @cli.command("dump-config")

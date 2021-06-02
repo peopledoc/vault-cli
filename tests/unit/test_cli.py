@@ -851,3 +851,20 @@ def test_ensure_str():
 def test_ensure_str_wrong():
     with pytest.raises(exceptions.VaultWrongType):
         cli.ensure_str(1, "bar")
+
+
+@pytest.mark.parametrize(
+    "input, output",
+    [
+        ("aa:bb=cc", ("aa", "bb", "cc")),
+        ("aa:bb", ("aa", "bb", "")),
+        ("aa=cc", ("aa", "", "cc")),
+        ("aa", ("aa", "", "")),
+        (":bb=cc", ("", "bb", "cc")),
+        ("=cc", ("", "", "cc")),
+        (":bb", ("", "bb", "")),
+        ("", ("", "", "")),
+    ],
+)
+def test_get_env_parts(input, output):
+    assert cli.get_env_parts(input) == output
