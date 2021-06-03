@@ -336,7 +336,7 @@ def test_env(cli_runner, vault_with_token, mocker):
     exec_command = mocker.patch("vault_cli.environment.exec_command")
 
     vault_with_token.db = {"foo/bar": {"value": "yay"}, "foo/baz": {"value": "yo"}}
-    cli_runner.invoke(cli.cli, ["env", "--path", "foo", "--", "echo", "yay"])
+    cli_runner.invoke(cli.cli, ["env", "--envvar", "foo", "--", "echo", "yay"])
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
@@ -349,9 +349,18 @@ def test_env_error(cli_runner, vault_with_token, mocker):
 
     vault_with_token.forbidden_get_paths.add("foo")
 
-    cli_runner.invoke(cli.cli, ["env", "--path", "foo", "--", "echo", "yay"])
+    cli_runner.invoke(cli.cli, ["env", "--envvar", "foo", "--", "echo", "yay"])
 
     exec_command.assert_not_called()
+
+
+def test_env_envvar_format_error(cli_runner):
+    result = cli_runner.invoke(
+        cli.cli, ["env", "--envvar", ":foo", "--", "echo", "yay"]
+    )
+
+    assert result.exit_code != 0
+    assert "Cannot omit the path if a filter key is provided" in result.output
 
 
 def test_env_error_force_sub_error(cli_runner, vault_with_token, mocker):
@@ -359,7 +368,9 @@ def test_env_error_force_sub_error(cli_runner, vault_with_token, mocker):
 
     vault_with_token.forbidden_get_paths.add("foo")
 
-    cli_runner.invoke(cli.cli, ["env", "--path", "foo", "--force", "--", "echo", "yay"])
+    cli_runner.invoke(
+        cli.cli, ["env", "--envvar", "foo", "--force", "--", "echo", "yay"]
+    )
 
     exec_command.assert_called()
 
@@ -369,7 +380,9 @@ def test_env_error_force_main_error(cli_runner, vault_with_token, mocker):
 
     vault_with_token.forbidden_list_paths.add("foo")
 
-    cli_runner.invoke(cli.cli, ["env", "--path", "foo", "--force", "--", "echo", "yay"])
+    cli_runner.invoke(
+        cli.cli, ["env", "--envvar", "foo", "--force", "--", "echo", "yay"]
+    )
 
     exec_command.assert_called()
 
@@ -381,7 +394,7 @@ def test_env_prefix(cli_runner, vault_with_token, mocker):
         "foo/bar": {"value": "yay"},
         "foo/baz": {"user": "yo", "password": "xxx"},
     }
-    cli_runner.invoke(cli.cli, ["env", "--path", "foo=prefix", "--", "echo", "yay"])
+    cli_runner.invoke(cli.cli, ["env", "--envvar", "foo=prefix", "--", "echo", "yay"])
 
     _, kwargs = exec_command.call_args
     assert kwargs["command"] == ("echo", "yay")
@@ -422,7 +435,7 @@ def test_env_omit_single_key(cli_runner, vault_with_token, mocker):
 
     vault_with_token.db = {"foo/bar": {"value": "yay"}, "foo/baz": {"password": "yo"}}
     cli_runner.invoke(
-        cli.cli, ["env", "--path", "foo", "--omit-single-key", "--", "echo", "yay"]
+        cli.cli, ["env", "--envvar", "foo", "--omit-single-key", "--", "echo", "yay"]
     )
 
     _, kwargs = exec_command.call_args
@@ -851,3 +864,20 @@ def test_ensure_str():
 def test_ensure_str_wrong():
     with pytest.raises(exceptions.VaultWrongType):
         cli.ensure_str(1, "bar")
+
+
+@pytest.mark.parametrize(
+    "input, output",
+    [
+        ("aa:bb=cc", ("aa", "bb", "cc")),
+        ("aa:bb", ("aa", "bb", "")),
+        ("aa=cc", ("aa", "", "cc")),
+        ("aa", ("aa", "", "")),
+        (":bb=cc", ("", "bb", "cc")),
+        ("=cc", ("", "", "cc")),
+        (":bb", ("", "bb", "")),
+        ("", ("", "", "")),
+    ],
+)
+def test_get_env_parts(input, output):
+    assert cli.get_env_parts(input) == output

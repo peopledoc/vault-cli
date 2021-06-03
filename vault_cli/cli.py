@@ -453,10 +453,17 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
 @cli.command("env")
 @click.option(
     "-p",
+    "--envvar",
     "--path",
     multiple=True,
-    required=True,
-    help="Folder or single item. Pass several times to load multiple values. You can use --path mypath=prefix or --path mypath:key=prefix if you want to change the generated names of the environment variables",
+    help="""
+    Load a secret from this path into one or more environment variables. Secret can be a
+    folder or single item. Pass several times to load secrets from different paths. You
+    can use --envvar mypath=prefix or --envvar mypath:key=prefix if you want to change
+    the generated names of the environment variables. --path is the original option
+    name, --envvar was added later for clarity, both work identically, and neither is
+    formerly deprecated. See command help for details.
+    """,
 )
 @click.option(
     "-o",
@@ -475,20 +482,21 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
 @handle_errors()
 def env(
     client_obj: client.VaultClientBase,
-    path: Sequence[str],
+    envvar: Sequence[str],
     omit_single_key: bool,
     force: bool,
     command: Sequence[str],
 ) -> NoReturn:
     """
-    Launch a command, loading secrets in environment.
+    Write secrets to disk, load secrets in environment variable, then  lauch a command.
 
-    Strings are exported as-is, other types (including booleans, nulls, dicts, lists)
-    are exported JSON-encoded.
+    Secrets stored as strings are loaded as-is. Secrets of any other type exported as an
+    environment variable are JSON-encoded. Secrets of any other type written to a file
+    are YAML-encoded.
+
+    LOADING ENVIRONMENT VARIABLES
 
     If the path ends with `:key` then only one key of the mapping is used and its name is the name of the key.
-
-    VARIABLE NAMES
 
     By default the name is build upon the relative path to the parent of the given path (in parameter) and the name of the keys in the value mapping.
     Let's say that we have stored the mapping `{'username': 'me', 'password': 'xxx'}` at path `a/b/c`
@@ -504,13 +512,16 @@ def env(
     Using `--path a/b/c=FOO` will inject the following environment variables: FOO_USERNAME and FOO_PASSWORD
     Using `--path a/b/c:username=FOO` will inject `FOO=me` in the environment.
     """
-    paths = list(path) or [""]
+    envvars = list(envvar) or []
 
     env_secrets = {}
 
-    for path in paths:
-        path_with_key, _, prefix = path.partition("=")
-        path, _, filter_key = path_with_key.partition(":")
+    for path in envvars:
+        path, key, prefix = get_env_parts(path)
+        if not path and key:
+            raise click.BadOptionUsage(
+                "envvar", "Cannot omit the path if a filter key is provided"
+            )
 
         env_updates = {}
         env_updates = environment.get_envvars(
@@ -518,7 +529,7 @@ def env(
             path=path,
             prefix=prefix,
             omit_single_key=omit_single_key,
-            filter_key=filter_key,
+            filter_key=key,
         )
 
         env_secrets.update(env_updates)
@@ -526,6 +537,12 @@ def env(
     if bool(client_obj.errors) and not force:
         raise click.ClickException("There was an error while reading the secrets.")
     environment.exec_command(command=command, environment=env_secrets)
+
+
+def get_env_parts(value: str) -> Tuple[str, str, str]:
+    part12, _, part3 = value.partition("=")
+    part1, _, part2 = part12.partition(":")
+    return part1, part2, part3
 
 
 @cli.command("dump-config")
@@ -663,9 +680,9 @@ def template(client_obj: client.VaultClientBase, template: str, output: TextIO) 
         template_text = sys.stdin.read()
         search_path = pathlib.Path.cwd()
     else:
-        with open(template, mode="r") as ftemplate:
-            template_text = ftemplate.read()
-        search_path = pathlib.Path(template).parent
+        template_path = pathlib.Path(template)
+        template_text = template_path.read_text()
+        search_path = template_path.parent
 
     result = client_obj.render_template(template_text, search_path=search_path)
     output.write(result)
