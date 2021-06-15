@@ -65,7 +65,7 @@ Here are a few things you might do with ``vault-cli``:
     ohsosecret
 
     $ # Load a secret into the environment variables:
-    $ vault-cli env --path mysecret -- env | grep MYSECRET
+    $ vault-cli env --envvar mysecret -- env | grep MYSECRET
     MYSECRET_MYKEY=ohsosecret
 
     $ # Load an ssh key into your ssh-agent:

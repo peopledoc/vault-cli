@@ -58,7 +58,7 @@ launch the program through ``vault-cli env``. Let’s launch it as a one-off:
 
 .. code:: console
 
-   $ vault-cli env --path mysecret:value -- myprogram
+   $ vault-cli env --envvar mysecret:value -- myprogram
 
 This will make a variable named ``VALUE`` available to ``myprogram``.
 See the :ref:`vault-cli env <vault-env>` dedicated page for more details on how you can
@@ -85,7 +85,7 @@ We’ll create an override file that will change ExecStart to wrap it in
    # opens a new file for edition
    [Service]
    ExecStart=
-   ExecStart=vault-cli env --path mysecret:value=MYVAR -- myprogram --options
+   ExecStart=vault-cli env --envvar mysecret:value=MYVAR -- myprogram --options
 
 The empty ``ExecStart=`` tells SystemD to ignore the previous command to
 launch and only launch the following one.

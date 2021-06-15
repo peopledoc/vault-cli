@@ -519,16 +519,16 @@ def env(
     By default the name is build upon the relative path to the parent of the given path (in parameter) and the name of the keys in the value mapping.
     Let's say that we have stored the mapping `{'username': 'me', 'password': 'xxx'}` at path `a/b/c`
 
-    Using `--path a/b` will inject the following environment variables: B_C_USERNAME and B_C_PASSWORD
-    Using `--path a/b/c` will inject the following environment variables: C_USERNAME and C_PASSWORD
-    Using `--path a/b/c:username` will only inject `USERNAME=me` in the environment.
+    Using `--envvar a/b` will inject the following environment variables: B_C_USERNAME and B_C_PASSWORD
+    Using `--envvar a/b/c` will inject the following environment variables: C_USERNAME and C_PASSWORD
+    Using `--envvar a/b/c:username` will only inject `USERNAME=me` in the environment.
 
     You can customize the variable names generation by appending `=SOME_PREFIX` to the path.
     In this case the part corresponding to the base path is replace by your prefix.
 
-    Using `--path a/b=FOO` will inject the following environment variables: FOO_C_USERNAME and FOO_C_PASSWORD
-    Using `--path a/b/c=FOO` will inject the following environment variables: FOO_USERNAME and FOO_PASSWORD
-    Using `--path a/b/c:username=FOO` will inject `FOO=me` in the environment.
+    Using `--envvar a/b=FOO` will inject the following environment variables: FOO_C_USERNAME and FOO_C_PASSWORD
+    Using `--envvar a/b/c=FOO` will inject the following environment variables: FOO_USERNAME and FOO_PASSWORD
+    Using `--envvar a/b/c:username=FOO` will inject `FOO=me` in the environment.
     """
     envvars = list(envvar) or []
     files = list(file) or []

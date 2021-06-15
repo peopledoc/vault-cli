@@ -414,9 +414,9 @@ def test_env_filter_key(cli_runner, vault_with_token, mocker):
         cli.cli,
         [
             "env",
-            "--path",
+            "--envvar",
             "foo/baz:user=MYNAME",
-            "--path",
+            "--envvar",
             "foo/baz:password",
             "--",
             "echo",

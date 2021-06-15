@@ -208,7 +208,7 @@ Let's try it. First we'll launch the command ``env``, which prints the environme
 
 .. code:: console
 
-    $ vault-cli env --path demo -- env | tail -1
+    $ vault-cli env --envvar demo -- env | tail -1
     DEMO_BLAKE2_SECRET_KEY=du9dibieNg3lei0teidal9
 
 As you can see, the secrets (or, here, the secret) under the path ``demo`` have been
@@ -238,7 +238,7 @@ Ok, now for the real thing:
 
 .. code:: console
 
-    $ vault-cli env --path demo -- ./docs/quickstart_demo.py yay
+    $ vault-cli env --envvar demo -- ./docs/quickstart_demo.py yay
     341c93333a9df726c57671891d6bbea1
 
 **Yay!**
