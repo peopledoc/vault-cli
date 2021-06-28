@@ -460,7 +460,7 @@ def test_env_file_format_error(cli_runner, vault_with_token, mocker, tmp_path):
 
     vault_with_token.db = {"foo/bar": {"value": "yay"}}
     result = cli_runner.invoke(
-        cli.cli, ["env", "--file", f"foo/bar", "--", "echo", "yay"]
+        cli.cli, ["env", "--file", "foo/bar", "--", "echo", "yay"]
     )
     assert result.exit_code != 0
     assert "expects both a vault path and a filesystem path" in result.output
