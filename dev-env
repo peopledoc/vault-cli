@@ -2,6 +2,11 @@
 
 case ${1-default} in
     auth)
+        curl -o server-chain.crt https://raw.githubusercontent.com/ewjoachim/vault-cli-dev/master/conf/certs/server-chain.crt
+        if [ "${2}" = "cert" ]; then
+            curl -o client.crt https://raw.githubusercontent.com/ewjoachim/vault-cli-dev/master/conf/certs/client.crt
+            curl -o client.key https://raw.githubusercontent.com/ewjoachim/vault-cli-dev/master/conf/certs/client.key
+        fi
         ln -fs vault.${2}.yml vault.yml
         ;;
     *)
