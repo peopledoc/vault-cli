@@ -38,5 +38,5 @@ If you need to have both ssh access and secrets as environment variables (see
 
     $ # If your key is not passphrase-protected
     $ vault-cli ssh --key path/to/ssh_private_key:value \
-      -- vault-cli env --path myapp \
+      -- vault-cli env --envvar myapp \
       -- myapp_that_needs_secrets_and_ssh

@@ -74,6 +74,11 @@ can write the secret to a specific file:
     with ways to write on ephemeral storage, and check your umask__ and the permissions
     of the created file. See :ref:`SystemD` for safe integration strategies.
 
+.. note::
+
+    ``vault-cli env`` also lets you to write secrets to a file just before launching
+    an arbitrary command.
+
 .. __: https://en.wikipedia.org/wiki/Umask
 
 

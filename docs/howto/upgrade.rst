@@ -37,10 +37,10 @@ The following list shows how to update your commands:
    (old) vault get path/to/creds
    (new) vault get path/to/creds value
 
-   (old) vault env --path path/to/creds=FOO -- env  # FOO=xxx
-   (new) vault env --path path/to/creds=FOO -- env  # FOO_VALUE=xxx
-   (new) vault env --path path/to/creds:value=FOO -- env  # FOO=xxx
-   (new) vault env --omit-single_key --path path/to/creds=FOO -- env  # FOO=xxx
+   (old) vault env --envvar path/to/creds=FOO -- env  # FOO=xxx
+   (new) vault env --envvar path/to/creds=FOO -- env  # FOO_VALUE=xxx
+   (new) vault env --envvar path/to/creds:value=FOO -- env  # FOO=xxx
+   (new) vault env --omit-single_key --envvar path/to/creds=FOO -- env  # FOO=xxx
 
 The default output of ``vault get-all`` has also changed and is now flat
 by default (this behavior is controlled with the ``--flat/--no-flat``

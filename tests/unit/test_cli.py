@@ -414,9 +414,9 @@ def test_env_filter_key(cli_runner, vault_with_token, mocker):
         cli.cli,
         [
             "env",
-            "--path",
+            "--envvar",
             "foo/baz:user=MYNAME",
-            "--path",
+            "--envvar",
             "foo/baz:password",
             "--",
             "echo",
@@ -442,6 +442,40 @@ def test_env_omit_single_key(cli_runner, vault_with_token, mocker):
     assert kwargs["command"] == ("echo", "yay")
     assert kwargs["environment"]["FOO_BAR"] == "yay"
     assert kwargs["environment"]["FOO_BAZ"] == "yo"
+
+
+def test_env_file(cli_runner, vault_with_token, mocker, tmp_path):
+    mocker.patch("vault_cli.environment.exec_command")
+
+    path = tmp_path / "foo"
+    vault_with_token.db = {"foo/bar": {"value": "yay"}}
+    cli_runner.invoke(
+        cli.cli, ["env", "--file", f"foo/bar:value={path}", "--", "echo", "yay"]
+    )
+    assert path.read_text() == "yay\n"
+
+
+def test_env_file_format_error(cli_runner, vault_with_token, mocker, tmp_path):
+    mocker.patch("vault_cli.environment.exec_command")
+
+    vault_with_token.db = {"foo/bar": {"value": "yay"}}
+    result = cli_runner.invoke(
+        cli.cli, ["env", "--file", "foo/bar", "--", "echo", "yay"]
+    )
+    assert result.exit_code != 0
+    assert "expects both a vault path and a filesystem path" in result.output
+
+
+def test_env_file_yaml(cli_runner, vault_with_token, mocker, tmp_path):
+    mocker.patch("vault_cli.environment.exec_command")
+
+    path = tmp_path / "foo"
+    vault_with_token.db = {"foo/bar": {"value": "yay"}}
+    cli_runner.invoke(
+        cli.cli,
+        ["env", "--file", f"foo/bar={path}", "--", "echo", "yay"],
+    )
+    assert path.read_text() == "---\nvalue: yay\n"
 
 
 def test_main(environ, mocker):

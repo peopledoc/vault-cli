@@ -466,10 +466,26 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
     """,
 )
 @click.option(
+    "--file",
+    multiple=True,
+    help="""
+    Write a secret from this path into a file on the filesystem. Expected format is
+    path/in/vault[:key]=/path/in/filesystem . This option is meant to be used when
+    your command can only read its inputs from a file and not from the environment (e.g.
+    secret keys, ...). It's highly recommended to only use the option when provided with
+    a secure private temporary filesystem. Writing to a physical disk should be avoided
+    when possible. If the secret a collection (object or array), it's dumped in YAML
+    format.
+    """,
+)
+@click.option(
     "-o",
     "--omit-single-key/--no-omit-single-key",
     default=False,
-    help="When the secret has only one key, don't use that key to build the name of the environment variable",
+    help="""
+    When the secret has only one key, don't use that key to build the name of the
+    environment variable. This option doesn't affect --file.
+    """,
 )
 @click.option(
     "-f",
@@ -483,6 +499,7 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
 def env(
     client_obj: client.VaultClientBase,
     envvar: Sequence[str],
+    file: Sequence[str],
     omit_single_key: bool,
     force: bool,
     command: Sequence[str],
@@ -501,18 +518,19 @@ def env(
     By default the name is build upon the relative path to the parent of the given path (in parameter) and the name of the keys in the value mapping.
     Let's say that we have stored the mapping `{'username': 'me', 'password': 'xxx'}` at path `a/b/c`
 
-    Using `--path a/b` will inject the following environment variables: B_C_USERNAME and B_C_PASSWORD
-    Using `--path a/b/c` will inject the following environment variables: C_USERNAME and C_PASSWORD
-    Using `--path a/b/c:username` will only inject `USERNAME=me` in the environment.
+    Using `--envvar a/b` will inject the following environment variables: B_C_USERNAME and B_C_PASSWORD
+    Using `--envvar a/b/c` will inject the following environment variables: C_USERNAME and C_PASSWORD
+    Using `--envvar a/b/c:username` will only inject `USERNAME=me` in the environment.
 
     You can customize the variable names generation by appending `=SOME_PREFIX` to the path.
     In this case the part corresponding to the base path is replace by your prefix.
 
-    Using `--path a/b=FOO` will inject the following environment variables: FOO_C_USERNAME and FOO_C_PASSWORD
-    Using `--path a/b/c=FOO` will inject the following environment variables: FOO_USERNAME and FOO_PASSWORD
-    Using `--path a/b/c:username=FOO` will inject `FOO=me` in the environment.
+    Using `--envvar a/b=FOO` will inject the following environment variables: FOO_C_USERNAME and FOO_C_PASSWORD
+    Using `--envvar a/b/c=FOO` will inject the following environment variables: FOO_USERNAME and FOO_PASSWORD
+    Using `--envvar a/b/c:username=FOO` will inject `FOO=me` in the environment.
     """
     envvars = list(envvar) or []
+    files = list(file) or []
 
     env_secrets = {}
 
@@ -533,6 +551,22 @@ def env(
         )
 
         env_secrets.update(env_updates)
+
+    for file in files:
+        path, key, filesystem_path = get_env_parts(file)
+        if not (path and filesystem_path):
+            raise click.BadOptionUsage(
+                "file", "--file expects both a vault path and a filesystem path"
+            )
+        secret_obj = client_obj.get_secret(path=path, key=key or None)
+
+        if not isinstance(secret_obj, (list, dict)):
+            secret = str(secret_obj).strip() + "\n"
+        else:
+            secret = yaml.safe_dump(
+                secret_obj, default_flow_style=False, explicit_start=True
+            )
+        pathlib.Path(filesystem_path).write_text(secret)
 
     if bool(client_obj.errors) and not force:
         raise click.ClickException("There was an error while reading the secrets.")
