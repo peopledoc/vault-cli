@@ -4,7 +4,7 @@ Upgrade ``vault-cli`` from previous version
 From 1.x to 2.x
 ~~~~~~~~~~~~~~~
 
-Switch command name from ``vault-cli`` to ``vault`` if you're using it.
+Switch command name from ``vault`` to ``vault-cli`` if you're using it.
 
 From 0.x to 1.x
 ~~~~~~~~~~~~~~~
