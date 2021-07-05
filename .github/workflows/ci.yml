@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: 
+    branches:
       - 'master'
     tags:
       - '*'
@@ -40,12 +40,21 @@ jobs:
         include:
           - python-version: 3.6
             tox-env: py36-tests
+            auth-method: token
           - python-version: 3.7
             tox-env: py37-tests
+            auth-method: token
           - python-version: 3.8
             tox-env: py38-tests
+            auth-method: token
+          - python-version: 3.8
+            tox-env: py38-tests
+            auth-method: userpass
+          - python-version: 3.8
+            tox-env: py38-tests
+            auth-method: cert
 
-    name: Test (python ${{ matrix.python-version }})
+    name: Test (python ${{ matrix.python-version }} / ${{ matrix.auth-method }})
     runs-on: ubuntu-latest
 
     services:
@@ -66,7 +75,7 @@ jobs:
           set -xeu
           pwd
           python -VV
-          ./dev-env auth token
+          ./dev-env auth ${{ matrix.auth-method }}
           pip install tox
       - name: Run tox targets for ${{ matrix.python-version }}
         run: tox -e ${{ matrix.tox-env }}
