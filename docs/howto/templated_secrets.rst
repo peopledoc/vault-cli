@@ -68,7 +68,7 @@ to leave the rest of the value as-is, and not run Jinja2 on it:
 .. code:: yaml
 
     - name: Add templated secrets
-      command: vault set {{ item.path }} '{{ item.key }}={{ item.template }}'
+      command: vault-cli set {{ item.path }} '{{ item.key }}={{ item.template }}'
       loop:
         - path: path/one
           key: mykey

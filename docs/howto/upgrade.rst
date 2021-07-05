@@ -1,6 +1,11 @@
 Upgrade ``vault-cli`` from previous version
 ===========================================
 
+From 1.x to 2.x
+~~~~~~~~~~~~~~~
+
+Switch command name from ``vault`` to ``vault-cli`` if you're using it.
+
 From 0.x to 1.x
 ~~~~~~~~~~~~~~~
 
@@ -26,6 +31,7 @@ variables names.
     but ``vault`` is kept for backwards compatibility. Because ``vault-cli 0.x`` was
     only compatible with the name ``vault``, the examples below are written with
     ``vault``
+    After 2.0, command ``vault`` has disappeared.
 
 The following list shows how to update your commands:
 
