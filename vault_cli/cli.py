@@ -470,7 +470,7 @@ def delete(client_obj: client.VaultClientBase, name: str, key: Optional[str]) ->
     multiple=True,
     help="""
     Write a secret from this path into a file on the filesystem. Expected format is
-    path/in/vault[:key]=/path/in/filesystem . This option is meant to be used when you are
+    path/in/vault[:key]=/path/in/filesystem . This option is meant to be used when
     your command can only read its inputs from a file and not from the environment (e.g.
     secret keys, ...). It's highly recommended to only use the option when provided with
     a secure private temporary filesystem. Writing to a physical disk should be avoided
