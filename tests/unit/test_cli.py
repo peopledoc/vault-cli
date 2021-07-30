@@ -571,7 +571,7 @@ def test_dump_config(cli_runner):
 
     expected_settings = settings.DEFAULTS._as_dict()
     expected_settings.update(
-        {"base_path": "mybase/", "token": "some-token", "verbose": 0, "umask": None}
+        {"base_path": "mybase/", "token": "some-token", "verbose": 0, "umask": "0o066"}
     )
 
     output = yaml.safe_load(result.output)
@@ -870,9 +870,7 @@ def test_ssh_wrong_format_passphrase(cli_runner, vault_with_token, mocker):
     assert result.exit_code > 0
 
 
-@pytest.mark.parametrize(
-    "input, output", [(None, None), ("022", 0o22), ("0o123", 0o123)]
-)
+@pytest.mark.parametrize("input, output", [("022", 0o22), ("0o123", 0o123)])
 def test_parse_octal(input, output):
     assert cli.parse_octal(input) == output
 
