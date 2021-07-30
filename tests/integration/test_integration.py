@@ -213,8 +213,15 @@ def umask():
     os.umask(current)
 
 
-def test_umask(set_ACD, umask, tmp_path):
+@pytest.mark.parametrize(
+    "flag, expected",
+    [
+        ("", "0o600"),
+        ("--umask=000 ", "0o666"),
+    ],
+)
+def test_umask(set_ACD, umask, tmp_path, flag, expected):
     path = tmp_path / "test_boostrap_env"
-    # umask = 0o066 => permissions = 0o666 - 0o066 = 0o600
-    subprocess.check_output(f"vault-cli --umask=066 get A -o {path}".split())
-    assert oct(path.stat().st_mode & 0o777) == "0o600"
+    # umask = 0o000 => permissions = 0o666 - 0o000 = 0o666
+    subprocess.check_output(f"vault-cli {flag}get A -o {path}".split())
+    assert oct(path.stat().st_mode & 0o777) == expected

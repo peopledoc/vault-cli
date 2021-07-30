@@ -6,9 +6,11 @@ use the ``--umask`` option (a value in octal base is expected):
 
 .. code:: console
 
-    $ vault-cli --umask=066 get -o /path/to/secret mysecret
+    $ vault-cli --umask=006 get -o /path/to/secret mysecret
 
-See umask__ for more details on calculating a umask value
+See umask__ for more details on calculating a ``umask`` value. The default
+``umask`` will be ``066``, meaning the file is readable (and writable) by the
+owner only.
 
 .. __: https://en.wikipedia.org/wiki/Umask
 
@@ -18,4 +20,4 @@ Quick crash course:
 - First value controls owner permissions, second value controls group permission,
   third value controls other users permissions
 - 0 is read-write, 2 is read only, 4 is write only, 6 is nothing
-- "Execute" permission cannot be granted through umask
+- "Execute" permission cannot be granted through ``umask``

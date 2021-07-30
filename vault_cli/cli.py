@@ -49,9 +49,8 @@ def set_verbosity(value: int) -> None:
     logger.info(f"Log level set to {logging.getLevelName(level)}")
 
 
-def set_umask(umask: Optional[int]) -> None:
-    if umask is not None:
-        os.umask(umask)
+def set_umask(umask: int) -> None:
+    os.umask(umask)
 
 
 @contextlib.contextmanager
@@ -70,13 +69,11 @@ def print_version(ctx, __, value):
     ctx.exit()
 
 
-def parse_octal(value: Optional[str]) -> Optional[int]:
-    if not value:
-        return None
+def parse_octal(value: str) -> int:
     return int(value, base=8)
 
 
-def click_octal(_, __, value: Optional[str]) -> Optional[int]:
+def click_octal(_, __, value: str) -> int:
     return parse_octal(value)
 
 
@@ -142,7 +139,9 @@ def repr_octal(value: Optional[int]) -> Optional[str]:
 @click.option(
     "--umask",
     callback=click_octal,
-    help="Set umask for newly created files.",
+    default="066",
+    help="Set umask for newly created files. Defaults to files with read-write "
+    "for owner and nothing for group & others",
 )
 @click.option(
     "-v",
