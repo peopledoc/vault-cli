@@ -132,11 +132,6 @@ def repr_octal(value: Optional[int]) -> Optional[str]:
     'passing "--force" (in commands "set", "mv", "cp", etc)',
 )
 @click.option(
-    "--render/--no-render",
-    default=settings.DEFAULTS.render,
-    help="Render templated values",
-)
-@click.option(
     "--umask",
     callback=click_octal,
     default="066",

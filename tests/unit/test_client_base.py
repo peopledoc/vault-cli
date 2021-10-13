@@ -1,8 +1,6 @@
-import itertools
-
 import pytest
 
-from vault_cli import client, exceptions, testing
+from vault_cli import client, exceptions
 
 
 def test_get_client(mocker):
@@ -476,67 +474,12 @@ def test_vault_client_base_render_template_path_not_found(vault, template):
         ({"a": {"value": "b"}}, {"value": "b"}),
         # Secret not a string
         ({"a": {"value": ["yay"]}}, {"value": ["yay"]}),
-        # Secret is a template without variable expansion
-        ({"a": {"value": "!template!b"}, "b": {"value": "c"}}, {"value": "b"}),
-        # Secret is a template
-        (
-            {"a": {"value": "!template!{{ vault('b').value }}"}, "b": {"value": "c"}},
-            {"value": "c"},
-        ),
-        # Secret is a dict with containing a template
-        (
-            {
-                "a": {"x": "!template!{{ vault('b').value }}", "y": "yay"},
-                "b": {"value": "c"},
-            },
-            {"x": "c", "y": "yay"},
-        ),
-        # Finite recursion
-        (
-            {
-                "a": {"value": "!template!{{ vault('b').value }}"},
-                "b": {"value": "!template!{{ vault('c').value }}"},
-                "c": {"value": "d"},
-            },
-            {"value": "d"},
-        ),
-        # Infinite Recursion
-        (
-            {
-                "a": {"value": "!template!{{ vault('b').value }}"},
-                "b": {"value": "!template!{{ vault('c').value }}"},
-                "c": {"value": "!template!{{ vault('a').value }}"},
-            },
-            {"value": '<recursive value "a">'},
-        ),
-        # Direct Recursion
-        (
-            {"a": {"value": "!template!{{ vault('a').value }}"}},
-            {"value": '<recursive value "a">'},
-        ),
     ],
 )
 def test_vault_client_base_get_secret(vault, vault_contents, expected):
     vault.db = vault_contents
 
     assert vault.get_secret("a") == expected
-
-
-def test_vault_client_base_get_secret_deprecation_warning(vault, caplog):
-    vault.db = {"a": {"value": "!template!b"}}
-    caplog.set_level("WARNING")
-
-    vault.get_secret("a")
-    assert "Templated values are deprecated" in caplog.records[0].message
-
-
-def test_vault_client_base_get_secret_template_root(vault):
-    vault.base_path = "base"
-    vault.db = {"/base/a": {"value": '!template!{{ vault("a").value }} yay'}}
-
-    # In case of erroneous caching, e.g. a different cache entry
-    # for /base/a and base/a, we would find '<recursive value "a"> yay yay'
-    assert vault.get_secret("/base/a") == {"value": '<recursive value "a"> yay'}
 
 
 def test_vault_client_base_get_secret_multiple_keys(vault):
@@ -547,22 +490,11 @@ def test_vault_client_base_get_secret_multiple_keys(vault):
     }
 
 
-def test_vault_client_base_get_secret_with_dict(vault):
-    vault.db = {
-        "credentials": {"value": {"username": "foo", "password": "bar"}},
-        "dsn": {
-            "value": "!template!proto://{{ vault('credentials')['value']['username'] }}:{{ vault('credentials').value.password }}@host"
-        },
-    }
-
-    assert vault.get_secret("dsn") == {"value": "proto://foo:bar@host"}
-
-
 def test_vault_client_base_get_secret_not_found(vault):
     vault.db = {}
 
     with pytest.raises(exceptions.VaultSecretNotFound):
-        vault.get_secret("not-exiting")
+        vault.get_secret("not-existing")
 
 
 def test_vault_client_base_get_secret_missing_key(vault):
@@ -570,20 +502,6 @@ def test_vault_client_base_get_secret_missing_key(vault):
 
     with pytest.raises(exceptions.VaultSecretNotFound):
         vault.get_secret("a", key="username")
-
-
-def test_vault_client_base_get_secret_template_error(vault, caplog):
-    vault.db = {"a": {"key": "!template!{{"}}
-
-    with pytest.raises(exceptions.VaultRenderTemplateError) as exc_info:
-        vault.get_secret("a")
-
-    assert str(exc_info.value) == 'Error while rendering secret at path "a"'
-    assert (
-        str(exc_info.value.__cause__)
-        == 'Error while rendering secret value for key "key"'
-    )
-    assert str(exc_info.value.__cause__.__cause__) == "Jinja2 template syntax error"
 
 
 def test_vault_client_base_lookup_token(vault):
@@ -670,56 +588,6 @@ def test_vault_client_base_get_secret_implicit_cache(vault):
     vault.db = {"a": {"value": "c"}}
     # Value was cached
     assert vault.get_secret("a") == {"value": "b"}
-
-
-class RaceConditionTestVaultClient(testing.TestVaultClient):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.counter = itertools.count()
-
-    def _get_secret(self, path):
-        if path == "a":
-            val = next(self.counter)
-            return {"b": f"b{val}", "c": f"c{val}"}
-        return super()._get_secret(path)
-
-
-def test_vault_client_base_get_secret_implicit_cache_no_race_condition():
-    # In this test we check that if a value is read several times by
-    # a template, implicit caching makes sure we have the same value
-    # every time.
-
-    # Values returned by this client keep changing
-
-    vault = RaceConditionTestVaultClient()
-
-    with vault:
-        assert vault.get_secret("a") == {"b": "b0", "c": "c0"}
-    with vault:
-        assert vault.get_secret("a") == {"b": "b1", "c": "c1"}
-
-    vault.db = {"d": {"value": """!template!{{ vault("a").b }}-{{ vault("a").c }}"""}}
-
-    # b2-c3 would be the value if caching didn't work.
-    with vault:
-        assert vault.get_secret("d") == {"value": "b2-c2"}
-
-
-def test_vault_client_base_get_secrets_implicit_cache_no_race_condition():
-    # In this test, the same value is read twice by get-all and template
-    # We check that 2 values are consistent
-
-    vault = RaceConditionTestVaultClient()
-
-    vault.db = {
-        "a": {},
-        "d": {"value": """!template!{{ vault("a").b }}-{{ vault("a").c }}"""},
-    }
-
-    assert vault.get_secrets("") == {
-        "a": {"b": "b0", "c": "c0"},
-        "d": {"value": "b0-c0"},
-    }
 
 
 def test_vault_client_base_get_secret_explicit_cache(vault):

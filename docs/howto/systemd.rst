@@ -18,14 +18,6 @@ Vault-cli aims at helping you launch your application with the secrets
 it needs without writing them on disk. This page lists a few scenarios
 that may be useful.
 
-If the value you need to pass is directly a secret that is stored in the
-vault, perfect. Otherwise, you may want to create a `templated
-value`__
-to recreate your secret value by combining static strings and other
-secrets.
-
-.. __: https://github.com/peopledoc/vault-cli/#create-a-templated-value
-
 Let’s assume the value you need to pass is the value you get with:
 
 .. code:: console

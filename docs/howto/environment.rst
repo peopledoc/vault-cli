@@ -124,8 +124,3 @@ even if it will be missing some secrets.
 .. code:: console
 
     $ vault-cli env --envvar myapp --force -- myapp
-
-.. warning::
-
-    Even if just a single key for a secret produces an error (e.g. a template rendering
-    error), the whole secret will be missing.
