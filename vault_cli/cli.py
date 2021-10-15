@@ -132,6 +132,11 @@ def repr_octal(value: Optional[int]) -> Optional[str]:
     'passing "--force" (in commands "set", "mv", "cp", etc)',
 )
 @click.option(
+    "--render/--no-render",
+    default=False,
+    help="Deprecated / unused",
+)
+@click.option(
     "--umask",
     callback=click_octal,
     default="066",
@@ -169,6 +174,7 @@ def cli(ctx: click.Context, verbose: int, umask: int, **kwargs) -> None:
     (including VAULT_CLI_PASSWORD and VAULT_CLI_TOKEN).
 
     """
+    kwargs.pop("render")
     kwargs.pop("config_file")
     set_verbosity(verbose)
     set_umask(umask)
