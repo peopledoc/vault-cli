@@ -1,6 +1,10 @@
 Make a secret point to dynamic content
 ======================================
 
+.. warning::
+
+    This feature will be removed from Vault-CLI in the next major version.
+
 With ``vault-cli``, it's possible to have secret values be Jinja2_ templates. This is
 useful if you have multiple related secrets that you would like to retrieve as a single
 string.

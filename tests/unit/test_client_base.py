@@ -522,6 +522,13 @@ def test_vault_client_base_get_secret(vault, vault_contents, expected):
     assert vault.get_secret("a") == expected
 
 
+def test_vault_client_base_get_secret_deprecation_warning(vault):
+    vault.db = {"a": {"value": "!template!b"}}
+
+    with pytest.warns(DeprecationWarning):
+        assert vault.get_secret("a") == {"value": "b"}
+
+
 def test_vault_client_base_get_secret_template_root(vault):
     vault.base_path = "base"
     vault.db = {"/base/a": {"value": '!template!{{ vault("a").value }} yay'}}
