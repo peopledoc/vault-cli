@@ -2,7 +2,6 @@ import contextlib
 import json
 import logging
 import pathlib
-import warnings
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
 import hvac  # type: ignore
@@ -522,13 +521,6 @@ class VaultClientBase:
 
     def _render_template_value(self, secret: types.JSONValue) -> types.JSONValue:
 
-        warnings.warn(
-            DeprecationWarning(
-                "Templated values are deprecated and will be removed in the "
-                "following major versions."
-            )
-        )
-
         if isinstance(secret, dict):
             return {k: self._render_template_value(v) for k, v in secret.items()}
         if not isinstance(secret, str):
@@ -537,6 +529,10 @@ class VaultClientBase:
         if not secret.startswith(self.template_prefix):
             return secret
 
+        logger.warn(
+            "Templated values are deprecated and will be removed in the "
+            "following major versions.",
+        )
         return self.render_template(secret[len(self.template_prefix) :])
 
     def _render_template_dict(
