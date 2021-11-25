@@ -1,5 +1,5 @@
-*       @ewjoachim @elemoine
+*       @ewjoachim
 
 # Documentation
-*.rst   @ewjoachim @elemoine @CorBott
-*.md    @ewjoachim @elemoine @CorBott
+*.rst   @ewjoachim @CorBott
+*.md    @ewjoachim @CorBott
