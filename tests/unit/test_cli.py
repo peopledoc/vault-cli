@@ -24,7 +24,6 @@ def test_options(cli_runner, mocker):
             "bla",
             "--ca-bundle",
             "yay",
-            "--no-render",
             "--login-cert",
             "puc",
             "--login-cert-key",
@@ -47,7 +46,6 @@ def test_options(cli_runner, mocker):
     assert set(kwargs) == {
         "base_path",
         "ca_bundle",
-        "render",
         "login_cert",
         "login_cert_key",
         "password",
@@ -66,7 +64,6 @@ def test_options(cli_runner, mocker):
     assert kwargs["url"] == "https://foo"
     assert kwargs["username"] == "user"
     assert kwargs["verify"] is True
-    assert kwargs["render"] is False
 
 
 @pytest.fixture

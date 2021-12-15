@@ -133,8 +133,8 @@ def repr_octal(value: Optional[int]) -> Optional[str]:
 )
 @click.option(
     "--render/--no-render",
-    default=settings.DEFAULTS.render,
-    help="Render templated values",
+    default=False,
+    help="Deprecated / unused",
 )
 @click.option(
     "--umask",
@@ -174,6 +174,7 @@ def cli(ctx: click.Context, verbose: int, umask: int, **kwargs) -> None:
     (including VAULT_CLI_PASSWORD and VAULT_CLI_TOKEN).
 
     """
+    kwargs.pop("render")
     kwargs.pop("config_file")
     set_verbosity(verbose)
     set_umask(umask)

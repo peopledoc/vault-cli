@@ -32,17 +32,6 @@ def path_to_nested(dict_obj: Dict) -> Dict:
     return dict_obj
 
 
-class RecursiveValue:
-    def __init__(self, name: str):
-        self.name = name
-
-    def __str__(self) -> str:
-        return f'<recursive value "{self.name}">'
-
-    def __getitem__(self, key: str) -> str:
-        return str(self)
-
-
 def extract_error_messages(exc: BaseException) -> Iterable[str]:
     while True:
         exc_str = str(exc).strip()

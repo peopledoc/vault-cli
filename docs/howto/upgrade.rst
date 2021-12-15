@@ -1,6 +1,14 @@
 Upgrade ``vault-cli`` from previous version
 ===========================================
 
+From 2.x to 3.x
+~~~~~~~~~~~~~~~
+
+Templated values (``!template!{{ vault("a").b }}``) aren't supported anymore.
+If you were using those, you will get a warning starting on ``vault-cli~=2.2.1``.
+
+On 3.x, a ``--render/--no-render`` flag is still available but it does nothing.
+
 From 1.x to 2.x
 ~~~~~~~~~~~~~~~
 

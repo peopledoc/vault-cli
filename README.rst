@@ -42,7 +42,6 @@ Some features
 - Launch processes with your secrets as environment variables
 - Launch processes with ``ssh-agent`` configured from your vault
 - Write templated files with secrets inside
-- Combine multiple secrets into a single one (e.g. a DSN string from components)
 
 ``vault-cli`` tries to make accessing secrets both secure and painless.
 

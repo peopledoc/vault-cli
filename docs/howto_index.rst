@@ -12,7 +12,6 @@ How-to...
     howto/write
     howto/environment
     howto/template
-    howto/templated_secrets
     howto/ssh
     howto/systemd
     howto/organize

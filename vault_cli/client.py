@@ -2,7 +2,7 @@ import contextlib
 import json
 import logging
 import pathlib
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
+from typing import Dict, Iterable, List, Optional, Tuple, Type, cast
 
 import hvac  # type: ignore
 import jinja2
@@ -11,9 +11,6 @@ import requests.packages.urllib3
 from vault_cli import exceptions, sessions, settings, types, utils
 
 logger = logging.getLogger(__name__)
-
-JSONRecursive = Union[types.JSONValue, utils.RecursiveValue]
-JSONDictRecursive = Dict[str, JSONRecursive]
 
 
 def get_client(**kwargs) -> "VaultClientBase":
@@ -49,8 +46,6 @@ def get_client(**kwargs) -> "VaultClientBase":
         Path to your config file, instead of the default ones
     safe_write : bool
         If set to True, will keep you from overwriting secrets without force=True
-    render : bool
-        If set to False, templated secrets will not be rendered
 
     Returns
     -------
@@ -82,7 +77,6 @@ class VaultClientBase:
         username: Optional[str] = settings.DEFAULTS.username,
         password: Optional[str] = settings.DEFAULTS.password,
         safe_write: bool = settings.DEFAULTS.safe_write,
-        render: bool = settings.DEFAULTS.render,
     ):
         self.url = url
         self.verify: types.VerifyOrCABundle = verify
@@ -94,10 +88,8 @@ class VaultClientBase:
         self.username = username
         self.password = password
         self.safe_write = safe_write
-        self.render = render
         self.cache: Dict[str, types.JSONDict] = {}
         self.errors: List[str] = []
-        self._currently_fetching: Set[str] = set()
 
     @property
     def base_path(self):
@@ -166,9 +158,7 @@ class VaultClientBase:
             # path relative to base_path
             return self.base_path + path
 
-    def _browse_recursive_secrets(
-        self, path: str, render: bool = True
-    ) -> Iterable[str]:
+    def _browse_recursive_secrets(self, path: str) -> Iterable[str]:
         """
         Given a secret or folder path, return the path of all secrets
         under it (or the path itself)
@@ -194,12 +184,10 @@ class VaultClientBase:
                 yield key_url
                 continue
 
-            for sub_path in self._browse_recursive_secrets(key_url, render=render):
+            for sub_path in self._browse_recursive_secrets(key_url):
                 yield sub_path
 
-    def get_all_secrets(
-        self, *paths: str, render: bool = True, flat: bool = False
-    ) -> JSONDictRecursive:
+    def get_all_secrets(self, *paths: str, flat: bool = False) -> types.JSONDict:
         """
         Takes several paths, return the nested dict of all secrets below
         those paths
@@ -208,8 +196,6 @@ class VaultClientBase:
         ----------
         *paths : str
             Paths to read recursively
-        render : bool, optional
-            Whether templated secrets should be rendered, by default True
         flat : bool, optional
             Whether to return flat structure with full path as keys or nested
             structure that looks like a tree
@@ -220,10 +206,10 @@ class VaultClientBase:
             {"folder": {"subfolder": {"secret_key": "secret_value"}}}
         """
 
-        result: JSONDictRecursive = {}
+        result: types.JSONDict = {}
 
         for path in paths:
-            path_dict = self.get_secrets(path, render=render)
+            path_dict = self.get_secrets(path)
             if flat:
                 result.update(path_dict)
             else:
@@ -232,8 +218,8 @@ class VaultClientBase:
         return result
 
     def get_secrets(
-        self, path: str, render: bool = True, relative: bool = False
-    ) -> Dict[str, JSONDictRecursive]:
+        self, path: str, relative: bool = False
+    ) -> Dict[str, types.JSONDict]:
         """
         Takes a path, return all secrets below this path
 
@@ -241,8 +227,6 @@ class VaultClientBase:
         ----------
         path : str
             Path to read recursively
-        render : bool, optional
-            Whether templated secrets should be rendered, by default True
         relative: bool, optional
             When false (default), the keys of the returned dict are the paths of the secrets
             When true, the keys are the relative paths of the secret to `path` (`""` if the secret is directly at path `path`)
@@ -254,16 +238,14 @@ class VaultClientBase:
         """
         path = path.rstrip("/")
         try:
-            secrets_paths = list(
-                self._browse_recursive_secrets(path=path, render=render)
-            )
+            secrets_paths = list(self._browse_recursive_secrets(path=path))
         except exceptions.VaultAPIException:
             # If we cannot list secrets, we can't browse them, but there's still
             # a chance that the provided path is a single secret that we can
             # read
             secrets_paths = [path]
 
-        result: Dict[str, JSONDictRecursive] = {}
+        result: Dict[str, types.JSONDict] = {}
         path_obj = pathlib.Path(path)
         for subpath in secrets_paths:
             if relative:
@@ -275,13 +257,10 @@ class VaultClientBase:
                 key = subpath
 
             try:
-                secret = self.get_secret(path=subpath, render=render)
-                secret = cast(JSONDictRecursive, secret)
+                secret = self.get_secret(path=subpath)
+                secret = cast(types.JSONDict, secret)
                 result[key] = secret
-            except (
-                exceptions.VaultAPIException,
-                exceptions.VaultRenderTemplateError,
-            ) as exc:
+            except exceptions.VaultAPIException as exc:
                 for message in utils.extract_error_messages(exc):
                     logger.error(message)
                     self.errors.append(message)
@@ -305,9 +284,7 @@ class VaultClientBase:
         """
         return self._list_secrets(path=self._build_full_path(path))
 
-    def get_secret(
-        self, path: str, key: Optional[str] = None, render: bool = True
-    ) -> Union[types.JSONValue, utils.RecursiveValue]:
+    def get_secret(self, path: str, key: Optional[str] = None) -> types.JSONValue:
         """
         Retrieve the value of a single secret
 
@@ -319,35 +296,18 @@ class VaultClientBase:
         key : str, optional
             If set, return only this key
 
-        render : bool, optional
-            Whether to render templated secret or not, by default True
-
         Returns
         -------
         types.JSONValue
             Secret value
         """
         full_path = self._build_full_path(path)
-        if full_path in self._currently_fetching:
-            return utils.RecursiveValue(path)
 
-        self._currently_fetching.add(full_path)
+        assert self.cache is not None
         try:
-            assert self.cache is not None
-            try:
-                mapping = self.cache[full_path]
-            except KeyError:
-                mapping = self.cache[full_path] = self._get_secret(path=full_path)
-
-            if mapping and render and self.render:
-                try:
-                    mapping = self._render_template_dict(mapping)
-                except exceptions.VaultRenderTemplateError as exc:
-                    message = f'Error while rendering secret at path "{path}"'
-                    raise exceptions.VaultRenderTemplateError(message) from exc
-
-        finally:
-            self._currently_fetching.remove(full_path)
+            mapping = self.cache[full_path]
+        except KeyError:
+            mapping = self.cache[full_path] = self._get_secret(path=full_path)
 
         if key is not None:
             try:
@@ -379,7 +339,7 @@ class VaultClientBase:
         else:
             # Delete only one attribute
             try:
-                secret = self.get_secret(path, render=False)
+                secret = self.get_secret(path)
             except exceptions.VaultSecretNotFound:
                 # secret does not exist
                 return
@@ -401,7 +361,7 @@ class VaultClientBase:
     def delete_all_secrets_iter(self, *paths: str) -> Iterable[str]:
         for path in paths:
             path = path.rstrip("/")
-            secrets_paths = self._browse_recursive_secrets(path=path, render=False)
+            secrets_paths = self._browse_recursive_secrets(path=path)
             for secret_path in secrets_paths:
                 yield secret_path
                 self.delete_secret(secret_path)
@@ -435,7 +395,7 @@ class VaultClientBase:
         delete_source: Optional[bool] = False,
     ) -> Iterable[Tuple[str, str]]:
 
-        source_secrets = self.get_secrets(path=source, render=False)
+        source_secrets = self.get_secrets(path=source)
 
         for old_path, secret in source_secrets.items():
             new_path = dest + old_path[len(source) :]
@@ -517,41 +477,9 @@ class VaultClientBase:
             return iterator
         return list(iterator)
 
-    template_prefix = "!template!"
-
-    def _render_template_value(self, secret: types.JSONValue) -> types.JSONValue:
-
-        if isinstance(secret, dict):
-            return {k: self._render_template_value(v) for k, v in secret.items()}
-        if not isinstance(secret, str):
-            return secret
-
-        if not secret.startswith(self.template_prefix):
-            return secret
-
-        logger.warn(
-            "Templated values are deprecated and will be removed in the "
-            "following major versions.",
-        )
-        return self.render_template(secret[len(self.template_prefix) :])
-
-    def _render_template_dict(
-        self, secrets: Dict[str, types.JSONValue]
-    ) -> Dict[str, types.JSONValue]:
-        result = {}
-        for key, value in secrets.items():
-            try:
-                result[key] = self._render_template_value(value)
-            except exceptions.VaultRenderTemplateError as exc:
-                message = f'Error while rendering secret value for key "{key}"'
-                raise exceptions.VaultRenderTemplateError(message) from exc
-
-        return result
-
     def render_template(
         self,
         template: str,
-        render: bool = True,
         search_path: pathlib.Path = pathlib.Path("."),
     ) -> str:
         """
@@ -581,7 +509,7 @@ class VaultClientBase:
 
         def vault(path):
             try:
-                return self.get_secret(path, render=render)
+                return self.get_secret(path)
             except exceptions.VaultException as exc:
                 raise exceptions.VaultRenderTemplateError(
                     "Error while rendering template"
@@ -631,7 +559,7 @@ class VaultClientBase:
         force = self.get_force(force)
 
         try:
-            existing_value = self.get_secret(path=path, render=False)
+            existing_value = self.get_secret(path=path)
             assert isinstance(existing_value, dict)
         except exceptions.VaultSecretNotFound:
             pass
@@ -675,7 +603,7 @@ class VaultClientBase:
         path = path.rstrip("/")
         for parent in list(pathlib.PurePath(path).parents)[:-1]:
             try:
-                self.get_secret(str(parent), render=False)
+                self.get_secret(str(parent))
             except exceptions.VaultSecretNotFound:
                 pass
             except exceptions.VaultForbidden:
@@ -691,7 +619,7 @@ class VaultClientBase:
 
     def set_secrets(
         self,
-        secrets: Dict[str, JSONDictRecursive],
+        secrets: Dict[str, types.JSONDict],
         force: Optional[bool] = None,
         update: Optional[bool] = None,
     ) -> None:
