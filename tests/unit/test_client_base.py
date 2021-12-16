@@ -461,6 +461,23 @@ def test_vault_client_base_render_template(vault):
     assert vault.render_template("Hello {{ vault('a/b').value }}") == "Hello c"
 
 
+def test_vault_client_base_render_template_error(vault):
+
+    with pytest.raises(exceptions.VaultRenderTemplateError):
+        assert vault.render_template("Hello {{ vault(") == "Hello c"
+
+
+def test_vault_client_base_render_template_security_error(vault):
+
+    with pytest.raises(exceptions.VaultRenderTemplateError):
+        assert (
+            vault.render_template(
+                "Hello {{ joiner.__init__.__globals__.os.popen('date') }}"
+            )
+            == "Hello c"
+        )
+
+
 @pytest.mark.parametrize("template", ["Hello {{ vault('a/b') }}", "Hello {{"])
 def test_vault_client_base_render_template_path_not_found(vault, template):
     with pytest.raises(exceptions.VaultRenderTemplateError):

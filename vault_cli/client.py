@@ -6,6 +6,7 @@ from typing import Dict, Iterable, List, Optional, Tuple, Type, cast
 
 import hvac  # type: ignore
 import jinja2
+import jinja2.sandbox
 import requests.packages.urllib3
 
 from vault_cli import exceptions, sessions, settings, types, utils
@@ -515,12 +516,16 @@ class VaultClientBase:
                     "Error while rendering template"
                 ) from exc
 
-        env = jinja2.Environment(
+        env = jinja2.sandbox.SandboxedEnvironment(
             loader=jinja2.FileSystemLoader(search_path.as_posix()),
             keep_trailing_newline=True,
         )
         try:
             return env.from_string(template).render(vault=vault)
+        except jinja2.exceptions.SecurityError as exc:
+            raise exceptions.VaultRenderTemplateError(
+                "Jinja2 template security error"
+            ) from exc
         except jinja2.exceptions.TemplateSyntaxError as exc:
             raise exceptions.VaultRenderTemplateError(
                 "Jinja2 template syntax error"
