@@ -29,7 +29,7 @@ Create your `Docker vault`_ with:
 .. code:: console
 
     $ docker run \
-        --rm --detach --name vault --port 8200:8200 \
+        --rm --detach --name vault -p 8200:8200 \
         -e 'VAULT_DEV_ROOT_TOKEN_ID=devtoken' \
         -e 'SKIP_SETCAP=1' vault
 
