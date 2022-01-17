@@ -1,5 +1,5 @@
-*       @ewjoachim
+*       @peopledoc/python-community
 
 # Documentation
-*.rst   @ewjoachim @CorBott
-*.md    @ewjoachim @CorBott
+*.rst   @peopledoc/python-community @CorBott
+*.md    @peopledoc/python-community @CorBott
