@@ -8,7 +8,7 @@ def test_extract_metadata():
 
     assert result == {
         "author": "PeopleDoc",
-        "email": "joachim.jablon@people-doc.com",
+        "email": "peopledoc-python@ukg.com",
         "url": "https://github.com/peopledoc/vault-cli",
         "license": "Apache Software License",
     }
