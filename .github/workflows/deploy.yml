@@ -4,10 +4,7 @@ on:
   push:
     tags:
       - '*'
-  release:
-    types:
-      - published
-
+      
 jobs:
   deploy:
     name: Publish package to PyPI
