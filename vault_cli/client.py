@@ -7,7 +7,7 @@ from typing import Dict, Iterable, List, Optional, Tuple, Type, cast
 import hvac  # type: ignore
 import jinja2
 import jinja2.sandbox
-import requests.packages.urllib3
+import requests.packages.urllib3  # type: ignore
 
 from vault_cli import exceptions, sessions, settings, types, utils
 
