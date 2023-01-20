@@ -22,6 +22,8 @@ def test_options(cli_runner, mocker):
         [
             "--base-path",
             "bla",
+            "--namespace",
+            "foobar",            
             "--ca-bundle",
             "yay",
             "--login-cert",
@@ -51,6 +53,7 @@ def test_options(cli_runner, mocker):
         "password",
         "safe_write",
         "token",
+        "namespace",
         "url",
         "username",
         "verify",
@@ -64,6 +67,7 @@ def test_options(cli_runner, mocker):
     assert kwargs["url"] == "https://foo"
     assert kwargs["username"] == "user"
     assert kwargs["verify"] is True
+    assert kwargs["namespace"] is "foobar"
 
 
 @pytest.fixture

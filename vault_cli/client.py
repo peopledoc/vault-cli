@@ -5,6 +5,7 @@ import pathlib
 from typing import Dict, Iterable, List, Optional, Tuple, Type, cast
 
 import hvac  # type: ignore
+import hvac.exceptions  # type: ignore
 import jinja2
 import jinja2.sandbox
 import requests.packages.urllib3  # type: ignore
@@ -61,6 +62,27 @@ def get_client(**kwargs) -> "VaultClientBase":
 def get_client_class() -> Type["VaultClientBase"]:
     return VaultClient
 
+@contextlib.contextmanager
+def handle_errors():
+    try:
+        yield
+    except json.decoder.JSONDecodeError as exc:
+        raise exceptions.VaultNonJsonResponse(errors=[str(exc)])
+    except hvac.exceptions.InvalidRequest as exc:
+        raise exceptions.VaultInvalidRequest(errors=exc.errors) from exc
+    except hvac.exceptions.Unauthorized as exc:
+        raise exceptions.VaultUnauthorized(errors=exc.errors) from exc
+    except hvac.exceptions.Forbidden as exc:
+        raise exceptions.VaultForbidden(errors=exc.errors) from exc
+    except hvac.exceptions.InternalServerError as exc:
+        raise exceptions.VaultInternalServerError(errors=exc.errors) from exc
+    except hvac.exceptions.VaultDown as exc:
+        raise exceptions.VaultSealed(errors=exc.errors) from exc
+    except hvac.exceptions.UnexpectedError as exc:
+        raise exceptions.VaultAPIException(errors=exc.errors) from exc
+    except requests.exceptions.ConnectionError as exc:
+        raise exceptions.VaultConnectionError() from exc
+
 
 class VaultClientBase:
 
@@ -93,6 +115,7 @@ class VaultClientBase:
         self.namespace = namespace
         self.cache: Dict[str, types.JSONDict] = {}
         self.errors: List[str] = []
+        self.kv_engines: Dict[str, types.HVACMethods] = {}
         
 
     @property
@@ -155,13 +178,43 @@ class VaultClientBase:
         self.cache = {}
         self.errors = []
 
+    def _setup_kv_v2_methods(self, mount_point):
+        self.kv_engines[mount_point] = {
+            "read": self.client.secrets.kv.v2.read_secret,
+            "write": self.client.secrets.kv.v2.create_or_update_secret,
+            "delete": self.client.secrets.kv.v2.delete_metadata_and_all_versions,
+            "list": self.client.secrets.kv.v2.list_secrets,
+        }
+    
+    def _setup_kv_v1_methods(self, mount_point):
+        self.kv_engines[mount_point] = {
+            "read": self.client.secrets.kv.v1.read_secret,
+            "write": self.client.secrets.kv.v1.create_or_update_secret,
+            "delete": self.client.secrets.kv.v1.delete_secret,
+            "list": self.client.secrets.kv.v1.list_secrets,
+        }
+
+    @handle_errors()
+    def _setup_kv_engine(self, path):
+        mountpoint = utils.extract_mountpoint(path)
+        if not self.kv_engines.get(mountpoint):
+            mount_config = self.client.read(f"/sys/internal/ui/mounts/{mountpoint}").get("data")
+            kv_version = mount_config.get("options",{}).get("version", "1")
+            if kv_version == "1":
+                self._setup_kv_v1_methods(mountpoint)
+            elif kv_version == "2":
+                self._setup_kv_v2_methods(mountpoint)
+        self.vault_methods = self.kv_engines[mountpoint]      
+
     def _build_full_path(self, path: str) -> str:
-        if path.startswith("/"):
-            # absolute path
-            return path
-        else:
-            # path relative to base_path
-            return self.base_path + path
+        full_path = path if path.startswith("/") else self.base_path + path
+        self._setup_kv_engine(full_path)
+        return full_path
+
+    def _extract_mount_secret_path(self, path) -> Tuple[str, str]:
+        fullpath = self._build_full_path(path)
+        parts = list(filter(None,fullpath.split("/")))
+        return parts[0], "/".join(parts[1:]) or "/"
 
     def _browse_recursive_secrets(self, path: str) -> Iterable[str]:
         """
@@ -690,29 +743,6 @@ class VaultClientBase:
     def _lookup_token(self) -> types.JSONDict:
         raise NotImplementedError
 
-
-@contextlib.contextmanager
-def handle_errors():
-    try:
-        yield
-    except json.decoder.JSONDecodeError as exc:
-        raise exceptions.VaultNonJsonResponse(errors=[str(exc)])
-    except hvac.exceptions.InvalidRequest as exc:
-        raise exceptions.VaultInvalidRequest(errors=exc.errors) from exc
-    except hvac.exceptions.Unauthorized as exc:
-        raise exceptions.VaultUnauthorized(errors=exc.errors) from exc
-    except hvac.exceptions.Forbidden as exc:
-        raise exceptions.VaultForbidden(errors=exc.errors) from exc
-    except hvac.exceptions.InternalServerError as exc:
-        raise exceptions.VaultInternalServerError(errors=exc.errors) from exc
-    except hvac.exceptions.VaultDown as exc:
-        raise exceptions.VaultSealed(errors=exc.errors) from exc
-    except hvac.exceptions.UnexpectedError as exc:
-        raise exceptions.VaultAPIException(errors=exc.errors) from exc
-    except requests.exceptions.ConnectionError as exc:
-        raise exceptions.VaultConnectionError() from exc
-
-
 class VaultClient(VaultClientBase):
     @handle_errors()
     def _init_client(
@@ -747,27 +777,38 @@ class VaultClient(VaultClientBase):
 
     @handle_errors()
     def _list_secrets(self, path: str) -> Iterable[str]:
-        secrets = self.client.list(path)
+        mount_point, path = self._extract_mount_secret_path(path)
+        try:
+            secrets = self.vault_methods["list"](path, mount_point=mount_point)
+        except hvac.exceptions.InvalidPath: # 404 No Secret found
+            return []
         if not secrets:
             return []
         return sorted(secrets["data"]["keys"])
 
     @handle_errors()
     def _get_secret(self, path: str) -> Dict[str, types.JSONValue]:
-        secret = self.client.read(path)
-        if not secret:
+        mount_point, path = self._extract_mount_secret_path(path)
+        try:
+            secret = self.vault_methods["read"](path, mount_point=mount_point)
+            if not secret:
+                raise hvac.exceptions.InvalidPath()
+        except hvac.exceptions.InvalidPath: # 404 No Secret found
             raise exceptions.VaultSecretNotFound(
                 errors=[f"Secret not found at path '{path}'"]
-            )
+            )       
         return secret["data"]
 
     @handle_errors()
     def _delete_secret(self, path: str) -> None:
-        self.client.delete(path)
+        mount_point, path = self._extract_mount_secret_path(path)
+        self.vault_methods["delete"](path, mount_point=mount_point)
+        #self.client.delete(path)
 
     @handle_errors()
     def _set_secret(self, path: str, secret: Dict[str, types.JSONValue]) -> None:
-        self.client.write(path, **secret)
+        mount_point, path = self._extract_mount_secret_path(path)
+        self.vault_methods["write"](path, secret=secret, mount_point=mount_point)
 
     @handle_errors()
     def _lookup_token(self) -> types.JSONDict:

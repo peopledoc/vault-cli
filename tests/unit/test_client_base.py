@@ -36,6 +36,7 @@ def test_vault_client_base_call_init_client():
         "url": "yay",
         "login_cert": "a",
         "login_cert_key": "b",
+        "namespace": None
     }
 
 

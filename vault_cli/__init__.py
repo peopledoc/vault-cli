@@ -29,9 +29,9 @@ __all__ = [
     "VaultSealed",
 ]
 
-_metadata = metadata.extract_metadata()
-__author__ = _metadata["author"]
-__author_email__ = _metadata["email"]
-__license__ = _metadata["license"]
-__url__ = _metadata["url"]
-__version__ = _metadata["version"]
+#_metadata = metadata.extract_metadata()
+# __author__ = _metadata["author"]
+# __author_email__ = _metadata["email"]
+# __license__ = _metadata["license"]
+# __url__ = _metadata["url"]
+# __version__ = _metadata["version"]

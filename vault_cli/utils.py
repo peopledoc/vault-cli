@@ -40,3 +40,7 @@ def extract_error_messages(exc: BaseException) -> Iterable[str]:
         if not opt_exc:
             break
         exc = opt_exc
+
+def extract_mountpoint(path: str) -> str:
+    return next(filter(None,path.split("/")))
+

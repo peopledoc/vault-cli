@@ -16,6 +16,11 @@ class TestVaultClient(client.VaultClientBase):
     def _init_client(self, *args, **kwargs):
         pass
 
+    def _build_full_path(self, path: str) -> str:
+        full_path = path if path.startswith("/") else self.base_path + path
+        return full_path
+
+
     def _authenticate_token(self, *args, **kwargs):
         pass
 

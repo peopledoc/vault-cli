@@ -162,9 +162,9 @@ def set_ACD(cli_runner, clean_vault):
     call(cli_runner, ["set", "C/D", "username=foo", "password=bar"])
 
 
-def test_boostrap_env(set_ACD):
+def test_boostrap_env(set_ACD, cli_runner):
     env = subprocess.check_output(
-        "vault-cli env -p A -p C -p C/D:password=PASS -- env".split()
+        "python -m vault_cli env -p A -p C -p C/D:password=PASS -- env".split()
     )
 
     assert b"A_VALUE=B\n" in env
@@ -194,7 +194,7 @@ Fh34DrZLZim42czNi6I+ww6+/y68rkmExwToM=
         ["set", "ssh_key", f"private={ssh_private}", f"passphrase={ssh_passphrase}"],
     )
     identities = subprocess.run(
-        "vault-cli ssh --key ssh_key:private --passphrase ssh_key:passphrase "
+        "python -m vault_cli ssh --key ssh_key:private --passphrase ssh_key:passphrase "
         "-- ssh-add -L".split(),
         check=True,
         stdout=subprocess.PIPE,
@@ -223,5 +223,5 @@ def umask():
 def test_umask(set_ACD, umask, tmp_path, flag, expected):
     path = tmp_path / "test_boostrap_env"
     # umask = 0o000 => permissions = 0o666 - 0o000 = 0o666
-    subprocess.check_output(f"vault-cli {flag}get A -o {path}".split())
+    subprocess.check_output(f"python -m vault_cli {flag}get A -o {path}".split())
     assert oct(path.stat().st_mode & 0o777) == expected
