@@ -78,6 +78,7 @@ class VaultClientBase:
         username: Optional[str] = settings.DEFAULTS.username,
         password: Optional[str] = settings.DEFAULTS.password,
         safe_write: bool = settings.DEFAULTS.safe_write,
+        namespace: Optional[str] = settings.DEFAULTS.namespace,
     ):
         self.url = url
         self.verify: types.VerifyOrCABundle = verify
@@ -89,8 +90,10 @@ class VaultClientBase:
         self.username = username
         self.password = password
         self.safe_write = safe_write
+        self.namespace = namespace
         self.cache: Dict[str, types.JSONDict] = {}
         self.errors: List[str] = []
+        
 
     @property
     def base_path(self):
@@ -114,6 +117,7 @@ class VaultClientBase:
             verify=verify_ca_bundle,
             login_cert=self.login_cert,
             login_cert_key=self.login_cert_key,
+            namespace=self.namespace,
         )
 
         if self.token:
@@ -655,6 +659,7 @@ class VaultClientBase:
         verify: types.VerifyOrCABundle,
         login_cert: Optional[str],
         login_cert_key: Optional[str],
+        namespace: Optional[str],
     ) -> None:
         raise NotImplementedError
 
@@ -716,6 +721,7 @@ class VaultClient(VaultClientBase):
         verify: types.VerifyOrCABundle,
         login_cert: Optional[str],
         login_cert_key: Optional[str],
+        namespace: Optional[str],
     ) -> None:
         self.session = sessions.Session()
         self.session.verify = verify
@@ -725,7 +731,7 @@ class VaultClient(VaultClientBase):
             cert = (login_cert, login_cert_key)
 
         self.client = hvac.Client(
-            url=url, verify=verify, session=self.session, cert=cert
+            url=url, verify=verify, session=self.session, cert=cert, namespace=namespace
         )
 
     def _authenticate_token(self, token: str) -> None:
