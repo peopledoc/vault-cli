@@ -69,7 +69,7 @@ def test_certificate(mock_hvac_v2_class, mock_hvac_v2):
 
 def test_get_secret(mock_hvac_v2):
 
-    mock_hvac_v2.secrets.kv.v2.read_secret.return_value = {"data": {"value": "b"}}
+    mock_hvac_v2.secrets.kv.v2.read_secret.return_value = {"data": {"data" : {"value": "b"}}}
 
     assert get_client()._get_secret("bla/a") == {"value": "b"}
 
@@ -122,7 +122,7 @@ def test_delete_secret(mock_hvac_v2):
 
 
 def test_delete_secret_one_key(mock_hvac_v2):
-    mock_hvac_v2.secrets.kv.v2.read_secret.return_value = {"data": {"value": "b"}}
+    mock_hvac_v2.secrets.kv.v2.read_secret.return_value = {"data": { "data" : {"value": "b"}}}
 
     get_client().delete_secret("a", "value")
 
@@ -130,7 +130,7 @@ def test_delete_secret_one_key(mock_hvac_v2):
 
 
 def test_delete_secret_many_keys(mock_hvac_v2):
-    mock_hvac_v2.secrets.kv.v2.read_secret.return_value = {"data": {"a": "A", "b": "B"}}
+    mock_hvac_v2.secrets.kv.v2.read_secret.return_value = {"data": { "data" : {"a": "A", "b": "B"}}}
 
     get_client().delete_secret("a", "b")
 
@@ -138,7 +138,7 @@ def test_delete_secret_many_keys(mock_hvac_v2):
     mock_hvac_v2.secrets.kv.v2.create_or_update_secret.assert_called_with("a", secret={"a":"A"}, mount_point="bla")
 
 
-@pytest.mark.parametrize("existing_mapping", [None, {"data": {"a": "A", "b": "B"}}])
+@pytest.mark.parametrize("existing_mapping", [None, {"data": {"data" :{"a": "A", "b": "B"}}}])
 def test_delete_secret_missing_key_or_mapping(mock_hvac_v2, existing_mapping):
     mock_hvac_v2.secrets.kv.v2.read_secret.return_value = existing_mapping
 

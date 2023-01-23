@@ -11,6 +11,12 @@ from vault_cli import cli, exceptions, settings
 
 # To debug cli_runner.invoke, add the argument "catch_exceptions=False"
 
+@pytest.fixture()
+def kvv1_config(tmp_path):
+    with tmp_path.joinpath("vault.kv1.yml").open("w") as fw:
+        yaml.dump({"url": "https://localhost:8443", "base_path": "secretkvv1/", "ca_bundle": "server-chain.crt", "token": "some-token"}, fw)    
+    os.environ["TEST_INTEGRATION_CONFIG_FILE"] = str(tmp_path.joinpath("vault.kv1.yml"))
+    yield str(tmp_path.joinpath("vault.kv1.yml")) 
 
 def test_options(cli_runner, mocker):
     client = mocker.patch("vault_cli.client.get_client_class").return_value
@@ -355,9 +361,9 @@ def test_env_error(cli_runner, vault_with_token, mocker):
     exec_command.assert_not_called()
 
 
-def test_env_envvar_format_error(cli_runner):
+def test_env_envvar_format_error(kvv1_config, cli_runner):
     result = cli_runner.invoke(
-        cli.cli, ["env", "--envvar", ":foo", "--", "echo", "yay"]
+        cli.cli, ["--config-file", kvv1_config, "env", "--envvar", ":foo", "--", "echo", "yay"]
     )
 
     assert result.exit_code != 0

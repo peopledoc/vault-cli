@@ -184,6 +184,7 @@ class VaultClientBase:
             "write": self.client.secrets.kv.v2.create_or_update_secret,
             "delete": self.client.secrets.kv.v2.delete_metadata_and_all_versions,
             "list": self.client.secrets.kv.v2.list_secrets,
+            "_version": 2
         }
     
     def _setup_kv_v1_methods(self, mount_point):
@@ -192,6 +193,7 @@ class VaultClientBase:
             "write": self.client.secrets.kv.v1.create_or_update_secret,
             "delete": self.client.secrets.kv.v1.delete_secret,
             "list": self.client.secrets.kv.v1.list_secrets,
+            "_version": 1
         }
 
     @handle_errors()
@@ -796,9 +798,12 @@ class VaultClient(VaultClientBase):
         except hvac.exceptions.InvalidPath: # 404 No Secret found
             raise exceptions.VaultSecretNotFound(
                 errors=[f"Secret not found at path '{path}'"]
-            )       
-        return secret["data"]
-
+            )
+        if self.vault_methods["_version"] == 1:      
+            return secret["data"]
+        elif self.vault_methods["_version"] == 2:      
+            return secret["data"]["data"]
+        raise exceptions.VaultInvalidRequest()
     @handle_errors()
     def _delete_secret(self, path: str) -> None:
         mount_point, path = self._extract_mount_secret_path(path)
