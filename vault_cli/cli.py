@@ -144,6 +144,9 @@ def repr_octal(value: Optional[int]) -> Optional[str]:
     "for owner and nothing for group & others",
 )
 @click.option(
+    "--namespace", help="Namespace of the vault instance", default=settings.DEFAULTS.namespace
+)
+@click.option(
     "-v",
     "--verbose",
     count=True,

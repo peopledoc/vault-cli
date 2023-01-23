@@ -1,5 +1,5 @@
 ---
 url: https://localhost:8443
-base_path: secretkvv1/
+base_path: secret/
 ca_bundle: server-chain.crt
 token: some-token

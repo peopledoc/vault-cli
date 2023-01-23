@@ -13,3 +13,4 @@ vault.yml
 server-chain.crt
 client.crt
 client.key
+.vscode/

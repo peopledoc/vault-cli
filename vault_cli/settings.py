@@ -27,7 +27,8 @@ class DEFAULTS:
     verify = True
     ca_bundle = None
     safe_write = False
-
+    namespace = None
+    
     @staticmethod
     def _as_dict():
         return {k: v for k, v in vars(DEFAULTS).items() if k[0] != "_"}
